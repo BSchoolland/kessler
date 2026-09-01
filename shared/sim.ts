@@ -1,0 +1,287 @@
+import { DT, PLAYER, WAVES } from "./config";
+import { damagePlayer, emit, healPlayer, launch, makeEntity, player, playerMaxHp, resolveContactForEnemy, spawnShockwave, killEnemy, damageEnemy, type Ctx } from "./actions";
+import { updateEnemyAi } from "./ai";
+import { resolveEnemyCollisions, updateDebris, updateProjectiles, updateShockwaves, updateTelegraphs } from "./hazards";
+import { findContact, gravityAt, inVoid, nearestPlanet, snapToSurface, surfaceNormal, tangentOnly } from "./physics";
+import { Rng } from "./rng";
+import type { Entity, GameState, InputFrame, SwingState } from "./types";
+import { applyOffer, defaultMods } from "./upgrades";
+import { initialWave, updateWave } from "./waves";
+import { generatePlanets } from "./world";
+import { add, angleDelta, angleOf, clamp, dist, dot, fromAngle, len, norm, perp, scale, sub, type Vec } from "./vec";
+
+export function createGame(seed: number, daily = false): GameState {
+  const rng = new Rng(seed);
+  const planets = generatePlanets(rng, 1);
+  const s: GameState = {
+    tick: 0, time: 0, seed, rngState: 0, freeze: 0, planets, entities: [], debris: [], projectiles: [], shockwaves: [],
+    telegraphs: [], nextId: 1, wave: initialWave(), offers: null, mods: defaultMods(), taken: [], score: 0,
+    stats: { kills: 0, voidKills: 0, impactKills: 0, debrisKills: 0, collisionKills: 0, bossKills: 0, damageDealt: 0, damageTaken: 0, swings: 0, dashes: 0, time: 0, bestCombo: 0 },
+    over: false, daily, events: [],
+  };
+  const p = makeEntity(s, "player", { x: 0, y: 0 }, PLAYER.radius, PLAYER.maxHp, 190);
+  p.pos = snapToSurface(planets[0], add(planets[0].pos, fromAngle(-Math.PI / 2)), p.radius);
+  p.planet = 0;
+  p.facing = -Math.PI / 2;
+  s.entities.push(p);
+  s.rngState = rng.s;
+  return s;
+}
+
+export function chooseUpgrade(s: GameState, id: string): void {
+  if (!s.offers || !s.offers.some((o) => o.id === id)) throw new Error(`offer ${id} not available`);
+  applyOffer(id, s.mods, (frac, flat) => healPlayer(s, frac, flat));
+  s.taken.push(id);
+  s.offers = null;
+  player(s).maxHp = playerMaxHp(s);
+  s.wave.phase = "intermission";
+  s.wave.phaseT = WAVES.intermission;
+}
+
+export function step(s: GameState, input: InputFrame): void {
+  s.events = [];
+  if (s.freeze > 0) {
+    s.freeze -= DT;
+    return;
+  }
+  const rng = new Rng(0);
+  rng.s = s.rngState;
+  const ctx: Ctx = { s, rng, dt: DT };
+  s.tick++;
+  s.time += DT;
+  if (!s.over) s.stats.time += DT;
+
+  updateWave(ctx);
+  updatePlayer(ctx, input);
+  for (const e of s.entities) if (e.kind !== "player") updateEnemyAi(ctx, e);
+  integrateEntities(ctx);
+  resolveEnemyCollisions(ctx);
+  updateDebris(ctx);
+  updateProjectiles(ctx);
+  updateShockwaves(ctx);
+  updateTelegraphs(ctx);
+  cullVoid(ctx);
+  s.entities = s.entities.filter((e) => !e.dead || e.kind === "player");
+  s.rngState = rng.s;
+}
+
+function swingDurations(s: GameState) {
+  const m = 1 / s.mods.swingSpeedMult;
+  return { windup: PLAYER.swing.windup * m, active: PLAYER.swing.active * m, recovery: PLAYER.swing.recovery * m };
+}
+
+function updatePlayer(ctx: Ctx, input: InputFrame): void {
+  const { s, dt } = ctx;
+  const p = player(s);
+  const mods = s.mods;
+  p.dashCd -= dt;
+  p.sinceDash += dt;
+  p.invuln -= dt;
+  p.comboT -= dt;
+  p.attackBuffer -= dt;
+  if (s.over) return;
+
+  const aim = len(input.aim) > 1e-6 ? norm(input.aim) : fromAngle(p.facing);
+  p.facing = angleOf(aim);
+  if (input.attack) p.attackBuffer = 0.22;
+
+  // dash
+  if (input.dash && p.dashCd <= 0) {
+    const speed = PLAYER.dashSpeed * mods.dashSpeedMult;
+    p.dashT = PLAYER.dashDuration;
+    p.dashCd = PLAYER.dashCooldown * mods.dashCooldownMult;
+    p.sinceDash = 0;
+    s.stats.dashes++;
+    if (p.swing && p.swing.phase !== "active") p.swing = null;
+    if (p.planet !== null) {
+      const n = surfaceNormal(s.planets[p.planet], p.pos);
+      if (dot(aim, n) < 0.18) {
+        // skim along the surface
+        const t = perp(n);
+        const dir = scale(t, Math.sign(dot(aim, t)) || 1);
+        p.vel = scale(dir, speed);
+      } else {
+        p.vel = scale(aim, speed);
+        p.planet = null;
+      }
+    } else {
+      p.vel = scale(aim, speed);
+    }
+    emit(s, { type: "dash", pos: p.pos, dir: aim });
+  }
+
+  if (p.dashT > 0) {
+    p.dashT -= dt;
+    if (p.dashT <= 0) {
+      p.dashT = 0;
+      if (p.planet === null) p.vel = scale(p.vel, 0.42);
+    }
+  } else if (p.planet !== null) {
+    const planet = s.planets[p.planet];
+    const n = surfaceNormal(planet, p.pos);
+    const t = perp(n);
+    const want = dot(input.move, t) * PLAYER.walkSpeed * mods.moveSpeedMult;
+    const cur = dot(p.vel, t);
+    const accel = PLAYER.walkAccel * dt;
+    const nv = cur + clamp(want - cur, -accel, accel);
+    p.vel = scale(t, nv);
+  } else {
+    const steer = PLAYER.airAccel * mods.airControlMult;
+    p.vel = add(p.vel, scale(input.move, steer * dt));
+  }
+
+  // swing
+  if (!p.swing && p.attackBuffer > 0 && p.dashT <= 0) {
+    p.attackBuffer = 0;
+    const d = swingDurations(s);
+    if (p.comboT > 0) p.comboIdx = (p.comboIdx + 1) % 2;
+    else p.comboIdx = 0;
+    const sw: SwingState = { phase: "windup", t: d.windup, angle: p.facing, dir: p.comboIdx === 0 ? 1 : -1, dashStrike: p.sinceDash < PLAYER.dashStrikeWindow, hit: [] };
+    p.swing = sw;
+    s.stats.swings++;
+    emit(s, { type: "swing", pos: p.pos, angle: sw.angle, dashStrike: sw.dashStrike });
+  }
+  if (p.swing) {
+    const sw = p.swing;
+    const d = swingDurations(s);
+    sw.t -= dt;
+    if (sw.phase === "active") resolveSwingHits(ctx, p, sw);
+    if (sw.t <= 0) {
+      if (sw.phase === "windup") { sw.phase = "active"; sw.t = d.active; }
+      else if (sw.phase === "active") { sw.phase = "recovery"; sw.t = d.recovery; }
+      else { p.swing = null; p.comboT = PLAYER.swing.comboWindow; }
+    }
+  }
+}
+
+function inArc(origin: Vec, angle: number, halfArc: number, reach: number, target: Vec, targetRadius: number): boolean {
+  const d = dist(origin, target);
+  if (d > reach + targetRadius) return false;
+  if (d < targetRadius + 6) return true;
+  const a = angleOf(sub(target, origin));
+  const extra = Math.asin(clamp(targetRadius / Math.max(d, 1e-3), 0, 1));
+  return Math.abs(angleDelta(angle, a)) <= halfArc + extra;
+}
+
+function resolveSwingHits(ctx: Ctx, p: Entity, sw: SwingState): void {
+  const { s } = ctx;
+  const mods = s.mods;
+  const reach = PLAYER.swing.reach * mods.reachMult;
+  const half = PLAYER.swing.arc / 2;
+  const berserk = mods.berserk && p.hp < p.maxHp * 0.5 ? 1.35 : 1;
+  const dmg = PLAYER.swing.damage * mods.damageMult * (sw.dashStrike ? PLAYER.dashStrikeMult : 1) * berserk;
+  const kb = PLAYER.swing.knockback * mods.knockbackMult * (sw.dashStrike ? 1.45 : 1);
+  let combo = 0;
+  for (const e of s.entities) {
+    if (e.kind === "player" || e.dead || e.spawnT > 0 || sw.hit.includes(e.id)) continue;
+    if (!inArc(p.pos, sw.angle, half, reach, e.pos, e.radius)) continue;
+    sw.hit.push(e.id);
+    const dir = norm(sub(e.pos, p.pos));
+    const hitPos = add(p.pos, scale(dir, Math.min(dist(p.pos, e.pos), reach)));
+    launch(e, add(dir, scale(fromAngle(sw.angle), 0.35)), kb, PLAYER.swing.stun);
+    s.freeze = Math.max(s.freeze, sw.dashStrike ? 0.045 : 0.028);
+    damageEnemy(ctx, e, dmg, "blade", hitPos, dir, sw.dashStrike);
+    combo++;
+  }
+  for (const d of s.debris) {
+    if (sw.hit.includes(d.id)) continue;
+    if (!inArc(p.pos, sw.angle, half, reach, d.pos, d.radius)) continue;
+    sw.hit.push(d.id);
+    const dir = norm(add(norm(sub(d.pos, p.pos)), fromAngle(sw.angle)));
+    d.vel = scale(dir, kb * 1.25);
+    d.life = Math.max(d.life, 4);
+    d.hitCd = 0;
+    emit(s, { type: "debrisHit", pos: d.pos, damage: 0 });
+  }
+  for (const pr of s.projectiles) {
+    if (pr.friendly || sw.hit.includes(pr.id)) continue;
+    if (!inArc(p.pos, sw.angle, half, reach, pr.pos, pr.radius)) continue;
+    sw.hit.push(pr.id);
+    pr.friendly = true;
+    pr.vel = scale(fromAngle(sw.angle), len(pr.vel) * 1.3);
+    pr.life = 3;
+    emit(s, { type: "hit", pos: pr.pos, dir: fromAngle(sw.angle), damage: 0, crit: false, target: "orbiter" });
+  }
+  if (combo > 1) {
+    emit(s, { type: "combo", pos: p.pos, idx: combo });
+    s.stats.bestCombo = Math.max(s.stats.bestCombo, combo);
+  }
+}
+
+function integrateEntities(ctx: Ctx): void {
+  const { s, dt } = ctx;
+  for (const e of s.entities) {
+    if (e.dead) continue;
+    if (e.kind === "orbiter" && e.orbit) continue; // kinematic
+    if (e.planet !== null) {
+      const planet = s.planets[e.planet];
+      if (e.stun > 0 && e.kind !== "player") {
+        // sliding while stunned: friction
+        const sp = len(e.vel);
+        const drop = 900 * dt;
+        e.vel = sp <= drop ? { x: 0, y: 0 } : scale(e.vel, (sp - drop) / sp);
+      }
+      e.pos = add(e.pos, scale(e.vel, dt));
+      e.pos = snapToSurface(planet, e.pos, e.radius);
+      e.vel = tangentOnly(planet, e.pos, e.vel);
+      e.stun = Math.max(0, e.stun - dt);
+      continue;
+    }
+    if (!(e.kind === "player" && e.dashT > 0)) e.vel = add(e.vel, scale(gravityAt(s.planets, e.pos), dt));
+    if (e.spawnT > 0) {
+      e.airTime += dt;
+      if (e.airTime > 4) {
+        const { planet } = nearestPlanet(s.planets, e.pos);
+        e.vel = add(scale(e.vel, Math.exp(-1.5 * dt)), scale(norm(sub(planet.pos, e.pos)), 900 * dt));
+      }
+    }
+    e.pos = add(e.pos, scale(e.vel, dt));
+    e.stun = Math.max(0, e.stun - dt);
+    if (e.kind === "player") resolveContactForPlayer(ctx, e);
+    else resolveContactForEnemy(ctx, e);
+  }
+}
+
+function resolveContactForPlayer(ctx: Ctx, p: Entity): void {
+  const { s } = ctx;
+  const c = findContact(s.planets, p.pos, p.vel, p.radius);
+  if (!c) return;
+  p.pos = snapToSurface(c.planet, p.pos, p.radius);
+  p.planet = c.planet.id;
+  const vn = dot(p.vel, c.normal);
+  p.vel = sub(p.vel, scale(c.normal, vn));
+  if (p.dashT > 0) {
+    p.dashT = 0;
+    p.vel = scale(p.vel, 0.6);
+  }
+  emit(s, { type: "land", pos: p.pos, normal: c.normal, speed: c.speedIn, kind: "player" });
+  if (c.speedIn > PLAYER.impactThreshold && !s.mods.gravityBoots) {
+    damagePlayer(ctx, Math.round((c.speedIn - PLAYER.impactThreshold) * PLAYER.impactDamagePerUnit), "impact");
+  }
+  if (s.mods.aftershock && c.speedIn > 380) {
+    const a = Math.atan2(c.normal.y, c.normal.x);
+    spawnShockwave(s, c.planet.id, a, 18 + c.speedIn * 0.03, true, 4.5, Math.PI * 0.6);
+  }
+}
+
+function cullVoid(ctx: Ctx): void {
+  const { s } = ctx;
+  for (const e of s.entities) {
+    if (e.dead || !inVoid(e.pos)) continue;
+    if (e.kind === "player") {
+      emit(s, { type: "void", pos: e.pos, kind: "player" });
+      s.over = true;
+      e.hp = 0;
+      emit(s, { type: "playerDead", pos: e.pos });
+      continue;
+    }
+    emit(s, { type: "void", pos: e.pos, kind: e.kind });
+    if (e.spawnT > 0) {
+      // a pod that missed everything: nobody scores
+      e.dead = true;
+      s.wave.alive--;
+    } else {
+      killEnemy(ctx, e, "void");
+    }
+  }
+}

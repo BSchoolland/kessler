@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<title>KESSLER</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud" class="hidden">
+  <div class="hp-wrap">
+    <div class="hp-bar"><div id="hp-fill"></div></div>
+    <div class="hp-row"><span id="hp-text">100</span><span id="dash-text" class="dash ready">DASH</span></div>
+  </div>
+  <div class="top-center">
+    <div id="wave-label">WAVE 1</div>
+    <div id="sector-label">SECTOR 1</div>
+  </div>
+  <div class="score-wrap">
+    <div id="score">0</div>
+    <div id="best">BEST 0</div>
+  </div>
+  <div id="boss-bar" class="hidden"><div class="boss-name">THE ACCRETOR</div><div class="boss-track"><div id="boss-fill"></div></div></div>
+  <div id="fps" class="hidden"></div>
+</div>
+
+<div id="banner" class="hidden"><div id="banner-title"></div><div id="banner-sub"></div></div>
+
+<div id="menu" class="screen">
+  <div class="title-block">
+    <h1>KESSLER</h1>
+    <p class="tag">a sword. a handful of planets. gravity does the rest.</p>
+  </div>
+  <div class="menu-buttons">
+    <button id="btn-play" class="primary">PLAY</button>
+    <button id="btn-daily">DAILY CHALLENGE</button>
+    <button id="btn-howto">HOW TO PLAY</button>
+    <button id="btn-leaderboard">LEADERBOARD</button>
+    <button id="btn-settings">SETTINGS</button>
+  </div>
+  <div class="menu-foot">
+    <label>PILOT <input id="name" maxlength="16" placeholder="anonymous" autocomplete="off" /></label>
+    <div id="menu-best"></div>
+  </div>
+</div>
+
+<div id="howto" class="screen modal hidden">
+  <h2>HOW TO PLAY</h2>
+  <div class="howto-grid">
+    <div><b>MOVE</b> WASD / left stick — you walk along the planet you're standing on</div>
+    <div><b>AIM</b> mouse / right stick</div>
+    <div><b>SWING</b> left click / RT — telegraphed arc. Hits knock enemies <i>away</i></div>
+    <div><b>DASH</b> space, shift or right click / LT — the only way to leave a planet. You're invulnerable while dashing</div>
+    <div><b>DASH-STRIKE</b> swing right after a dash for 2× damage and a much harder launch</div>
+  </div>
+  <div class="howto-notes">
+    <p>Knockback is the whole game. Launched enemies take <b>impact damage</b> when they hit a planet, <b>bowl</b> into their friends, or fly past the red ring and are <b>lost to the void</b>.</p>
+    <p>Every kill shatters into <b>debris</b> that keeps orbiting and keeps hitting things — including you. The better you're doing, the messier it gets. Swing at debris to bat it.</p>
+    <p>Enemies arrive by pod. Orbiters circle a planet and shoot; swing at their shots to send them back.</p>
+  </div>
+  <button class="close">BACK</button>
+</div>
+
+<div id="settings" class="screen modal hidden">
+  <h2>SETTINGS</h2>
+  <label class="row"><span>Screen shake</span><input type="checkbox" id="set-shake" /></label>
+  <label class="row"><span>Damage numbers</span><input type="checkbox" id="set-dmg" /></label>
+  <label class="row"><span>Gamepad aim assist</span><input type="checkbox" id="set-assist" /></label>
+  <label class="row"><span>Show FPS</span><input type="checkbox" id="set-fps" /></label>
+  <label class="row"><span>SFX volume</span><input type="range" id="set-sfx" min="0" max="1" step="0.05" /></label>
+  <label class="row"><span>Music volume</span><input type="range" id="set-music" min="0" max="1" step="0.05" /></label>
+  <button class="close">BACK</button>
+</div>
+
+<div id="leaderboard" class="screen modal hidden">
+  <h2>LEADERBOARD</h2>
+  <div class="tabs"><button data-board="endless" class="tab active">ENDLESS</button><button data-board="daily" class="tab">TODAY</button></div>
+  <ol id="lb-list"></ol>
+  <button class="close">BACK</button>
+</div>
+
+<div id="offers" class="screen modal hidden">
+  <h2>CHOOSE AN UPGRADE</h2>
+  <div id="offer-cards"></div>
+  <p class="hint">1 / 2 / 3 or click · gamepad X / Y / RB</p>
+</div>
+
+<div id="pause" class="screen modal hidden">
+  <h2>PAUSED</h2>
+  <button id="btn-resume" class="primary">RESUME</button>
+  <button id="btn-quit">QUIT TO MENU</button>
+</div>
+
+<div id="gameover" class="screen modal hidden">
+  <h2 id="go-title">LOST</h2>
+  <p id="go-sub"></p>
+  <div id="go-stats" class="stats"></div>
+  <div id="go-rank"></div>
+  <ol id="go-list"></ol>
+  <div class="menu-buttons row-buttons">
+    <button id="btn-again" class="primary">AGAIN</button>
+    <button id="btn-menu">MENU</button>
+  </div>
+</div>
+
+<script type="module" src="./src/main.ts"></script>
+</body>
+</html>
