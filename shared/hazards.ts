@@ -1,5 +1,5 @@
-import { DEBRIS, GRAVITY, IMPACT } from "./config";
-import { damageEnemy, damagePlayer, emit, player, type Ctx } from "./actions";
+import { DEBRIS, GRAVITY, GUN, IMPACT } from "./config";
+import { damageEnemy, damagePlayer, emit, launch, player, type Ctx } from "./actions";
 import { findContact, gravityAt, inVoid, snapToSurface, surfaceNormal } from "./physics";
 import { add, angleDelta, dist, dot, len, scale, sub } from "./vec";
 
@@ -70,7 +70,7 @@ export function updateProjectiles(ctx: Ctx): void {
   const keep = [];
   for (const pr of s.projectiles) {
     pr.life -= dt;
-    pr.vel = add(pr.vel, scale(gravityAt(s.planets, pr.pos, GRAVITY.projectileScale), dt));
+    pr.vel = add(pr.vel, scale(gravityAt(s.planets, pr.pos, pr.slug ? GUN.gravityScale : GRAVITY.projectileScale), dt));
     pr.pos = add(pr.pos, scale(pr.vel, dt));
     if (pr.life <= 0 || inVoid(pr.pos)) continue;
     const c = findContact(s.planets, pr.pos, pr.vel, pr.radius);
@@ -80,7 +80,10 @@ export function updateProjectiles(ctx: Ctx): void {
       for (const e of s.entities) {
         if (e.id === p.id || e.dead || e.spawnT > 0) continue;
         if (dist(e.pos, pr.pos) < e.radius + pr.radius) {
-          damageEnemy(ctx, e, pr.damage * 1.5, "projectile", pr.pos, scale(pr.vel, 1 / (len(pr.vel) || 1)), true);
+          const dir = scale(pr.vel, 1 / (len(pr.vel) || 1));
+          launch(e, dir, pr.knockback, pr.slug ? GUN.stun : 0.4);
+          s.freeze = Math.max(s.freeze, pr.slug ? 0.035 : 0.02);
+          damageEnemy(ctx, e, pr.slug ? pr.damage * s.mods.slugDamageMult : pr.damage * 1.5, "projectile", pr.pos, dir, pr.slug);
           hit = true;
           break;
         }

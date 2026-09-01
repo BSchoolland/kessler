@@ -6,7 +6,7 @@ import { player } from "../shared/actions";
 import type { InputFrame } from "../shared/types";
 import { inVoid } from "../shared/physics";
 
-const idle: InputFrame = { move: { x: 0, y: 0 }, aim: { x: 1, y: 0 }, attack: false, dash: false };
+const idle: InputFrame = { move: { x: 0, y: 0 }, aim: { x: 1, y: 0 }, attack: false, dash: false, swap: false };
 
 describe("sim", () => {
   it("is deterministic for the same seed and inputs", () => {
@@ -53,6 +53,19 @@ describe("sim", () => {
       waves += s.wave.n;
     }
     expect(waves / 3).toBeGreaterThan(2);
+  });
+
+  it("gun spends ammo, sword hits refill it", () => {
+    const s = createGame(5);
+    for (let i = 0; i < 60 * 12; i++) step(s, idle);
+    expect(s.ammo).toBe(3);
+    step(s, { ...idle, swap: true });
+    expect(s.weapon).toBe("gun");
+    step(s, { ...idle, attack: true });
+    expect(s.ammo).toBe(2);
+    expect(s.events.some((e) => e.type === "gunshot")).toBe(true);
+    for (let i = 0; i < 30; i++) step(s, { ...idle, attack: i % 25 === 0 });
+    expect(s.ammo).toBe(1);
   });
 
   it("dash strike launches an enemy off the planet", () => {

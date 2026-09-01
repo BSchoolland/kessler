@@ -16,10 +16,14 @@ arena gets more dangerous the better you're doing. Hence the name.
 | Aim | mouse | right stick (aim assist when idle) |
 | Swing | left click / J | RT / A |
 | Dash | space / shift / right click / K | LT / B |
+| Swap sword / gun | Q / Tab / E / scroll | Y / X |
 | Pause | Esc / P | Start |
 
 Swing right after a dash for a **dash-strike**: double damage and a much harder launch.
 You're invulnerable while dashing.
+
+The **gun** fires a heavy slug that launches whatever it hits from range. It has no
+reload: every sword hit on an enemy earns one round (6 max, more with upgrades).
 
 ## Architecture
 

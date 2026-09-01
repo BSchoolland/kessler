@@ -1,10 +1,10 @@
-import { DT, PLAYER, WAVES } from "./config";
+import { DT, GUN, PLAYER, WAVES } from "./config";
 import { damagePlayer, emit, healPlayer, launch, makeEntity, player, playerMaxHp, resolveContactForEnemy, spawnShockwave, killEnemy, damageEnemy, type Ctx } from "./actions";
 import { updateEnemyAi } from "./ai";
 import { resolveEnemyCollisions, updateDebris, updateProjectiles, updateShockwaves, updateTelegraphs } from "./hazards";
 import { findContact, gravityAt, inVoid, nearestPlanet, snapToSurface, surfaceNormal, tangentOnly } from "./physics";
 import { Rng } from "./rng";
-import type { Entity, GameState, InputFrame, SwingState } from "./types";
+import type { Entity, GameState, InputFrame, Projectile, SwingState } from "./types";
 import { applyOffer, defaultMods } from "./upgrades";
 import { initialWave, updateWave } from "./waves";
 import { generatePlanets } from "./world";
@@ -17,7 +17,7 @@ export function createGame(seed: number, daily = false): GameState {
     tick: 0, time: 0, seed, rngState: 0, freeze: 0, planets, entities: [], debris: [], projectiles: [], shockwaves: [],
     telegraphs: [], nextId: 1, wave: initialWave(), offers: null, mods: defaultMods(), taken: [], score: 0,
     stats: { kills: 0, voidKills: 0, impactKills: 0, debrisKills: 0, collisionKills: 0, bossKills: 0, damageDealt: 0, damageTaken: 0, swings: 0, dashes: 0, time: 0, bestCombo: 0 },
-    over: false, daily, events: [],
+    over: false, daily, events: [], weapon: "sword", ammo: GUN.ammoStart, gunCd: 0,
   };
   const p = makeEntity(s, "player", { x: 0, y: 0 }, PLAYER.radius, PLAYER.maxHp, 190);
   p.pos = snapToSurface(planets[0], add(planets[0].pos, fromAngle(-Math.PI / 2)), p.radius);
@@ -32,6 +32,7 @@ export function chooseUpgrade(s: GameState, id: string): void {
   if (!s.offers || !s.offers.some((o) => o.id === id)) throw new Error(`offer ${id} not available`);
   applyOffer(id, s.mods, (frac, flat) => healPlayer(s, frac, flat));
   s.taken.push(id);
+  if (id.startsWith("magazine:")) s.ammo = ammoMax(s);
   s.offers = null;
   player(s).maxHp = playerMaxHp(s);
   s.wave.phase = "intermission";
@@ -65,6 +66,10 @@ export function step(s: GameState, input: InputFrame): void {
   s.rngState = rng.s;
 }
 
+export function ammoMax(s: GameState): number {
+  return GUN.ammoMax + s.mods.ammoMaxBonus;
+}
+
 function swingDurations(s: GameState) {
   const m = 1 / s.mods.swingSpeedMult;
   return { windup: PLAYER.swing.windup * m, active: PLAYER.swing.active * m, recovery: PLAYER.swing.recovery * m };
@@ -79,14 +84,23 @@ function updatePlayer(ctx: Ctx, input: InputFrame): void {
   p.invuln -= dt;
   p.comboT -= dt;
   p.attackBuffer -= dt;
+  p.dashBuffer -= dt;
+  s.gunCd -= dt;
   if (s.over) return;
 
   const aim = len(input.aim) > 1e-6 ? norm(input.aim) : fromAngle(p.facing);
   p.facing = angleOf(aim);
   if (input.attack) p.attackBuffer = 0.22;
+  if (input.dash) p.dashBuffer = 0.2;
+  if (input.swap) {
+    s.weapon = s.weapon === "sword" ? "gun" : "sword";
+    if (p.swing && p.swing.phase !== "active") p.swing = null;
+    emit(s, { type: "swap", pos: p.pos, weapon: s.weapon });
+  }
 
   // dash
-  if (input.dash && p.dashCd <= 0) {
+  if (p.dashBuffer > 0 && p.dashCd <= 0) {
+    p.dashBuffer = 0;
     const speed = PLAYER.dashSpeed * mods.dashSpeedMult;
     p.dashT = PLAYER.dashDuration;
     p.dashCd = PLAYER.dashCooldown * mods.dashCooldownMult;
@@ -130,8 +144,27 @@ function updatePlayer(ctx: Ctx, input: InputFrame): void {
     p.vel = add(p.vel, scale(input.move, steer * dt));
   }
 
+  // gun
+  if (s.weapon === "gun" && p.attackBuffer > 0 && !p.swing) {
+    if (s.gunCd > 0) {
+      // keep the press buffered until the gun is ready
+    } else if (s.ammo <= 0) {
+      p.attackBuffer = 0;
+      emit(s, { type: "empty", pos: p.pos });
+    } else {
+      p.attackBuffer = 0;
+      s.ammo--;
+      s.gunCd = GUN.cooldown;
+      const pr: Projectile = { id: s.nextId++, pos: add(p.pos, scale(aim, p.radius + 6)), vel: add(scale(aim, GUN.speed), scale(p.vel, 0.3)), radius: GUN.radius, life: GUN.life, damage: GUN.damage, hue: 190, friendly: true, knockback: GUN.knockback * mods.knockbackMult, slug: true };
+      s.projectiles.push(pr);
+      if (p.planet === null) p.vel = sub(p.vel, scale(aim, GUN.recoil));
+      s.stats.swings++;
+      emit(s, { type: "gunshot", pos: pr.pos, dir: aim });
+    }
+  }
+
   // swing
-  if (!p.swing && p.attackBuffer > 0 && p.dashT <= 0) {
+  if (s.weapon === "sword" && !p.swing && p.attackBuffer > 0 && p.dashT <= 0) {
     p.attackBuffer = 0;
     const d = swingDurations(s);
     if (p.comboT > 0) p.comboIdx = (p.comboIdx + 1) % 2;
@@ -182,6 +215,10 @@ function resolveSwingHits(ctx: Ctx, p: Entity, sw: SwingState): void {
     s.freeze = Math.max(s.freeze, sw.dashStrike ? 0.045 : 0.028);
     damageEnemy(ctx, e, dmg, "blade", hitPos, dir, sw.dashStrike);
     combo++;
+    if (s.ammo < ammoMax(s)) {
+      s.ammo = Math.min(ammoMax(s), s.ammo + mods.ammoPerHit);
+      emit(s, { type: "ammo", pos: p.pos, ammo: s.ammo });
+    }
   }
   for (const d of s.debris) {
     if (sw.hit.includes(d.id)) continue;
@@ -200,6 +237,7 @@ function resolveSwingHits(ctx: Ctx, p: Entity, sw: SwingState): void {
     pr.friendly = true;
     pr.vel = scale(fromAngle(sw.angle), len(pr.vel) * 1.3);
     pr.life = 3;
+    pr.knockback = 380;
     emit(s, { type: "hit", pos: pr.pos, dir: fromAngle(sw.angle), damage: 0, crit: false, target: "orbiter" });
   }
   if (combo > 1) {

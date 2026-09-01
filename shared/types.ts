@@ -5,6 +5,7 @@ export interface InputFrame {
   aim: Vec;           // unit vector from the player
   attack: boolean;    // pressed this frame
   dash: boolean;      // pressed this frame
+  swap: boolean;      // pressed this frame: toggle sword/gun
 }
 
 export interface Planet {
@@ -57,6 +58,7 @@ export interface Entity {
   orbit: OrbitState | null;
   spawnT: number;            // pod descent guard; enemies are inert until they land the first time
   attackBuffer: number;
+  dashBuffer: number;
   airTime: number;
   hue: number;
 }
@@ -103,6 +105,8 @@ export interface Projectile {
   damage: number;
   hue: number;
   friendly: boolean;
+  knockback: number;
+  slug: boolean;
 }
 
 export interface Shockwave {
@@ -146,7 +150,13 @@ export type GameEvent =
   | { type: "shockwave"; pos: Vec }
   | { type: "bossPhase"; pos: Vec }
   | { type: "debrisHit"; pos: Vec; damage: number }
-  | { type: "combo"; pos: Vec; idx: number };
+  | { type: "combo"; pos: Vec; idx: number }
+  | { type: "swap"; pos: Vec; weapon: Weapon }
+  | { type: "gunshot"; pos: Vec; dir: Vec }
+  | { type: "empty"; pos: Vec }
+  | { type: "ammo"; pos: Vec; ammo: number };
+
+export type Weapon = "sword" | "gun";
 
 export interface UpgradeMods {
   reachMult: number;
@@ -166,6 +176,9 @@ export interface UpgradeMods {
   airControlMult: number;
   voidBonusMult: number;
   berserk: boolean;
+  ammoMaxBonus: number;
+  ammoPerHit: number;
+  slugDamageMult: number;
 }
 
 export interface UpgradeOffer {
@@ -223,4 +236,7 @@ export interface GameState {
   over: boolean;
   daily: boolean;
   events: GameEvent[];
+  weapon: Weapon;
+  ammo: number;
+  gunCd: number;
 }

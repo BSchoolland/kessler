@@ -38,6 +38,7 @@ let fpsAvg = 60;
 let voidDeath = false;
 let submitted = false;
 let finishing = false;
+let pending = { attack: false, dash: false, swap: false };
 
 function applySettings(): void {
   const st = profile.settings;
@@ -85,6 +86,7 @@ function startRun(daily: boolean): void {
   voidDeath = false;
   submitted = false;
   finishing = false;
+  pending = { attack: false, dash: false, swap: false };
   mode = "playing";
   ui.hideAllScreens();
   ui.showHud(true);
@@ -153,12 +155,17 @@ function frame(now: number): void {
       else {
         acc += rawDt;
         let steps = 0;
-        // input edges must only fire once even if several sim steps run this frame
-        let frameInput = snap.frame;
+        // Edges are latched until a sim step actually consumes them: on a 120Hz+ display or during
+        // a hit-stop freeze a frame may run zero steps, and the press must not be lost.
+        pending.attack ||= snap.frame.attack;
+        pending.dash ||= snap.frame.dash;
+        pending.swap ||= snap.frame.swap;
         while (acc >= DT && steps < 6) {
+          const frozen = s.freeze > 0;
+          let frameInput = { ...snap.frame, attack: pending.attack && !frozen, dash: pending.dash && !frozen, swap: pending.swap && !frozen };
           if (BOT) frameInput = botInput(s, () => botRng.next());
           step(s, frameInput);
-          frameInput = { ...frameInput, attack: false, dash: false };
+          if (!frozen) pending = { attack: false, dash: false, swap: false };
           applyEvents(s, s.events, particles, cam, { banner: (t, sub, k) => ui.banner(t, sub, k), hurtFlash: () => (renderer.hurtFlash = 1) });
           for (const ev of s.events) if (ev.type === "void" && ev.kind === "player") voidDeath = true;
           acc -= DT;
@@ -193,7 +200,7 @@ function frame(now: number): void {
   } else {
     // menu backdrop: an idle demo world
     if (!demo) { demo = createGame(7); cam.snap({ x: 0, y: 0 }); }
-    step(demo, { move: { x: 0, y: 0 }, aim: { x: 1, y: 0 }, attack: false, dash: false });
+    step(demo, { move: { x: 0, y: 0 }, aim: { x: 1, y: 0 }, attack: false, dash: false, swap: false });
     if (demo.wave.n > 3 || demo.over) demo = createGame((Math.random() * 1e9) >>> 0);
     cam.targetZoom = 0.42;
     cam.zoom += (cam.targetZoom - cam.zoom) * 0.02;

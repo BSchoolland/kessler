@@ -321,13 +321,13 @@ export class Renderer {
     const ctx = this.ctx;
     ctx.globalCompositeOperation = "lighter";
     for (const pr of s.projectiles) {
-      const c = pr.friendly ? PLAYER_COLOR : hsl(pr.hue, 100, 70);
+      const c = pr.slug ? "#ffe07a" : pr.friendly ? PLAYER_COLOR : hsl(pr.hue, 100, 70);
       ctx.strokeStyle = c;
-      ctx.lineWidth = 3;
-      ctx.globalAlpha = 0.5;
+      ctx.lineWidth = pr.slug ? 4 : 3;
+      ctx.globalAlpha = 0.55;
       ctx.beginPath();
       ctx.moveTo(pr.pos.x, pr.pos.y);
-      ctx.lineTo(pr.pos.x - pr.vel.x * 0.06, pr.pos.y - pr.vel.y * 0.06);
+      ctx.lineTo(pr.pos.x - pr.vel.x * (pr.slug ? 0.045 : 0.06), pr.pos.y - pr.vel.y * (pr.slug ? 0.045 : 0.06));
       ctx.stroke();
       ctx.globalAlpha = 1;
       ctx.fillStyle = c;
@@ -417,8 +417,23 @@ export class Renderer {
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-    // blade (idle)
-    if (!sw) {
+    // idle weapon
+    if (s.weapon === "gun") {
+      ctx.strokeStyle = "#ffe07a";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(r * 0.3, r * 0.45);
+      ctx.lineTo(r * 1.9, r * 0.35);
+      ctx.stroke();
+      if (s.gunCd > 0) {
+        ctx.strokeStyle = "rgba(255,224,122,0.35)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(r * 1.9, r * 0.35);
+        ctx.lineTo(r * 1.9 + 8, r * 0.35);
+        ctx.stroke();
+      }
+    } else if (!sw) {
       ctx.strokeStyle = "#e8fbff";
       ctx.lineWidth = 2;
       ctx.beginPath();

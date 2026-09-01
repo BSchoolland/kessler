@@ -14,6 +14,15 @@
 4. **Juice everywhere.** Hit-stop, trauma shake, floating numbers, freeze on kills,
    kill labels (SPLAT / BOWLED / LOST TO THE VOID), music intensity tied to threat.
 
+## Sword and gun
+
+The sword is the economy, the gun is the spend. Sword hits earn rounds (1 each,
+Scavenger makes it 2); the gun fires a fast slug that launches on hit with more
+knockback than a normal swing, at range, with gravity drop. It exists for the two
+things the sword can't do: reach orbiters without leaving the ground, and line
+up a launch from the far side of a gap. Empty gun clicks and says so. Swapping is
+instant and cancels a wind-up, not an active swing.
+
 ## Physics
 
 - Every planet pulls with the same surface gravity; reach scales with radius². A

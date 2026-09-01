@@ -195,7 +195,7 @@ function updateOrbiter(ctx: Ctx, e: Entity): void {
         const tof = clamp(dist(p.pos, e.pos) / speed, 0, 1.2);
         const target = add(p.pos, scale(p.vel, tof * 0.6));
         const dir = norm(sub(target, e.pos));
-        const pr: Projectile = { id: s.nextId++, pos: add(e.pos, scale(dir, e.radius + 4)), vel: scale(dir, speed), radius: 5, life: 3.2, damage: def.damage, hue: def.hue, friendly: false };
+        const pr: Projectile = { id: s.nextId++, pos: add(e.pos, scale(dir, e.radius + 4)), vel: scale(dir, speed), radius: 5, life: 3.2, damage: def.damage, hue: def.hue, friendly: false, knockback: 320, slug: false };
         s.projectiles.push(pr);
         emit(s, { type: "shot", pos: pr.pos, dir });
         ai.state = "idle";

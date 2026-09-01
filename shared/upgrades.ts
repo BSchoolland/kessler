@@ -6,7 +6,7 @@ export function defaultMods(): UpgradeMods {
     reachMult: 1, swingSpeedMult: 1, damageMult: 1, knockbackMult: 1, moveSpeedMult: 1,
     dashCooldownMult: 1, dashSpeedMult: 1, maxHpBonus: 0, impactMult: 1, debrisExtra: 0,
     debrisDamageMult: 1, lifesteal: 0, aftershock: false, gravityBoots: false, airControlMult: 1,
-    voidBonusMult: 1, berserk: false,
+    voidBonusMult: 1, berserk: false, ammoMaxBonus: 0, ammoPerHit: 1, slugDamageMult: 1,
   };
 }
 
@@ -43,6 +43,9 @@ export const FAMILIES: Family[] = [
   { key: "voidtax", name: "Void Tax", rarities: ["rare"], once: true, desc: () => `Void kills are worth triple`, apply: (m) => { m.voidBonusMult = 3; } },
   { key: "boots", name: "Gravity Boots", rarities: ["rare"], once: true, desc: () => `No impact damage from landings, air control +60%`, apply: (m) => { m.gravityBoots = true; m.airControlMult *= 1.6; } },
   { key: "aftershock", name: "Aftershock", rarities: ["epic"], once: true, desc: () => `Landing hard sends a shockwave around the planet`, apply: (m) => { m.aftershock = true; } },
+  { key: "magazine", name: "Magazine", rarities: RARITIES, desc: (r) => `Gun holds +${tier(r, 2, 3, 5)} rounds, and reloads`, apply: (m, r, heal) => { m.ammoMaxBonus += tier(r, 2, 3, 5); heal(0, 0); } },
+  { key: "slugs", name: "Heavy Slugs", rarities: RARITIES, desc: (r) => `Gun damage +${pct(tier(r, 0.2, 0.35, 0.55))}`, apply: (m, r) => { m.slugDamageMult *= 1 + tier(r, 0.2, 0.35, 0.55); } },
+  { key: "scavenger", name: "Scavenger", rarities: ["rare"], once: true, desc: () => `Sword hits give 2 rounds instead of 1`, apply: (m) => { m.ammoPerHit = 2; } },
   { key: "berserk", name: "Berserk", rarities: ["epic"], once: true, desc: () => `+35% blade damage while under half HP`, apply: (m) => { m.berserk = true; } },
 ];
 

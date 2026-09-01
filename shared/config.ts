@@ -44,6 +44,20 @@ export const PLAYER = {
   },
 };
 
+export const GUN = {
+  ammoStart: 3,
+  ammoMax: 6,
+  speed: 980,
+  damage: 34,
+  knockback: 760,
+  stun: 0.7,
+  cooldown: 0.32,
+  radius: 5,
+  life: 1.5,
+  gravityScale: 0.55,
+  recoil: 90,
+};
+
 export const IMPACT = {
   enemyThreshold: 330,     // speed above which a planet impact hurts an enemy
   enemyDamagePerUnit: 0.16,

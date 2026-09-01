@@ -1,4 +1,5 @@
 import type { GameState, UpgradeOffer } from "../../shared/types";
+import { ammoMax } from "../../shared/sim";
 import { fetchLeaderboard, todayKey, type ScoreEntry } from "./api";
 import type { Profile } from "./meta";
 
@@ -20,6 +21,10 @@ export class UI {
   private bossBar = $("#boss-bar");
   private bossFill = $("#boss-fill");
   private fpsEl = $("#fps");
+  private wpnSword = $("#weapon-sword");
+  private wpnGun = $("#weapon-gun");
+  private ammoEl = $("#ammo-pips");
+  private lastAmmoKey = "";
   private bannerEl = $("#banner");
   private offersEl = $("#offers");
   private cardsEl = $("#offer-cards");
@@ -54,6 +59,13 @@ export class UI {
     this.hpText.textContent = `${Math.ceil(p.hp)} / ${p.maxHp}`;
     this.dashText.classList.toggle("ready", p.dashCd <= 0);
     this.dashText.textContent = p.dashCd <= 0 ? "DASH READY" : `DASH ${p.dashCd.toFixed(1)}`;
+    this.wpnSword.classList.toggle("active", s.weapon === "sword");
+    this.wpnGun.classList.toggle("active", s.weapon === "gun");
+    const ammoKey = `${s.ammo}/${ammoMax(s)}`;
+    if (ammoKey !== this.lastAmmoKey) {
+      this.lastAmmoKey = ammoKey;
+      this.ammoEl.innerHTML = Array.from({ length: ammoMax(s) }, (_, i) => `<i class="${i < s.ammo ? "full" : ""}"></i>`).join("");
+    }
     this.waveLabel.textContent = s.wave.n > 0 ? `WAVE ${s.wave.n}` : "INCOMING";
     this.sectorLabel.textContent = `SECTOR ${s.wave.sector}${s.daily ? " · DAILY" : ""}`;
     if (s.score !== this.lastScore) {

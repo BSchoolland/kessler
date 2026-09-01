@@ -122,6 +122,23 @@ export function applyEvents(s: GameState, events: GameEvent[], particles: Partic
         particles.burst(ev.pos, 6, { color: "#dddddd", speed: 180, shape: "spark", size: 2, max: 0.25 });
         sfx(ev.damage > 0 ? "debrisHit" : "deflect", ev.pos, 0.6);
         break;
+      case "swap":
+        sfx("swap", ev.pos, 0.7);
+        particles.ring(ev.pos, PLAYER_COLOR, 24, 0.25);
+        break;
+      case "gunshot":
+        particles.burst(ev.pos, 10, { color: "#ffe07a", speed: 380, dir: ev.dir, spread: 0.7, shape: "spark", size: 3, max: 0.22 });
+        particles.ring(ev.pos, "#ffe07a", 18, 0.15);
+        cam.addTrauma(0.22);
+        sfx("gunshot", ev.pos);
+        break;
+      case "empty":
+        particles.float(ev.pos, "EMPTY", "#ff8fb0", 13);
+        sfx("empty", ev.pos, 0.8);
+        break;
+      case "ammo":
+        sfx("ammo", ev.pos, 0.5);
+        break;
       case "combo":
         particles.float({ x: ev.pos.x, y: ev.pos.y - 34 }, `x${ev.idx} MULTI`, PLAYER_COLOR, 16);
         sfx("combo", ev.pos, 0.6);
