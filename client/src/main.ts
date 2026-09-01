@@ -122,7 +122,7 @@ function finishRun(): void {
 }
 
 function aimAssistTarget(s: GameState): Vec | null {
-  if (!profile.settings.aimAssist) return null;
+  if (!profile.settings.aimAssist && !input.usingTouch) return null;
   const p = s.entities[0];
   let best: Vec | null = null;
   let bd = 260;
@@ -188,6 +188,7 @@ function frame(now: number): void {
     }
     renderer.draw(s, mode === "playing" && !BOT ? snap.aimScreen : null, rawDt, { paused: mode !== "playing" });
     ui.updateHud(s, profile.bestScore, profile.settings.showFps ? fpsAvg : null);
+    ui.show("touch", mode === "playing" && input.usingTouch);
   } else {
     // menu backdrop: an idle demo world
     if (!demo) { demo = createGame(7); cam.snap({ x: 0, y: 0 }); }
@@ -200,6 +201,7 @@ function frame(now: number): void {
     particles.update(rawDt);
     applyEventsSilently(demo);
     renderer.draw(demo, null, rawDt, { paused: true });
+    ui.show("touch", false);
   }
 }
 let demo: GameState | null = null;

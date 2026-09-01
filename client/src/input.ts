@@ -20,7 +20,9 @@ export class Input {
   private mousePressed = new Set<number>();
   private padPrev: Record<string, boolean> = {};
   usingGamepad = false;
+  usingTouch = false;
   lastGamepadAim: Vec = { x: 1, y: 0 };
+  private touch = { move: { x: 0, y: 0 } as Vec, aim: { x: 0, y: 0 } as Vec, attack: false, dash: false, pause: false, lastAim: { x: 1, y: 0 } as Vec };
 
   constructor(private canvas: HTMLCanvasElement) {
     window.addEventListener("keydown", (e) => {
@@ -36,6 +38,61 @@ export class Input {
     canvas.addEventListener("mousedown", (e) => { this.mouseDown.add(e.button); this.mousePressed.add(e.button); this.usingGamepad = false; e.preventDefault(); });
     window.addEventListener("mouseup", (e) => this.mouseDown.delete(e.button));
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+    this.bindTouch();
+  }
+
+  private bindTouch(): void {
+    const overlay = document.getElementById("touch");
+    if (!overlay) return;
+    const bindStick = (zoneId: string, stickId: string, onMove: (v: Vec) => void) => {
+      const zone = document.getElementById(zoneId)!;
+      const stick = document.getElementById(stickId)!;
+      const knob = stick.firstElementChild as HTMLElement;
+      let id: number | null = null;
+      let origin: Vec = { x: 0, y: 0 };
+      const R = 50;
+      zone.addEventListener("pointerdown", (e) => {
+        if (id !== null) return;
+        id = e.pointerId;
+        origin = { x: e.clientX, y: e.clientY };
+        stick.style.left = `${origin.x}px`;
+        stick.style.top = `${origin.y}px`;
+        stick.classList.remove("hidden");
+        knob.style.transform = "";
+        zone.setPointerCapture(e.pointerId);
+        this.usingTouch = true;
+        e.preventDefault();
+      });
+      zone.addEventListener("pointermove", (e) => {
+        if (e.pointerId !== id) return;
+        let d = { x: e.clientX - origin.x, y: e.clientY - origin.y };
+        const l = Math.hypot(d.x, d.y);
+        if (l > R) d = { x: (d.x / l) * R, y: (d.y / l) * R };
+        knob.style.transform = `translate(${d.x}px, ${d.y}px)`;
+        onMove({ x: d.x / R, y: d.y / R });
+      });
+      const end = (e: PointerEvent) => {
+        if (e.pointerId !== id) return;
+        id = null;
+        stick.classList.add("hidden");
+        onMove({ x: 0, y: 0 });
+      };
+      zone.addEventListener("pointerup", end);
+      zone.addEventListener("pointercancel", end);
+    };
+    bindStick("zone-l", "stick-l", (v) => (this.touch.move = v));
+    bindStick("zone-r", "stick-r", (v) => { this.touch.aim = v; if (Math.hypot(v.x, v.y) > 0.3) this.touch.lastAim = norm(v); });
+    const bindBtn = (btnId: string, fn: () => void) => {
+      const b = document.getElementById(btnId)!;
+      b.addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); b.classList.add("down"); this.usingTouch = true; fn(); });
+      const up = () => b.classList.remove("down");
+      b.addEventListener("pointerup", up);
+      b.addEventListener("pointercancel", up);
+    };
+    bindBtn("t-attack", () => (this.touch.attack = true));
+    bindBtn("t-dash", () => (this.touch.dash = true));
+    bindBtn("t-pause", () => (this.touch.pause = true));
+    window.addEventListener("touchstart", () => { this.usingTouch = true; }, { passive: true, once: true });
   }
 
   get mousePos(): Vec {
@@ -86,9 +143,20 @@ export class Input {
         if (edge("n3", btn(5))) numberKey = 3;
       }
     }
+    if (this.usingTouch) {
+      move = this.touch.move;
+      const stickAim = this.touch.aim;
+      aim = Math.hypot(stickAim.x, stickAim.y) > 0.3 ? norm(stickAim) : aimAssist ?? this.touch.lastAim;
+      this.touch.lastAim = aim;
+      aimScreen = null;
+      attack = this.touch.attack;
+      dash = this.touch.dash;
+      pausePressed = pausePressed || this.touch.pause;
+      this.touch.attack = this.touch.dash = this.touch.pause = false;
+    }
     if (len(move) > 1) move = norm(move);
     this.pressed.clear();
     this.mousePressed.clear();
-    return { frame: { move, aim, attack, dash }, aimScreen, usingGamepad: this.usingGamepad, pausePressed, menuConfirm, menuBack, menuNav, numberKey };
+    return { frame: { move, aim, attack, dash }, aimScreen, usingGamepad: this.usingGamepad || this.usingTouch, pausePressed, menuConfirm, menuBack, menuNav, numberKey };
   }
 }

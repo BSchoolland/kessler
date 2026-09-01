@@ -71,3 +71,33 @@ ol li span:nth-child(3) { text-align: right; font-weight: 700; } ol li span:nth-
 #go-sub { margin: -10px 0 0; color: #9fb1d8; letter-spacing: 0.15em; }
 #go-rank { color: var(--gold); letter-spacing: 0.2em; font-weight: 700; min-height: 22px; }
 @media (max-width: 760px) { .stats { grid-template-columns: repeat(2, 130px); } #offer-cards { flex-direction: column; } .card { width: 300px; min-height: 0; } }
+
+/* touch controls */
+#touch { position: fixed; inset: 0; z-index: 7; touch-action: none; }
+#zone-l, #zone-r { position: absolute; top: 0; bottom: 0; }
+#zone-l { left: 0; width: 45%; }
+#zone-r { right: 0; width: 55%; }
+.stick { position: absolute; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; border: 2px solid rgba(77,243,255,0.35); background: rgba(77,243,255,0.06); pointer-events: none; }
+.stick .knob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(77,243,255,0.35); border: 2px solid var(--cyan); }
+.tbtn { position: absolute; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 2px solid rgba(77,243,255,0.6); background: rgba(10,20,30,0.55); color: var(--cyan); font-weight: 700; letter-spacing: 0.15em; font-size: 15px; touch-action: none; }
+.tbtn:active, .tbtn.down { background: rgba(77,243,255,0.35); }
+#t-attack { right: 26px; bottom: 34px; width: 96px; height: 96px; font-size: 17px; }
+#t-dash { right: 138px; bottom: 60px; width: 74px; height: 74px; }
+#t-pause { left: 14px; top: 10px; width: 40px; height: 40px; border-radius: 8px; font-size: 14px; }
+@media (max-width: 760px) { .hp-wrap { width: 180px; left: 14px; bottom: 14px; } #wave-label { font-size: 22px; } #score { font-size: 26px; } .modal .row { width: 300px; } ol { width: 320px; } h2 { font-size: 24px; } }
+@media (max-height: 560px) {
+  .screen { justify-content: flex-start; padding: 12px 0 24px; gap: 10px; overflow-y: auto; }
+  h1 { font-size: 44px; letter-spacing: 0.18em; }
+  .tag { font-size: 14px; margin: 0; }
+  .menu-buttons { flex-direction: row; flex-wrap: wrap; justify-content: center; min-width: 0; max-width: 90vw; }
+  button { font-size: 14px; padding: 8px 14px; }
+  h2 { font-size: 20px; margin-bottom: 8px; }
+  .howto-grid, .howto-notes { font-size: 13px; max-width: 90vw; }
+  .howto-grid b { width: 90px; }
+  .stats { grid-template-columns: repeat(4, 90px); }
+  .stats div b { font-size: 22px; }
+  #go-title { font-size: 36px; }
+  ol { max-height: 22vh; }
+  .card { min-height: 0; padding: 10px 12px; gap: 4px; width: 200px; } .card .name { font-size: 18px; } .card .desc { font-size: 13px; }
+  #banner { top: 22%; }
+}
