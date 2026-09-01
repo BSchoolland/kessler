@@ -37,6 +37,7 @@ let last = performance.now();
 let fpsAvg = 60;
 let voidDeath = false;
 let submitted = false;
+let finishing = false;
 
 function applySettings(): void {
   const st = profile.settings;
@@ -83,6 +84,7 @@ function startRun(daily: boolean): void {
   cam.trauma = 0;
   voidDeath = false;
   submitted = false;
+  finishing = false;
   mode = "playing";
   ui.hideAllScreens();
   ui.showHud(true);
@@ -164,11 +166,10 @@ function frame(now: number): void {
         }
         if (acc > DT * 6) acc = 0;
         if (s.offers && !s.over) { mode = "offers"; ui.showOffers(s.offers); canvas.style.cursor = "default"; }
-        if (s.over && mode === "playing") {
-          window.setTimeout(() => { if (mode === "playing") finishRun(); }, 1300);
-          mode = "playing";
-          // keep simulating the death scene until the timeout fires; block input
-          s.over = true;
+        if (s.over && !finishing) {
+          // keep simulating the death scene for a beat before the results screen
+          finishing = true;
+          window.setTimeout(() => { if (state === s) finishRun(); }, 1300);
         }
       }
     } else if (mode === "offers") {
