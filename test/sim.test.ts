@@ -110,4 +110,24 @@ describe("sim", () => {
     for (let i = 0; i < 30; i++) step(s, { ...idle, aim });
     expect(e.hp < e.maxHp || e.dead).toBe(true);
   });
+
+  it("side attack has no front arc, only a one-way wave that deflects shots", () => {
+    const s = createGame(5);
+    for (let i = 0; i < 60 * 2; i++) step(s, idle);
+    const p = player(s);
+    step(s, { ...idle, move: { x: 1, y: 0 }, attack: true });
+    expect(p.swing?.arc).toBeLessThan(3);
+    for (let i = 0; i < 12; i++) step(s, { ...idle, move: { x: 1, y: 0 } });
+    const w = s.shockwaves.find((x) => x.edge)!;
+    expect(w).toBeDefined();
+    expect(w.dir).not.toBe(0);
+    // an enemy shot sitting in the wave's path gets batted back
+    const planet = s.planets[p.planet!];
+    const ahead = w.angle + w.dir * 0.3;
+    const pos = { x: planet.pos.x + Math.cos(ahead) * (planet.r + 20), y: planet.pos.y + Math.sin(ahead) * (planet.r + 20) };
+    s.projectiles.push({ id: 9999, pos, vel: { x: 0, y: 0 }, radius: 5, life: 3, damage: 10, hue: 200, friendly: false, knockback: 320, slug: false });
+    for (let i = 0; i < 60; i++) step(s, idle);
+    const pr = s.projectiles.find((x) => x.id === 9999);
+    expect(pr === undefined || pr.friendly).toBe(true);
+  });
 });

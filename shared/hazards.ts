@@ -154,9 +154,10 @@ export function updateShockwaves(ctx: Ctx): void {
     const prev = w.spread;
     w.spread += w.speed * dt;
     const planet = s.planets[w.planet];
+    const height = w.edge ? PLAYER.swing.waveHeight : 26;
     const band = (e: { pos: { x: number; y: number }; radius: number }) => {
       const gap = dist(e.pos, planet.pos) - planet.r - e.radius;
-      if (gap > 26) return false;
+      if (gap > height) return false;
       const a = Math.atan2(e.pos.y - planet.pos.y, e.pos.x - planet.pos.x);
       const signed = angleDelta(w.angle, a);
       if (w.dir !== 0 && Math.sign(signed) !== w.dir && Math.abs(signed) > 0.02) return false;
@@ -186,6 +187,30 @@ export function updateShockwaves(ctx: Ctx): void {
             e.stun = Math.max(e.stun, 0.5);
             damageEnemy(ctx, e, w.damage, "shockwave", e.pos, n);
           }
+        }
+      }
+      if (w.edge) {
+        // the wave is a wall: it bats enemy shots back and sends debris flying
+        for (const pr of s.projectiles) {
+          if (pr.friendly || w.hit.includes(pr.id) || !band(pr)) continue;
+          w.hit.push(pr.id);
+          const n = surfaceNormal(planet, pr.pos);
+          const t = { x: -n.y * w.dir, y: n.x * w.dir };
+          pr.friendly = true;
+          pr.knockback = 380;
+          pr.life = 3;
+          pr.vel = scale(norm(add(t, scale(n, 0.5))), len(pr.vel) * 1.3);
+          emit(s, { type: "hit", pos: pr.pos, dir: t, damage: 0, crit: false, target: "orbiter" });
+        }
+        for (const d of s.debris) {
+          if (w.hit.includes(d.id) || !band(d)) continue;
+          w.hit.push(d.id);
+          const n = surfaceNormal(planet, d.pos);
+          const t = { x: -n.y * w.dir, y: n.x * w.dir };
+          d.vel = scale(norm(add(t, scale(n, 0.35))), w.knockback * 1.15);
+          d.life = Math.max(d.life, 4);
+          d.hitCd = 0;
+          emit(s, { type: "debrisHit", pos: d.pos, damage: 0 });
         }
       }
     } else if (!s.over && !w.hit.includes(p.id) && p.planet === w.planet && band(p)) {

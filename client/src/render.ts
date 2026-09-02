@@ -286,28 +286,50 @@ export class Renderer {
       const color = w.friendly ? PLAYER_COLOR : hsl(285, 100, 70);
       ctx.strokeStyle = color;
       ctx.globalCompositeOperation = "lighter";
-      const tail = w.edge ? 0.12 : 0.25;
+      if (w.edge) {
+        // a wall of light running along the surface: filled annular sector plus a bright leading face
+        const H = PLAYER.swing.waveHeight;
+        const a0 = w.angle + w.dir * Math.max(0, w.spread - 0.16);
+        const a1 = w.angle + w.dir * w.spread;
+        const lo = Math.min(a0, a1), hi = Math.max(a0, a1);
+        const g = ctx.createRadialGradient(pl.pos.x, pl.pos.y, pl.r, pl.pos.x, pl.pos.y, pl.r + H);
+        g.addColorStop(0, "rgba(77,243,255,0.55)");
+        g.addColorStop(1, "rgba(77,243,255,0.05)");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(pl.pos.x, pl.pos.y, pl.r + H, lo, hi);
+        ctx.arc(pl.pos.x, pl.pos.y, pl.r, hi, lo, true);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(pl.pos.x + Math.cos(a1) * pl.r, pl.pos.y + Math.sin(a1) * pl.r);
+        ctx.lineTo(pl.pos.x + Math.cos(a1) * (pl.r + H), pl.pos.y + Math.sin(a1) * (pl.r + H));
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(77,243,255,0.9)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(pl.pos.x, pl.pos.y, pl.r + H, lo, hi);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
+        continue;
+      }
+      const tail = 0.25;
       for (const dir of w.dir === 0 ? [1, -1] : [w.dir]) {
         const a0 = w.angle + dir * Math.max(0, w.spread - tail);
         const a1 = w.angle + dir * w.spread;
-        ctx.lineWidth = w.edge ? 9 : 14;
+        ctx.lineWidth = 14;
         ctx.globalAlpha = 0.35;
         ctx.beginPath();
         ctx.arc(pl.pos.x, pl.pos.y, pl.r + 10, Math.min(a0, a1), Math.max(a0, a1));
         ctx.stroke();
-        ctx.lineWidth = w.edge ? 3 : 4;
+        ctx.lineWidth = 4;
         ctx.globalAlpha = 0.95;
         ctx.beginPath();
         ctx.arc(pl.pos.x, pl.pos.y, pl.r + 10, Math.min(a0, a1), Math.max(a0, a1));
         ctx.stroke();
-        if (w.edge) {
-          // bright crest at the front of the wave
-          const cx = pl.pos.x + Math.cos(a1) * (pl.r + 10), cy = pl.pos.y + Math.sin(a1) * (pl.r + 10);
-          ctx.fillStyle = "#ffffff";
-          ctx.beginPath();
-          ctx.arc(cx, cy, 4, 0, 6.283);
-          ctx.fill();
-        }
       }
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = "source-over";
@@ -378,8 +400,8 @@ export class Renderer {
     const reach = PLAYER.swing.reach * mods.reachMult;
     const sw = p.swing;
     const half = (sw ? sw.arc : PLAYER.swing.arc) / 2;
-    // the edge: a kinetic crescent on the front of the ship
-    if (sw) {
+    // the edge: a kinetic crescent on the front of the ship (the side attack draws only its wave)
+    if (sw && sw.arc >= 3) {
       ctx.save();
       ctx.translate(p.pos.x, p.pos.y);
       if (sw.phase === "windup") {

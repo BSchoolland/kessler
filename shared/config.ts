@@ -49,6 +49,7 @@ export const PLAYER = {
     waveRange: 330,
     waveDamageMult: 0.9,
     waveKnockback: 620,
+    waveHeight: 52,        // 2× player height: how far above the surface the wave reaches
   },
 };
 

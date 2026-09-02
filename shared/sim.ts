@@ -240,6 +240,8 @@ function inArc(origin: Vec, angle: number, halfArc: number, reach: number, targe
 
 function resolveSwingHits(ctx: Ctx, p: Entity, sw: SwingState): void {
   const { s } = ctx;
+  // the side attack is only the surface wave; the arc belongs to the overhead sweep
+  if (sw.arc < 3) return;
   const mods = s.mods;
   const reach = PLAYER.swing.reach * mods.reachMult;
   const half = sw.arc / 2;
