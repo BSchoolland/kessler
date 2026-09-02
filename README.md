@@ -16,7 +16,7 @@ Keyboard only is the intended way to play. The mouse is optional.
 |---|---|---|
 | Move along the surface / steer in space | WASD / arrows | left stick |
 | Attack | space / J / left click | RT / A |
-| Dash | shift / K / right click | LT / B |
+| Launch (leave the planet) | shift / K / right click | LT / B |
 | Pause | Esc / P | Start |
 
 - **Where you are decides the weapon.** On a planet you have the **edge**, a kinetic
@@ -26,9 +26,10 @@ Keyboard only is the intended way to play. The mouse is optional.
   **wave**: a wall of light two ship-heights tall that runs along the surface ahead
   of you, shoving enemies along its travel, batting enemy shots back and sending
   debris flying. Hits knock enemies *away*.
-- **Dash** goes where you're moving and always lifts you off the planet. Attack right
-  after for a **dash-strike**: double damage, much harder launch. Invulnerable while
-  dashing. No fuel, no dash.
+- **Launch** leaves the planet where you're moving. Ground only, no cooldown, needs
+  fuel. Attack right after for a **launch-strike**: double damage, much harder
+  knockback. Invulnerable during the burst. A slight drag in space means you can't
+  sit in orbit forever.
 - **Flying**: WASD in space steers you (visible, audible thrusters) but burns fuel. The
   gauge sits beside the ship. Fuel refills on the ground.
 - The **gun** auto-aims at the nearest enemy and fires a heavy homing slug that

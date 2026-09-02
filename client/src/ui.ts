@@ -57,8 +57,9 @@ export class UI {
     this.hpFill.style.width = `${frac * 100}%`;
     this.hpFill.classList.toggle("low", frac < 0.3);
     this.hpText.textContent = `${Math.ceil(p.hp)} / ${p.maxHp}`;
-    this.dashText.classList.toggle("ready", p.dashCd <= 0);
-    this.dashText.textContent = p.dashCd <= 0 ? "DASH READY" : `DASH ${p.dashCd.toFixed(1)}`;
+    const canLaunch = p.planet !== null && s.fuel > 0;
+    this.dashText.classList.toggle("ready", canLaunch);
+    this.dashText.textContent = p.planet === null ? "IN FLIGHT" : s.fuel > 0 ? "LAUNCH READY" : "NO FUEL";
     this.wpnSword.classList.toggle("active", s.weapon === "sword");
     this.wpnGun.classList.toggle("active", s.weapon === "gun");
     const ammoKey = `${s.ammo}/${ammoMax(s)}`;
@@ -112,7 +113,7 @@ export class UI {
     const st = s.stats;
     const rows: [string, number | string][] = [
       ["SCORE", s.score], ["KILLS", st.kills], ["VOID", st.voidKills], ["SPLATS", st.impactKills],
-      ["DEBRIS", st.debrisKills], ["BOWLED", st.collisionKills], ["BOSSES", st.bossKills], ["DASHES", st.dashes],
+      ["DEBRIS", st.debrisKills], ["BOWLED", st.collisionKills], ["BOSSES", st.bossKills], ["LAUNCHES", st.dashes],
     ];
     $("#go-stats").innerHTML = rows.map(([k, v]) => `<div><b>${v}</b>${k}</div>`).join("");
     $("#go-rank").textContent = s.score > profile.bestScore ? "NEW PERSONAL BEST" : "";

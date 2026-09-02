@@ -28,10 +28,10 @@ export const PLAYER = {
   liftOff: 0.5,            // minimum outward component of a dash off a surface
   contactKnock: 240,
   contactCd: 0.7,
-  dashSpeed: 860,
+  dashSpeed: 860,          // "launch": leaving a planet. Ground only, no cooldown, needs fuel
   dashDuration: 0.15,
-  dashCooldown: 1.7,
-  dashStrikeWindow: 0.32,  // seconds after a dash during which a swing is a dash-strike
+  dashStrikeWindow: 0.32,  // seconds after a launch during which a swing is a launch-strike
+  spaceDrag: 0.07,         // per second; just enough that the player can't sit in orbit forever
   dashStrikeMult: 2,
   impactThreshold: 620,
   impactDamagePerUnit: 0.09,

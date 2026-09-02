@@ -42,7 +42,7 @@ export function botInput(s: GameState, rngNext: () => number): InputFrame {
   const facingIt = p.planet === null || dot(aim, surfaceNormal(s.planets[p.planet], p.pos)) > 0.35;
   const orbiterHunt = best.kind === "orbiter" && best.orbit !== null && p.planet !== null && best.orbit.planet === p.planet;
   const huntAim = orbiterHunt ? norm(sub(add(best.pos, scale(best.vel, 0.2)), p.pos)) : aim;
-  const dash = p.dashCd <= 0 && (threatened ? rngNext() < 0.6
+  const dash = p.planet !== null && (threatened ? rngNext() < 0.6
     : orbiterHunt ? d < 330 && dot(huntAim, surfaceNormal(s.planets[p.planet!], p.pos)) > 0.5 && rngNext() < 0.5
     : onOtherPlanet ? facingIt && dist(targetPlanet.pos, p.pos) - targetPlanet.r < 520 && rngNext() < 0.3
     : samePlanet && d > 160 && rngNext() < 0.12);

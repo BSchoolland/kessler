@@ -44,8 +44,7 @@ export interface Entity {
   dead: boolean;
   // combat
   swing: SwingState | null;
-  dashT: number;             // remaining dash time
-  dashCd: number;
+  dashT: number;             // remaining launch burst time
   sinceDash: number;
   comboT: number;
   comboIdx: number;
@@ -170,7 +169,6 @@ export interface UpgradeMods {
   damageMult: number;
   knockbackMult: number;
   moveSpeedMult: number;
-  dashCooldownMult: number;
   dashSpeedMult: number;
   maxHpBonus: number;
   impactMult: number;

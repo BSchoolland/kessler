@@ -85,7 +85,6 @@ function updatePlayer(ctx: Ctx, input: InputFrame): void {
   const { s, dt } = ctx;
   const p = player(s);
   const mods = s.mods;
-  p.dashCd -= dt;
   p.sinceDash += dt;
   p.invuln -= dt;
   p.comboT -= dt;
@@ -123,30 +122,29 @@ function updatePlayer(ctx: Ctx, input: InputFrame): void {
     }
   };
 
-  // dash: where you're moving, else where you're facing; never without fuel
-  if (p.dashBuffer > 0 && p.dashCd <= 0) {
+  // launch: leave the planet where you're moving, else where you're facing. Ground only, no cooldown, needs fuel
+  if (p.dashBuffer > 0 && grounded) {
     p.dashBuffer = 0;
     if (s.fuel <= 0) warnFuel();
     else {
       const speed = PLAYER.dashSpeed * mods.dashSpeedMult;
       p.dashT = PLAYER.dashDuration;
-      p.dashCd = PLAYER.dashCooldown * mods.dashCooldownMult;
       p.sinceDash = 0;
       s.stats.dashes++;
       if (p.swing && p.swing.phase !== "active") p.swing = null;
       let dir = moving ? norm(input.move) : facingV;
-      if (grounded) {
-        const n = surfaceNormal(s.planets[p.planet!], p.pos);
-        const out = dot(dir, n);
-        if (out < PLAYER.liftOff) {
-          const t = perp(n);
-          dir = norm(add(scale(t, dot(dir, t)), scale(n, PLAYER.liftOff)));
-        }
-        p.planet = null;
+      const n = surfaceNormal(s.planets[p.planet!], p.pos);
+      if (dot(dir, n) < PLAYER.liftOff) {
+        const t = perp(n);
+        dir = norm(add(scale(t, dot(dir, t)), scale(n, PLAYER.liftOff)));
       }
+      p.planet = null;
       p.vel = scale(dir, speed);
       emit(s, { type: "dash", pos: p.pos, dir });
     }
+  } else if (p.dashBuffer > 0 && !grounded && s.fuel <= 0) {
+    p.dashBuffer = 0;
+    warnFuel();
   }
 
   if (p.dashT > 0) {
@@ -312,6 +310,7 @@ function integrateEntities(ctx: Ctx): void {
       continue;
     }
     if (!(e.kind === "player" && e.dashT > 0)) e.vel = add(e.vel, scale(gravityAt(s.planets, e.pos), dt));
+    if (e.kind === "player" && e.dashT <= 0) e.vel = scale(e.vel, Math.exp(-PLAYER.spaceDrag * dt));
     if (e.spawnT > 0) {
       e.airTime += dt;
       if (e.airTime > 4) {

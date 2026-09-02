@@ -4,7 +4,7 @@ import type { UpgradeMods, UpgradeOffer } from "./types";
 export function defaultMods(): UpgradeMods {
   return {
     reachMult: 1, swingSpeedMult: 1, damageMult: 1, knockbackMult: 1, moveSpeedMult: 1,
-    dashCooldownMult: 1, dashSpeedMult: 1, maxHpBonus: 0, impactMult: 1, debrisExtra: 0,
+    dashSpeedMult: 1, maxHpBonus: 0, impactMult: 1, debrisExtra: 0,
     debrisDamageMult: 1, lifesteal: 0, aftershock: false, gravityBoots: false, airControlMult: 1,
     voidBonusMult: 1, berserk: false, ammoMaxBonus: 0, ammoPerHit: 1, slugDamageMult: 1, fuelMaxBonus: 0, fuelEfficiency: 1,
   };
@@ -31,8 +31,7 @@ export const FAMILIES: Family[] = [
   { key: "damage", name: "Sharpened", rarities: RARITIES, desc: (r) => `Edge damage +${pct(tier(r, 0.12, 0.2, 0.32))}`, apply: (m, r) => { m.damageMult *= 1 + tier(r, 0.12, 0.2, 0.32); } },
   { key: "knockback", name: "Heavy Hands", rarities: RARITIES, desc: (r) => `Knockback +${pct(tier(r, 0.15, 0.25, 0.4))}. Send them somewhere.`, apply: (m, r) => { m.knockbackMult *= 1 + tier(r, 0.15, 0.25, 0.4); } },
   { key: "speed", name: "Fleet", rarities: RARITIES, desc: (r) => `Move speed +${pct(tier(r, 0.08, 0.14, 0.22))}`, apply: (m, r) => { m.moveSpeedMult *= 1 + tier(r, 0.08, 0.14, 0.22); } },
-  { key: "dashcd", name: "Slingshot", rarities: RARITIES, desc: (r) => `Dash cooldown -${pct(tier(r, 0.12, 0.2, 0.3))}`, apply: (m, r) => { m.dashCooldownMult *= 1 - tier(r, 0.12, 0.2, 0.3); } },
-  { key: "dashspeed", name: "Escape Velocity", rarities: RARITIES, desc: (r) => `Dash speed and distance +${pct(tier(r, 0.12, 0.2, 0.32))}`, apply: (m, r) => { m.dashSpeedMult *= 1 + tier(r, 0.12, 0.2, 0.32); } },
+  { key: "dashspeed", name: "Escape Velocity", rarities: RARITIES, desc: (r) => `Launch speed and distance +${pct(tier(r, 0.12, 0.2, 0.32))}`, apply: (m, r) => { m.dashSpeedMult *= 1 + tier(r, 0.12, 0.2, 0.32); } },
   { key: "hp", name: "Vitality", rarities: RARITIES, desc: (r) => `Max HP +${tier(r, 8, 12, 20)} and heal that much`, apply: (m, r, heal) => { m.maxHpBonus += tier(r, 8, 12, 20); heal(0, tier(r, 8, 12, 20)); } },
   { key: "heal", name: "Patch Up", rarities: RARITIES, desc: (r) => `Heal ${pct(tier(r, 0.4, 0.65, 1))} of max HP`, apply: (_m, r, heal) => heal(tier(r, 0.4, 0.65, 1), 0) },
   { key: "impact", name: "Meteor", rarities: RARITIES, desc: (r) => `Enemies you launch take +${pct(tier(r, 0.3, 0.5, 0.8))} damage when they smash into a planet or each other`, apply: (m, r) => { m.impactMult *= 1 + tier(r, 0.3, 0.5, 0.8); } },

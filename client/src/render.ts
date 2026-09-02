@@ -546,17 +546,9 @@ export class Renderer {
       ctx.fillRect(gx - W / 2 - 2, gy + H / 2 - H * ff - 1, W + 4, H * ff + 2);
       ctx.globalCompositeOperation = "source-over";
     }
-    // dash cooldown ring
-    if (p.dashCd > 0) {
-      const total = PLAYER.dashCooldown * mods.dashCooldownMult;
-      const k = 1 - p.dashCd / total;
-      ctx.strokeStyle = "rgba(77,243,255,0.35)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(p.pos.x, p.pos.y, r + 6, -Math.PI / 2, -Math.PI / 2 + k * 6.283);
-      ctx.stroke();
-    } else {
-      ctx.strokeStyle = "rgba(77,243,255,0.12)";
+    // launch-ready halo: only shown on the ground, where launching is possible
+    if (p.planet !== null && s.fuel > 0) {
+      ctx.strokeStyle = "rgba(77,243,255,0.14)";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(p.pos.x, p.pos.y, r + 6, 0, 6.283);
