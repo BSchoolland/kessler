@@ -72,8 +72,16 @@ export function updateProjectiles(ctx: Ctx): void {
   const keep = [];
   for (const pr of s.projectiles) {
     pr.life -= dt;
-    pr.vel = add(pr.vel, scale(gravityAt(s.planets, pr.pos, pr.slug ? GUN.gravityScale : GRAVITY.projectileScale), dt));
+    // rockets fly under power: little gravity, and a gentle turn toward the player
+    pr.vel = add(pr.vel, scale(gravityAt(s.planets, pr.pos, pr.slug ? GUN.gravityScale : pr.seek > 0 ? 0.15 : GRAVITY.projectileScale), dt));
     if (pr.friendly) homeProjectile(s, pr, dt);
+    else if (pr.seek > 0 && !s.over) {
+      const speed = len(pr.vel);
+      const heading = angleOf(pr.vel);
+      const want = angleOf(sub(add(p.pos, scale(p.vel, 0.2)), pr.pos));
+      const turn = clamp(angleDelta(heading, want), -pr.seek * dt, pr.seek * dt);
+      pr.vel = fromAngle(heading + turn, speed);
+    }
     pr.pos = add(pr.pos, scale(pr.vel, dt));
     if (pr.life <= 0 || inVoid(pr.pos)) continue;
     const c = findContact(s.planets, pr.pos, pr.vel, pr.radius);

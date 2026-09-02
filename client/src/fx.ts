@@ -107,6 +107,11 @@ export function applyEvents(s: GameState, events: GameEvent[], particles: Partic
         particles.burst(ev.pos, 6, { color: hsl(200, 100, 70), speed: 200, dir: ev.dir, spread: 0.8, shape: "spark", size: 2, max: 0.25 });
         sfx("shot", ev.pos, 0.7);
         break;
+      case "rocket":
+        particles.burst(ev.pos, 14, { color: "#ffb347", speed: 160, dir: scale(ev.dir, -1), spread: 1.4, shape: "dot", size: 3, max: 0.4, additive: false });
+        cam.addTrauma(0.08);
+        sfx("rocket", ev.pos, 0.8);
+        break;
       case "telegraph":
         if (ev.kind === "shot") sfx("telegraph", ev.pos, 0.5);
         else if (ev.kind === "pull") sfx("pull", ev.pos, 0.8);

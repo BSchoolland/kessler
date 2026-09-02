@@ -108,6 +108,7 @@ export interface Projectile {
   friendly: boolean;
   knockback: number;
   slug: boolean;
+  seek: number;       // rad/s it can turn toward its target (player while hostile, enemies once batted back)
 }
 
 export interface Shockwave {
@@ -151,6 +152,7 @@ export type GameEvent =
   | { type: "sector"; sector: number }
   | { type: "pod"; pos: Vec; kind: EnemyKind }
   | { type: "shot"; pos: Vec; dir: Vec }
+  | { type: "rocket"; pos: Vec; dir: Vec }
   | { type: "telegraph"; kind: Telegraph["kind"]; pos: Vec }
   | { type: "shockwave"; pos: Vec }
   | { type: "edgeWave"; pos: Vec; dir: Vec }

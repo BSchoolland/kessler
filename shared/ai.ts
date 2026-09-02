@@ -186,10 +186,10 @@ function updateFlak(ctx: Ctx, e: Entity): void {
       ai.t -= dt;
       if (ai.t <= 0) {
         const n = surfaceNormal(planet, e.pos);
-        const speed = 560;
-        const pr: Projectile = { id: s.nextId++, pos: add(e.pos, scale(n, e.radius + 6)), vel: scale(n, speed), radius: 5, life: 4, damage: def.damage, hue: def.hue, friendly: false, knockback: 320, slug: false };
+        // a rocket: launched straight up, then gently bends toward the player
+        const pr: Projectile = { id: s.nextId++, pos: add(e.pos, scale(n, e.radius + 6)), vel: scale(n, 440), radius: 6, life: 4.5, damage: def.damage, hue: def.hue, friendly: false, knockback: 340, slug: false, seek: 1.3 };
         s.projectiles.push(pr);
-        emit(s, { type: "shot", pos: pr.pos, dir: n });
+        emit(s, { type: "rocket", pos: pr.pos, dir: n });
         ai.state = "walk";
         ai.cooldown = def.recover * (e.elite ? 0.7 : 1);
       }
@@ -247,7 +247,7 @@ function updateOrbiter(ctx: Ctx, e: Entity): void {
         const tof = clamp(dist(p.pos, e.pos) / speed, 0, 1.2);
         const target = add(p.pos, scale(p.vel, tof * 0.6));
         const dir = norm(sub(target, e.pos));
-        const pr: Projectile = { id: s.nextId++, pos: add(e.pos, scale(dir, e.radius + 4)), vel: scale(dir, speed), radius: 5, life: 3.2, damage: def.damage, hue: def.hue, friendly: false, knockback: 320, slug: false };
+        const pr: Projectile = { id: s.nextId++, pos: add(e.pos, scale(dir, e.radius + 4)), vel: scale(dir, speed), radius: 5, life: 3.2, damage: def.damage, hue: def.hue, friendly: false, knockback: 320, slug: false, seek: 0 };
         s.projectiles.push(pr);
         emit(s, { type: "shot", pos: pr.pos, dir });
         ai.state = "idle";

@@ -192,7 +192,7 @@ function updatePlayer(ctx: Ctx, input: InputFrame): void {
       p.attackBuffer = 0;
       s.ammo--;
       s.gunCd = GUN.cooldown;
-      const pr: Projectile = { id: s.nextId++, pos: add(p.pos, scale(facingV, p.radius + 6)), vel: add(scale(facingV, GUN.speed), scale(p.vel, 0.3)), radius: GUN.radius, life: GUN.life, damage: GUN.damage, hue: 190, friendly: true, knockback: GUN.knockback * mods.knockbackMult, slug: true };
+      const pr: Projectile = { id: s.nextId++, pos: add(p.pos, scale(facingV, p.radius + 6)), vel: add(scale(facingV, GUN.speed), scale(p.vel, 0.3)), radius: GUN.radius, life: GUN.life, damage: GUN.damage, hue: 190, friendly: true, knockback: GUN.knockback * mods.knockbackMult, slug: true, seek: 0 };
       s.projectiles.push(pr);
       p.vel = sub(p.vel, scale(facingV, GUN.recoil));
       s.stats.swings++;

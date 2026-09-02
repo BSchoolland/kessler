@@ -374,6 +374,31 @@ export class Renderer {
     const ctx = this.ctx;
     ctx.globalCompositeOperation = "lighter";
     for (const pr of s.projectiles) {
+      if (pr.seek > 0) {
+        // rocket: a short body with an exhaust flame
+        const a = angleOf(pr.vel);
+        const c = pr.friendly ? PLAYER_COLOR : hsl(pr.hue, 100, 70);
+        ctx.save();
+        ctx.translate(pr.pos.x, pr.pos.y);
+        ctx.rotate(a);
+        const fl = 14 + 8 * Math.sin(this.t * 70);
+        const g = ctx.createLinearGradient(-6, 0, -6 - fl, 0);
+        g.addColorStop(0, "rgba(255,230,160,0.95)");
+        g.addColorStop(1, "rgba(255,90,40,0)");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.moveTo(-6, -3); ctx.lineTo(-6 - fl, 0); ctx.lineTo(-6, 3);
+        ctx.closePath(); ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = c;
+        ctx.beginPath();
+        ctx.moveTo(8, 0); ctx.lineTo(-6, -3.5); ctx.lineTo(-6, 3.5);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.beginPath(); ctx.arc(2, 0, 1.6, 0, 6.283); ctx.fill();
+        ctx.restore();
+        continue;
+      }
       const c = pr.slug ? "#ffe07a" : pr.friendly ? PLAYER_COLOR : hsl(pr.hue, 100, 70);
       ctx.strokeStyle = c;
       ctx.lineWidth = pr.slug ? 4 : 3;
