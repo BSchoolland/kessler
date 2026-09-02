@@ -5,7 +5,6 @@ export interface InputFrame {
   aim: Vec;           // unit vector from the player
   attack: boolean;    // pressed this frame
   dash: boolean;      // pressed this frame
-  swap: boolean;      // pressed this frame: toggle sword/gun
 }
 
 export interface Planet {
@@ -26,7 +25,7 @@ export interface SwingState {
   angle: number;             // center of the arc
   dir: 1 | -1;               // sweep direction
   dashStrike: boolean;
-  dive: boolean;             // airborne fast swing: long active window
+  arc: number;               // full sweep width; standing still gives the wide overhead sweep
   hit: number[];             // entity ids already hit by this swing
 }
 
@@ -135,7 +134,7 @@ export interface Telegraph {
 }
 
 export type GameEvent =
-  | { type: "swing"; pos: Vec; angle: number; dashStrike: boolean; dive: boolean }
+  | { type: "swing"; pos: Vec; angle: number; dashStrike: boolean; arc: number }
   | { type: "hit"; pos: Vec; dir: Vec; damage: number; crit: boolean; target: EntityKind }
   | { type: "kill"; pos: Vec; kind: EntityKind; source: HitSource; vel: Vec }
   | { type: "impact"; pos: Vec; normal: Vec; speed: number; kind: EntityKind | "debris" }
@@ -155,7 +154,6 @@ export type GameEvent =
   | { type: "bossPhase"; pos: Vec }
   | { type: "debrisHit"; pos: Vec; damage: number }
   | { type: "combo"; pos: Vec; idx: number }
-  | { type: "swap"; pos: Vec; weapon: Weapon }
   | { type: "gunshot"; pos: Vec; dir: Vec }
   | { type: "empty"; pos: Vec }
   | { type: "ammo"; pos: Vec; ammo: number };
@@ -246,4 +244,5 @@ export interface GameState {
   ammo: number;
   gunCd: number;
   fuel: number;
+  fuelWarnT: number;
 }

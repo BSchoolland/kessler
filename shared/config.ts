@@ -23,8 +23,6 @@ export const PLAYER = {
   walkAccel: 2200,
   airAccel: 300,
   airMaxSteer: 220,
-  diveSpeed: 260,          // airborne faster than this and a swing becomes a dive-slash
-  diveActive: 0.34,
   liftOff: 0.5,            // minimum outward component of a dash off a surface
   contactKnock: 240,
   contactCd: 0.7,
@@ -40,7 +38,8 @@ export const PLAYER = {
     windup: 0.13,
     active: 0.1,
     recovery: 0.17,
-    arc: (115 * Math.PI) / 180,
+    arc: (120 * Math.PI) / 180,
+    overheadArc: (215 * Math.PI) / 180,  // standing still: sweep over the top, both sides
     reach: 72,
     damage: 22,
     knockback: 540,

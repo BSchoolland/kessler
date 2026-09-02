@@ -10,26 +10,28 @@ arena gets more dangerous the better you're doing. Hence the name.
 
 ## Controls
 
-The sword game is WASD and clicking. The mouse only matters for the gun, and only if
-you turn auto-aim off.
+Keyboard only is the intended way to play. The mouse is optional.
 
-| | Keyboard + mouse | Gamepad |
+| | Keyboard (+ mouse) | Gamepad |
 |---|---|---|
-| Move (along the surface) | WASD / arrows | left stick |
-| Swing | left click / J | RT / A |
-| Dash | space / shift / right click / K | LT / B |
-| Swap sword / gun | Q / E / scroll | Y |
-| Cycle gun target | Tab / R | X |
+| Move along the surface / steer in space | WASD / arrows | left stick |
+| Attack | space / J / left click | RT / A |
+| Dash | shift / K / right click | LT / B |
 | Pause | Esc / P | Start |
 
-- The sword faces the direction you're moving. Swing while flying fast for a long
-  **dive-slash** that stays out and hits whatever you pass through.
-- **Dash** goes where you're moving and always lifts you off the planet. Swing right
-  after for a **dash-strike**: double damage, much harder launch. Invulnerable while dashing.
-- **Flying**: WASD in the air steers you but burns fuel (bar under HP). Fuel refills on
-  the ground. Dashing is free.
-- The **gun** fires a heavy homing slug that launches whatever it hits. Every sword hit
-  earns one round (6 max). With auto-aim on it locks the nearest target; Tab cycles.
+- **Where you are decides the weapon.** On a planet you have the **edge**, a kinetic
+  crescent on the nose of the ship. In space you have the **gun**.
+- Standing still on a planet you face straight up and the edge does a wide overhead
+  sweep covering both sides. Moving, you face left or right and the edge is a
+  directed launch. Hits knock enemies *away*.
+- **Dash** goes where you're moving and always lifts you off the planet. Attack right
+  after for a **dash-strike**: double damage, much harder launch. Invulnerable while
+  dashing. No fuel, no dash.
+- **Flying**: WASD in space steers you (visible thrusters) but burns fuel. Fuel refills
+  on the ground.
+- The **gun** auto-aims at the nearest enemy and fires a heavy homing slug that
+  launches whatever it hits. Every edge hit earns one round (6 max). Turn auto-aim off
+  in settings to aim with the mouse or right stick.
 - Enemies hurt on touch. Only enemies *you* launched take impact damage.
 
 ## Architecture

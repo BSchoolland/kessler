@@ -2,8 +2,7 @@ import { DT } from "../../shared/config";
 import { hashString } from "../../shared/rng";
 import { chooseUpgrade, createGame, step } from "../../shared/sim";
 import type { GameState } from "../../shared/types";
-import { add, dist, dot, fromAngle, len, norm, perp, scale, sub, type Vec } from "../../shared/vec";
-import { surfaceNormal } from "../../shared/physics";
+import { add, dist, fromAngle, len, norm, scale, sub, type Vec } from "../../shared/vec";
 import { submitScore, todayKey } from "./api";
 import { Camera } from "./camera";
 import { applyEvents } from "./fx";
@@ -39,8 +38,7 @@ let fpsAvg = 60;
 let voidDeath = false;
 let submitted = false;
 let finishing = false;
-let pending = { attack: false, dash: false, swap: false };
-let lastMoveDir: Vec = { x: 1, y: 0 };
+let pending = { attack: false, dash: false };
 let lockedTarget: number | null = null;
 
 function applySettings(): void {
@@ -92,8 +90,7 @@ function startRun(daily: boolean): void {
   submitted = false;
   finishing = false;
   lockedTarget = null;
-  lastMoveDir = { x: 1, y: 0 };
-  pending = { attack: false, dash: false, swap: false };
+  pending = { attack: false, dash: false };
   mode = "playing";
   ui.hideAllScreens();
   ui.showHud(true);
@@ -150,40 +147,24 @@ function liveTargets(s: GameState) {
   return s.entities.filter((e) => e.kind !== "player" && !e.dead && e.spawnT <= 0).sort((a, b) => dist(a.pos, p.pos) - dist(b.pos, p.pos));
 }
 
-/** Keep the lock on a living enemy; cycle steps to the next-nearest. */
-function updateLock(s: GameState, cycle: boolean): void {
+/** The gun's target is always the nearest living enemy. */
+function updateLock(s: GameState): void {
   const targets = liveTargets(s);
-  if (!targets.length) { lockedTarget = null; return; }
-  const idx = targets.findIndex((e) => e.id === lockedTarget);
-  if (idx < 0) lockedTarget = targets[0].id;
-  else if (cycle) { lockedTarget = targets[(idx + 1) % targets.length].id; play("lock", 0.6); }
+  lockedTarget = targets.length ? targets[0].id : null;
 }
 
 /**
- * Sword: face where you move (WASD and clicking, nothing else).
- * Gun: auto-aim locks a target; otherwise mouse / stick.
+ * Only the gun aims, and only in space. Auto-aim points at the nearest enemy;
+ * with it off the mouse / right stick aims. On a planet the sim derives facing from movement.
  */
 function resolveAim(s: GameState, snap: ReturnType<Input["poll"]>): Vec {
   const p = s.entities[0];
-  if (len(snap.frame.move) > 0.2) {
-    let m = norm(snap.frame.move);
-    if (p.planet !== null) {
-      const n = surfaceNormal(s.planets[p.planet], p.pos);
-      const t = perp(n);
-      const side = dot(m, t);
-      if (Math.abs(side) > 0.2) m = scale(t, Math.sign(side));
-    }
-    lastMoveDir = m;
-  }
-  if (s.weapon === "sword") {
-    if (p.planet === null && len(p.vel) > 120 && len(snap.frame.move) < 0.2) return norm(p.vel);
-    return lastMoveDir;
-  }
-  if (profile.settings.autoAim && lockedTarget !== null) {
-    const t = s.entities.find((e) => e.id === lockedTarget);
+  if (p.planet !== null) return fromAngle(p.facing);
+  if (profile.settings.autoAim) {
+    const t = lockedTarget !== null ? s.entities.find((e) => e.id === lockedTarget) : undefined;
     if (t) return norm(sub(add(t.pos, scale(t.vel, 0.15)), p.pos));
+    return len(snap.frame.move) > 0.2 ? norm(snap.frame.move) : len(p.vel) > 40 ? norm(p.vel) : fromAngle(p.facing);
   }
-  if (snap.usingGamepad || !snap.aimScreen) return snap.frame.aim;
   return snap.frame.aim;
 }
 
@@ -199,10 +180,11 @@ function frame(now: number): void {
     const playerScreen = cam.toScreen(p.pos);
     const snap = input.poll(playerScreen, mode === "playing" ? aimAssistTarget(s) : null);
     if (mode === "playing") {
-      updateLock(s, snap.cycle);
+      updateLock(s);
       snap.frame.aim = resolveAim(s, snap);
     }
     renderer.lockedTarget = profile.settings.autoAim ? lockedTarget : null;
+    renderer.thrust = mode === "playing" ? snap.frame.move : { x: 0, y: 0 };
 
     if (mode === "playing") {
       if (snap.pausePressed) { mode = "paused"; ui.show("pause"); canvas.style.cursor = "default"; }
@@ -213,13 +195,12 @@ function frame(now: number): void {
         // a hit-stop freeze a frame may run zero steps, and the press must not be lost.
         pending.attack ||= snap.frame.attack;
         pending.dash ||= snap.frame.dash;
-        pending.swap ||= snap.frame.swap;
         while (acc >= DT && steps < 6) {
           const frozen = s.freeze > 0;
-          let frameInput = { ...snap.frame, attack: pending.attack && !frozen, dash: pending.dash && !frozen, swap: pending.swap && !frozen };
-          if (BOT) frameInput = botInput(s, () => botRng.next());
+          let frameInput = { ...snap.frame, attack: pending.attack && !frozen, dash: pending.dash && !frozen };
+          if (BOT) { frameInput = botInput(s, () => botRng.next()); renderer.thrust = frameInput.move; }
           step(s, frameInput);
-          if (!frozen) pending = { attack: false, dash: false, swap: false };
+          if (!frozen) pending = { attack: false, dash: false };
           applyEvents(s, s.events, particles, cam, { banner: (t, sub, k) => ui.banner(t, sub, k), hurtFlash: () => (renderer.hurtFlash = 1) });
           for (const ev of s.events) if (ev.type === "void" && ev.kind === "player") voidDeath = true;
           acc -= DT;
@@ -255,7 +236,7 @@ function frame(now: number): void {
   } else {
     // menu backdrop: an idle demo world
     if (!demo) { demo = createGame(7); cam.snap({ x: 0, y: 0 }); }
-    step(demo, { move: { x: 0, y: 0 }, aim: { x: 1, y: 0 }, attack: false, dash: false, swap: false });
+    step(demo, { move: { x: 0, y: 0 }, aim: { x: 1, y: 0 }, attack: false, dash: false });
     if (demo.wave.n > 3 || demo.over) demo = createGame((Math.random() * 1e9) >>> 0);
     cam.targetZoom = 0.42;
     cam.zoom += (cam.targetZoom - cam.zoom) * 0.02;

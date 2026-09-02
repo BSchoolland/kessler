@@ -17,7 +17,7 @@ export function createGame(seed: number, daily = false): GameState {
     tick: 0, time: 0, seed, rngState: 0, freeze: 0, planets, entities: [], debris: [], projectiles: [], shockwaves: [],
     telegraphs: [], nextId: 1, wave: initialWave(), offers: null, mods: defaultMods(), taken: [], score: 0,
     stats: { kills: 0, voidKills: 0, impactKills: 0, debrisKills: 0, collisionKills: 0, bossKills: 0, damageDealt: 0, damageTaken: 0, swings: 0, dashes: 0, time: 0, bestCombo: 0 },
-    over: false, daily, events: [], weapon: "sword", ammo: GUN.ammoStart, gunCd: 0, fuel: FUEL.max,
+    over: false, daily, events: [], weapon: "sword", ammo: GUN.ammoStart, gunCd: 0, fuel: FUEL.max, fuelWarnT: 0,
   };
   const p = makeEntity(s, "player", { x: 0, y: 0 }, PLAYER.radius, PLAYER.maxHp, 190);
   p.pos = snapToSurface(planets[0], add(planets[0].pos, fromAngle(-Math.PI / 2)), p.radius);
@@ -92,42 +92,59 @@ function updatePlayer(ctx: Ctx, input: InputFrame): void {
   p.attackBuffer -= dt;
   p.dashBuffer -= dt;
   s.gunCd -= dt;
+  s.fuelWarnT -= dt;
   if (s.over) return;
 
-  const aim = len(input.aim) > 1e-6 ? norm(input.aim) : fromAngle(p.facing);
-  p.facing = angleOf(aim);
+  const grounded = p.planet !== null;
+  s.weapon = grounded ? "sword" : "gun";
+  const moving = len(input.move) > 0.2;
+
+  // facing: on a planet you face up, or left/right while walking; in space you face your target
+  let facingUp = false;
+  if (grounded) {
+    const n = surfaceNormal(s.planets[p.planet!], p.pos);
+    const t = perp(n);
+    const side = dot(input.move, t);
+    if (moving && Math.abs(side) > 0.15) p.facing = angleOf(scale(t, Math.sign(side)));
+    else { p.facing = angleOf(n); facingUp = true; }
+  } else {
+    const aim = len(input.aim) > 1e-6 ? norm(input.aim) : len(p.vel) > 40 ? norm(p.vel) : fromAngle(p.facing);
+    p.facing = angleOf(aim);
+  }
+  const facingV = fromAngle(p.facing);
   if (input.attack) p.attackBuffer = 0.22;
   if (input.dash) p.dashBuffer = 0.2;
-  if (input.swap) {
-    s.weapon = s.weapon === "sword" ? "gun" : "sword";
-    if (p.swing && p.swing.phase !== "active") p.swing = null;
-    emit(s, { type: "swap", pos: p.pos, weapon: s.weapon });
-  }
+  const warnFuel = () => {
+    if (s.fuelWarnT <= 0) {
+      s.fuelWarnT = 1.5;
+      emit(s, { type: "fuelEmpty", pos: p.pos });
+    }
+  };
 
-  // dash
+  // dash: where you're moving, else where you're facing; never without fuel
   if (p.dashBuffer > 0 && p.dashCd <= 0) {
     p.dashBuffer = 0;
-    const speed = PLAYER.dashSpeed * mods.dashSpeedMult;
-    p.dashT = PLAYER.dashDuration;
-    p.dashCd = PLAYER.dashCooldown * mods.dashCooldownMult;
-    p.sinceDash = 0;
-    s.stats.dashes++;
-    if (p.swing && p.swing.phase !== "active") p.swing = null;
-    // dash where you're moving; aim only if you're standing still
-    let dir = len(input.move) > 0.2 ? norm(input.move) : aim;
-    if (p.planet !== null) {
-      const n = surfaceNormal(s.planets[p.planet], p.pos);
-      const out = dot(dir, n);
-      if (out < PLAYER.liftOff) {
-        // always leave the ground: keep the sideways part, force enough outward component
-        const t = perp(n);
-        const side = dot(dir, t);
-        dir = norm(add(scale(t, side), scale(n, PLAYER.liftOff)));
+    if (s.fuel <= 0) warnFuel();
+    else {
+      const speed = PLAYER.dashSpeed * mods.dashSpeedMult;
+      p.dashT = PLAYER.dashDuration;
+      p.dashCd = PLAYER.dashCooldown * mods.dashCooldownMult;
+      p.sinceDash = 0;
+      s.stats.dashes++;
+      if (p.swing && p.swing.phase !== "active") p.swing = null;
+      let dir = moving ? norm(input.move) : facingV;
+      if (grounded) {
+        const n = surfaceNormal(s.planets[p.planet!], p.pos);
+        const out = dot(dir, n);
+        if (out < PLAYER.liftOff) {
+          const t = perp(n);
+          dir = norm(add(scale(t, dot(dir, t)), scale(n, PLAYER.liftOff)));
+        }
+        p.planet = null;
       }
-      p.planet = null;
+      p.vel = scale(dir, speed);
+      emit(s, { type: "dash", pos: p.pos, dir });
     }
-    p.vel = scale(dir, speed);
-    emit(s, { type: "dash", pos: p.pos, dir });
   }
 
   if (p.dashT > 0) {
@@ -145,16 +162,18 @@ function updatePlayer(ctx: Ctx, input: InputFrame): void {
     const accel = PLAYER.walkAccel * dt;
     const nv = cur + clamp(want - cur, -accel, accel);
     p.vel = scale(t, nv);
-  } else if (s.fuel > 0 && len(input.move) > 0.1) {
-    const steer = PLAYER.airAccel * mods.airControlMult;
-    p.vel = add(p.vel, scale(input.move, steer * dt));
-    s.fuel -= (FUEL.drain / mods.fuelEfficiency) * Math.min(1, len(input.move)) * dt;
-    if (s.fuel <= 0) { s.fuel = 0; emit(s, { type: "fuelEmpty", pos: p.pos }); }
+  } else if (moving) {
+    if (s.fuel > 0) {
+      const steer = PLAYER.airAccel * mods.airControlMult;
+      p.vel = add(p.vel, scale(input.move, steer * dt));
+      s.fuel -= (FUEL.drain / mods.fuelEfficiency) * Math.min(1, len(input.move)) * dt;
+      if (s.fuel <= 0) { s.fuel = 0; warnFuel(); }
+    } else warnFuel();
   }
   if (p.planet !== null) s.fuel = Math.min(fuelMax(s), s.fuel + FUEL.regenGround * dt);
 
-  // gun
-  if (s.weapon === "gun" && p.attackBuffer > 0 && !p.swing) {
+  // gun: in space
+  if (!grounded && p.attackBuffer > 0 && !p.swing) {
     if (s.gunCd > 0) {
       // keep the press buffered until the gun is ready
     } else if (s.ammo <= 0) {
@@ -164,34 +183,32 @@ function updatePlayer(ctx: Ctx, input: InputFrame): void {
       p.attackBuffer = 0;
       s.ammo--;
       s.gunCd = GUN.cooldown;
-      const pr: Projectile = { id: s.nextId++, pos: add(p.pos, scale(aim, p.radius + 6)), vel: add(scale(aim, GUN.speed), scale(p.vel, 0.3)), radius: GUN.radius, life: GUN.life, damage: GUN.damage, hue: 190, friendly: true, knockback: GUN.knockback * mods.knockbackMult, slug: true };
+      const pr: Projectile = { id: s.nextId++, pos: add(p.pos, scale(facingV, p.radius + 6)), vel: add(scale(facingV, GUN.speed), scale(p.vel, 0.3)), radius: GUN.radius, life: GUN.life, damage: GUN.damage, hue: 190, friendly: true, knockback: GUN.knockback * mods.knockbackMult, slug: true };
       s.projectiles.push(pr);
-      if (p.planet === null) p.vel = sub(p.vel, scale(aim, GUN.recoil));
+      p.vel = sub(p.vel, scale(facingV, GUN.recoil));
       s.stats.swings++;
-      emit(s, { type: "gunshot", pos: pr.pos, dir: aim });
+      emit(s, { type: "gunshot", pos: pr.pos, dir: facingV });
     }
   }
 
-  // swing
-  if (s.weapon === "sword" && !p.swing && p.attackBuffer > 0 && p.dashT <= 0) {
+  // edge: on a planet
+  if (grounded && !p.swing && p.attackBuffer > 0 && p.dashT <= 0) {
     p.attackBuffer = 0;
     const d = swingDurations(s);
     if (p.comboT > 0) p.comboIdx = (p.comboIdx + 1) % 2;
     else p.comboIdx = 0;
-    const dive = p.planet === null && len(p.vel) > PLAYER.diveSpeed;
-    const sw: SwingState = { phase: "windup", t: dive ? d.windup * 0.5 : d.windup, angle: p.facing, dir: p.comboIdx === 0 ? 1 : -1, dashStrike: p.sinceDash < PLAYER.dashStrikeWindow, dive, hit: [] };
+    const sw: SwingState = { phase: "windup", t: d.windup, angle: p.facing, dir: p.comboIdx === 0 ? 1 : -1, dashStrike: p.sinceDash < PLAYER.dashStrikeWindow, arc: facingUp ? PLAYER.swing.overheadArc : PLAYER.swing.arc, hit: [] };
     p.swing = sw;
     s.stats.swings++;
-    emit(s, { type: "swing", pos: p.pos, angle: sw.angle, dashStrike: sw.dashStrike, dive });
+    emit(s, { type: "swing", pos: p.pos, angle: sw.angle, dashStrike: sw.dashStrike, arc: sw.arc });
   }
   if (p.swing) {
     const sw = p.swing;
     const d = swingDurations(s);
     sw.t -= dt;
-    if (sw.dive && sw.phase !== "recovery") sw.angle = len(p.vel) > 40 ? angleOf(p.vel) : p.facing;
     if (sw.phase === "active") resolveSwingHits(ctx, p, sw);
     if (sw.t <= 0) {
-      if (sw.phase === "windup") { sw.phase = "active"; sw.t = sw.dive ? PLAYER.diveActive / mods.swingSpeedMult : d.active; }
+      if (sw.phase === "windup") { sw.phase = "active"; sw.t = d.active; }
       else if (sw.phase === "active") { sw.phase = "recovery"; sw.t = d.recovery; }
       else { p.swing = null; p.comboT = PLAYER.swing.comboWindow; }
     }
@@ -211,7 +228,7 @@ function resolveSwingHits(ctx: Ctx, p: Entity, sw: SwingState): void {
   const { s } = ctx;
   const mods = s.mods;
   const reach = PLAYER.swing.reach * mods.reachMult;
-  const half = PLAYER.swing.arc / 2;
+  const half = sw.arc / 2;
   const berserk = mods.berserk && p.hp < p.maxHp * 0.5 ? 1.35 : 1;
   const dmg = PLAYER.swing.damage * mods.damageMult * (sw.dashStrike ? PLAYER.dashStrikeMult : 1) * berserk;
   const kb = PLAYER.swing.knockback * mods.knockbackMult * (sw.dashStrike ? 1.45 : 1);

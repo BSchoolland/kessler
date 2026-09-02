@@ -6,7 +6,7 @@ import { player } from "../shared/actions";
 import type { InputFrame } from "../shared/types";
 import { inVoid } from "../shared/physics";
 
-const idle: InputFrame = { move: { x: 0, y: 0 }, aim: { x: 1, y: 0 }, attack: false, dash: false, swap: false };
+const idle: InputFrame = { move: { x: 0, y: 0 }, aim: { x: 1, y: 0 }, attack: false, dash: false };
 
 describe("sim", () => {
   it("is deterministic for the same seed and inputs", () => {
@@ -55,17 +55,29 @@ describe("sim", () => {
     expect(waves / 3).toBeGreaterThan(2);
   });
 
-  it("gun spends ammo, sword hits refill it", () => {
+  it("gun is the weapon in space and spends ammo", () => {
     const s = createGame(5);
     for (let i = 0; i < 60 * 2; i++) step(s, idle);
     expect(s.ammo).toBe(3);
-    step(s, { ...idle, swap: true });
+    expect(s.weapon).toBe("sword");
+    step(s, { ...idle, dash: true });
+    expect(player(s).planet).toBeNull();
+    step(s, idle);
     expect(s.weapon).toBe("gun");
     step(s, { ...idle, attack: true });
     expect(s.ammo).toBe(2);
     expect(s.events.some((e) => e.type === "gunshot")).toBe(true);
-    for (let i = 0; i < 30; i++) step(s, { ...idle, attack: i % 25 === 0 });
-    expect(s.ammo).toBe(1);
+  });
+
+  it("no fuel means no dash, with a rate-limited warning", () => {
+    const s = createGame(5);
+    for (let i = 0; i < 30; i++) step(s, idle);
+    s.fuel = 0;
+    step(s, { ...idle, dash: true });
+    expect(player(s).planet).toBe(0);
+    expect(s.events.filter((e) => e.type === "fuelEmpty").length).toBe(1);
+    step(s, { ...idle, dash: true });
+    expect(s.events.filter((e) => e.type === "fuelEmpty").length).toBe(0);
   });
 
   it("dash strike launches an enemy off the planet", () => {

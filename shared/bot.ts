@@ -12,7 +12,7 @@ export function botInput(s: GameState, rngNext: () => number): InputFrame {
   const p = player(s);
   const zero: Vec = { x: 0, y: 0 };
   const enemies = s.entities.filter((e) => e.kind !== "player" && !e.dead && e.spawnT <= 0);
-  if (!enemies.length) return { move: zero, aim: { x: 1, y: 0 }, attack: false, dash: false, swap: false };
+  if (!enemies.length) return { move: zero, aim: { x: 1, y: 0 }, attack: false, dash: false };
   let best = enemies[0];
   let bd = Infinity;
   for (const e of enemies) {
@@ -48,10 +48,8 @@ export function botInput(s: GameState, rngNext: () => number): InputFrame {
     : samePlanet && d > 160 && rngNext() < 0.12);
   const attack = !p.swing && ((inReach && rngNext() < 0.9) || (!!incoming && rngNext() < 0.7));
   const finalAim = incoming && !inReach ? norm(sub(incoming.pos, p.pos)) : huntAim;
-  // the bot uses the gun on orbiters it can't reach and whenever it has spare rounds at range
-  const wantGun = s.ammo > 0 && !inReach && d < 700 && (best.kind === "orbiter" || s.ammo >= 3);
-  const swap = wantGun !== (s.weapon === "gun") && rngNext() < 0.5;
-  const shoot = s.weapon === "gun" && wantGun && s.gunCd <= 0 && rngNext() < 0.6;
+  // in space the gun is the weapon: shoot whenever there's a round and a target in range
+  const shoot = p.planet === null && s.ammo > 0 && d < 700 && s.gunCd <= 0 && rngNext() < 0.6;
   const moveOut = dash && (crossing || orbiterHunt || threatened) ? huntAim : move;
-  return { move: add(moveOut, zero), aim: finalAim, attack: attack || shoot, dash, swap };
+  return { move: add(moveOut, zero), aim: finalAim, attack: attack || shoot, dash };
 }

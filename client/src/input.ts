@@ -3,7 +3,6 @@ import { len, norm, sub, type Vec } from "../../shared/vec";
 
 export interface InputSnapshot {
   frame: InputFrame;
-  cycle: boolean;
   aimScreen: Vec | null; // null when aiming with a stick
   usingGamepad: boolean;
   pausePressed: boolean;
@@ -23,9 +22,9 @@ export class Input {
   usingGamepad = false;
   usingTouch = false;
   lastGamepadAim: Vec = { x: 1, y: 0 };
-  private touch = { move: { x: 0, y: 0 } as Vec, aim: { x: 0, y: 0 } as Vec, attack: false, dash: false, swap: false, cycle: false, pause: false, lastAim: { x: 1, y: 0 } as Vec };
+  private touch = { move: { x: 0, y: 0 } as Vec, aim: { x: 0, y: 0 } as Vec, attack: false, dash: false, pause: false, lastAim: { x: 1, y: 0 } as Vec };
   lastMouseMove = 0;
-  private wheelSwap = false;
+  thrust: Vec = { x: 0, y: 0 };
 
   constructor(private canvas: HTMLCanvasElement) {
     window.addEventListener("keydown", (e) => {
@@ -33,7 +32,7 @@ export class Input {
       this.keys.add(e.code);
       this.pressed.add(e.code);
       this.usingGamepad = false;
-      if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Tab"].includes(e.code)) e.preventDefault();
+      if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
     });
     window.addEventListener("keyup", (e) => this.keys.delete(e.code));
     window.addEventListener("blur", () => { this.keys.clear(); this.mouseDown.clear(); });
@@ -41,7 +40,6 @@ export class Input {
     canvas.addEventListener("mousedown", (e) => { this.mouseDown.add(e.button); this.mousePressed.add(e.button); this.usingGamepad = false; e.preventDefault(); });
     window.addEventListener("mouseup", (e) => this.mouseDown.delete(e.button));
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
-    canvas.addEventListener("wheel", (e) => { if (Math.abs(e.deltaY) > 2) this.wheelSwap = true; e.preventDefault(); }, { passive: false });
     this.bindTouch();
   }
 
@@ -95,8 +93,6 @@ export class Input {
     };
     bindBtn("t-attack", () => (this.touch.attack = true));
     bindBtn("t-dash", () => (this.touch.dash = true));
-    bindBtn("t-swap", () => (this.touch.swap = true));
-    bindBtn("t-target", () => (this.touch.cycle = true));
     bindBtn("t-pause", () => (this.touch.pause = true));
     window.addEventListener("touchstart", () => { this.usingTouch = true; }, { passive: true, once: true });
   }
@@ -113,11 +109,8 @@ export class Input {
     if (k.has("KeyD") || k.has("ArrowRight")) move.x += 1;
     if (k.has("KeyW") || k.has("ArrowUp")) move.y -= 1;
     if (k.has("KeyS") || k.has("ArrowDown")) move.y += 1;
-    let attack = this.mousePressed.has(0) || this.pressed.has("KeyJ");
-    let dash = this.mousePressed.has(2) || this.pressed.has("Space") || this.pressed.has("ShiftLeft") || this.pressed.has("KeyK");
-    let swap = this.pressed.has("KeyQ") || this.pressed.has("KeyE") || this.wheelSwap;
-    let cycle = this.pressed.has("Tab") || this.pressed.has("KeyR");
-    this.wheelSwap = false;
+    let attack = this.mousePressed.has(0) || this.pressed.has("Space") || this.pressed.has("KeyJ");
+    let dash = this.mousePressed.has(2) || this.pressed.has("ShiftLeft") || this.pressed.has("ShiftRight") || this.pressed.has("KeyK");
     let pausePressed = this.pressed.has("Escape") || this.pressed.has("KeyP");
     let menuConfirm = this.pressed.has("Enter") || this.pressed.has("Space");
     let menuBack = this.pressed.has("Escape");
@@ -144,8 +137,6 @@ export class Input {
         aimScreen = null;
         attack = edge("attack", btn(7) || btn(0) || btn(5));
         dash = edge("dash", btn(6) || btn(1) || btn(4));
-        swap = edge("swap", btn(3));
-        cycle = edge("cycle", btn(2));
         pausePressed = edge("pause", btn(9));
         menuConfirm = edge("confirm", btn(0)) || edge("start", btn(9));
         menuBack = edge("back", btn(1));
@@ -162,14 +153,13 @@ export class Input {
       aimScreen = null;
       attack = this.touch.attack;
       dash = this.touch.dash;
-      swap = this.touch.swap;
-      cycle = this.touch.cycle;
       pausePressed = pausePressed || this.touch.pause;
-      this.touch.attack = this.touch.dash = this.touch.swap = this.touch.cycle = this.touch.pause = false;
+      this.touch.attack = this.touch.dash = this.touch.pause = false;
     }
     if (len(move) > 1) move = norm(move);
     this.pressed.clear();
     this.mousePressed.clear();
-    return { frame: { move, aim, attack, dash, swap }, cycle, aimScreen, usingGamepad: this.usingGamepad || this.usingTouch, pausePressed, menuConfirm, menuBack, menuNav, numberKey };
+    this.thrust = move;
+    return { frame: { move, aim, attack, dash }, aimScreen, usingGamepad: this.usingGamepad || this.usingTouch, pausePressed, menuConfirm, menuBack, menuNav, numberKey };
   }
 }

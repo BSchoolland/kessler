@@ -38,6 +38,7 @@ export class Renderer {
   }
 
   lockedTarget: number | null = null;
+  thrust: Vec = { x: 0, y: 0 };
 
   draw(s: GameState, aimScreen: Vec | null, dt: number, hud: { paused: boolean }): void {
     const ctx = this.ctx;
@@ -365,9 +366,9 @@ export class Renderer {
     const ctx = this.ctx;
     const mods = s.mods;
     const reach = PLAYER.swing.reach * mods.reachMult;
-    const half = PLAYER.swing.arc / 2;
     const sw = p.swing;
-    // swing telegraph / sweep
+    const half = (sw ? sw.arc : PLAYER.swing.arc) / 2;
+    // the edge: a kinetic crescent on the front of the ship
     if (sw) {
       ctx.save();
       ctx.translate(p.pos.x, p.pos.y);
@@ -385,33 +386,25 @@ export class Renderer {
         ctx.stroke();
         ctx.setLineDash([]);
       } else {
+        // a crescent shockwave pushed out from the hull to full reach, then fading
         const total = (sw.phase === "active" ? PLAYER.swing.active : PLAYER.swing.recovery) / mods.swingSpeedMult;
         const k = 1 - sw.t / total;
-        const alpha = sw.phase === "active" ? 0.85 : 0.45 * (1 - k);
+        const prog = sw.phase === "active" ? k : 1;
+        const alpha = sw.phase === "active" ? 0.95 : 0.5 * (1 - k);
+        const rad = p.radius + (reach - p.radius) * (0.35 + 0.65 * prog);
+        const col = sw.dashStrike ? "255,230,120" : "77,243,255";
         ctx.globalCompositeOperation = "lighter";
-        if (sw.dive && sw.phase === "active") {
-          // dive-slash: a streak behind the player plus the arc
-          const vl = len(p.vel);
-          ctx.strokeStyle = `rgba(77,243,255,${0.5 + 0.3 * Math.sin(this.t * 40)})`;
-          ctx.lineWidth = 10;
-          ctx.beginPath();
-          ctx.moveTo(0, 0);
-          ctx.lineTo((-p.vel.x / (vl || 1)) * 60, (-p.vel.y / (vl || 1)) * 60);
-          ctx.stroke();
-        }
-        ctx.fillStyle = sw.dashStrike ? `rgba(255,230,120,${alpha * 0.55})` : `rgba(77,243,255,${alpha * 0.45})`;
+        ctx.fillStyle = `rgba(${col},${alpha * 0.18})`;
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.arc(0, 0, reach, sw.angle - half, sw.angle + half);
+        ctx.arc(0, 0, rad, sw.angle - half, sw.angle + half);
         ctx.closePath();
         ctx.fill();
-        if (sw.phase === "active") {
-          const a = sw.dive ? sw.angle + Math.sin(this.t * 50) * half * 0.9 : sw.angle + sw.dir * (half - k * 2 * half);
-          ctx.strokeStyle = "#ffffff";
-          ctx.lineWidth = 4;
+        for (const [w, a] of [[14, 0.25], [6, 0.6], [2.5, 1]] as const) {
+          ctx.strokeStyle = `rgba(${col},${alpha * a})`;
+          ctx.lineWidth = w;
           ctx.beginPath();
-          ctx.moveTo(0, 0);
-          ctx.lineTo(Math.cos(a) * reach, Math.sin(a) * reach);
+          ctx.arc(0, 0, rad, sw.angle - half, sw.angle + half);
           ctx.stroke();
         }
         ctx.globalCompositeOperation = "source-over";
@@ -451,26 +444,57 @@ export class Renderer {
       ctx.strokeStyle = "#ffe07a";
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.moveTo(r * 0.3, r * 0.45);
-      ctx.lineTo(r * 1.9, r * 0.35);
+      ctx.moveTo(r * 0.3, 0);
+      ctx.lineTo(r * 2.1, 0);
       ctx.stroke();
       if (s.gunCd > 0) {
         ctx.strokeStyle = "rgba(255,224,122,0.35)";
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.moveTo(r * 1.9, r * 0.35);
-        ctx.lineTo(r * 1.9 + 8, r * 0.35);
+        ctx.moveTo(r * 2.1, 0);
+        ctx.lineTo(r * 2.1 + 8, 0);
         ctx.stroke();
       }
     } else if (!sw) {
-      ctx.strokeStyle = "#e8fbff";
-      ctx.lineWidth = 2;
+      // resting edge: a faint crescent hugging the nose
+      const ih = half * 0.6;
+      ctx.strokeStyle = "rgba(232,251,255,0.7)";
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.moveTo(r * 0.6, r * 0.55);
-      ctx.lineTo(r * 0.6 + reach * 0.45, r * 0.3);
+      ctx.arc(0, 0, r * 1.9, -ih, ih);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(77,243,255,0.2)";
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 1.9, -ih, ih);
       ctx.stroke();
     }
     ctx.restore();
+    // thrusters: flame opposite to the steering input while airborne with fuel
+    const th = this.thrust;
+    if (p.planet === null && s.fuel > 0 && Math.hypot(th.x, th.y) > 0.2) {
+      const a = Math.atan2(th.y, th.x) + Math.PI;
+      const flick = 0.75 + 0.25 * Math.sin(this.t * 60);
+      const L = (14 + 16 * Math.min(1, Math.hypot(th.x, th.y))) * flick;
+      ctx.save();
+      ctx.translate(p.pos.x, p.pos.y);
+      ctx.rotate(a);
+      ctx.globalCompositeOperation = "lighter";
+      const g = ctx.createLinearGradient(r * 0.6, 0, r * 0.6 + L, 0);
+      g.addColorStop(0, "rgba(255,240,180,0.95)");
+      g.addColorStop(0.4, "rgba(255,170,60,0.7)");
+      g.addColorStop(1, "rgba(255,80,40,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(r * 0.6, -r * 0.45);
+      ctx.lineTo(r * 0.6 + L, 0);
+      ctx.lineTo(r * 0.6, r * 0.45);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalCompositeOperation = "source-over";
+      ctx.restore();
+      if (Math.random() < 0.6) this.particles.burst(p.pos, 1, { color: "#ffb347", speed: 140, dir: { x: Math.cos(a), y: Math.sin(a) }, spread: 0.5, shape: "dot", size: 2.2, max: 0.25, drag: 3 });
+    }
     // dash cooldown ring
     if (p.dashCd > 0) {
       const total = PLAYER.dashCooldown * mods.dashCooldownMult;

@@ -25,9 +25,14 @@ when everyone is running around a circle.
 Flying was overpowered (enemies couldn't reach you), so air control burns fuel that
 only refills on the ground. Dash stays free so the gap-crossing verb is never gated.
 
-## Sword and gun
+## Edge and gun
 
-The sword is the economy, the gun is the spend. Sword hits earn rounds (1 each,
+Round two of Ben's feedback made it positional: the edge is the weapon on a planet,
+the gun is the weapon in space, and there is no swap. Standing still you face up and
+sweep both sides; moving you face sideways and launch. Auto-aim always takes the
+nearest enemy. Shift dashes, space attacks, so the whole game is keyboard-only.
+
+The edge is the economy, the gun is the spend. Sword hits earn rounds (1 each,
 Scavenger makes it 2); the gun fires a fast slug that launches on hit with more
 knockback than a normal swing, at range, with gravity drop. It exists for the two
 things the sword can't do: reach orbiters without leaving the ground, and line
