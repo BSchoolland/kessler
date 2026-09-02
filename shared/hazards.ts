@@ -158,7 +158,9 @@ export function updateShockwaves(ctx: Ctx): void {
       const gap = dist(e.pos, planet.pos) - planet.r - e.radius;
       if (gap > 26) return false;
       const a = Math.atan2(e.pos.y - planet.pos.y, e.pos.x - planet.pos.x);
-      const da = Math.abs(angleDelta(w.angle, a));
+      const signed = angleDelta(w.angle, a);
+      if (w.dir !== 0 && Math.sign(signed) !== w.dir && Math.abs(signed) > 0.02) return false;
+      const da = Math.abs(signed);
       const margin = (e.radius + 10) / planet.r;
       return da <= w.spread + margin && da >= prev - margin;
     };
@@ -168,10 +170,22 @@ export function updateShockwaves(ctx: Ctx): void {
         if (band(e)) {
           w.hit.push(e.id);
           const n = surfaceNormal(planet, e.pos);
-          e.vel = add(e.vel, scale(n, 380 * (1 - e.knockbackResist)));
-          if (e.knockbackResist < 0.5) { e.planet = null; e.launched = true; }
-          e.stun = Math.max(e.stun, 0.5);
-          damageEnemy(ctx, e, w.damage, "shockwave", e.pos, n);
+          if (w.edge) {
+            // shove along the wave's travel with a bit of lift, like a hit from the edge itself
+            const t = { x: -n.y * w.dir, y: n.x * w.dir };
+            launch(e, add(t, scale(n, 0.45)), w.knockback, 0.6);
+            s.freeze = Math.max(s.freeze, 0.025);
+            damageEnemy(ctx, e, w.damage, "blade", e.pos, t);
+            if (s.ammo < GUN.ammoMax + s.mods.ammoMaxBonus) {
+              s.ammo = Math.min(GUN.ammoMax + s.mods.ammoMaxBonus, s.ammo + s.mods.ammoPerHit);
+              emit(s, { type: "ammo", pos: p.pos, ammo: s.ammo });
+            }
+          } else {
+            e.vel = add(e.vel, scale(n, w.knockback * (1 - e.knockbackResist)));
+            if (e.knockbackResist < 0.5) { e.planet = null; e.launched = true; }
+            e.stun = Math.max(e.stun, 0.5);
+            damageEnemy(ctx, e, w.damage, "shockwave", e.pos, n);
+          }
         }
       }
     } else if (!s.over && !w.hit.includes(p.id) && p.planet === w.planet && band(p)) {

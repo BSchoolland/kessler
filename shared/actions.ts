@@ -78,9 +78,23 @@ export function spawnDebris(ctx: Ctx, pos: Vec, inherit: Vec, count: number, hue
 }
 
 export function spawnShockwave(s: GameState, planet: number, angle: number, damage: number, friendly: boolean, speed = 3.2, maxSpread = Math.PI): Shockwave {
-  const w: Shockwave = { id: s.nextId++, planet, angle, spread: 0, maxSpread, speed, damage, hit: [], friendly };
+  const w: Shockwave = { id: s.nextId++, planet, angle, spread: 0, maxSpread, speed, damage, hit: [], friendly, dir: 0, edge: false, knockback: 380 };
   s.shockwaves.push(w);
   emit(s, { type: "shockwave", pos: snapToSurface(s.planets[planet], add(s.planets[planet].pos, fromAngle(angle)), 0) });
+  return w;
+}
+
+/** The side attack's surface wave: one way around the planet, fast, with a fixed linear range. */
+export function spawnEdgeWave(s: GameState, planet: number, angle: number, dir: 1 | -1, damage: number, knockback: number): Shockwave {
+  const pl = s.planets[planet];
+  const w: Shockwave = {
+    id: s.nextId++, planet, angle, spread: 0, maxSpread: PLAYER.swing.waveRange / pl.r, speed: PLAYER.swing.waveSpeed / pl.r,
+    damage, hit: [], friendly: true, dir, edge: true, knockback,
+  };
+  s.shockwaves.push(w);
+  const n = fromAngle(angle);
+  const t = { x: -n.y * dir, y: n.x * dir };
+  emit(s, { type: "edgeWave", pos: snapToSurface(pl, add(pl.pos, n), 0), dir: t });
   return w;
 }
 

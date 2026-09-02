@@ -121,6 +121,9 @@ export interface Shockwave {
   damage: number;
   hit: number[];
   friendly: boolean;
+  dir: -1 | 0 | 1;    // 0 = both ways around the planet, else one way
+  edge: boolean;      // the player's side-attack wave: knocks along its travel and earns ammo
+  knockback: number;
 }
 
 export interface Telegraph {
@@ -151,6 +154,7 @@ export type GameEvent =
   | { type: "shot"; pos: Vec; dir: Vec }
   | { type: "telegraph"; kind: Telegraph["kind"]; pos: Vec }
   | { type: "shockwave"; pos: Vec }
+  | { type: "edgeWave"; pos: Vec; dir: Vec }
   | { type: "bossPhase"; pos: Vec }
   | { type: "debrisHit"; pos: Vec; damage: number }
   | { type: "combo"; pos: Vec; idx: number }

@@ -117,6 +117,7 @@ export const SFX = {
   dive: [0.8, 0.1, 260, 0.02, 0.18, 0.2, 4, 1.6, -8, , , , , 0.4, , 0.1, , 0.6, 0.05] as P,
   fuelEmpty: [0.5, 0, 300, 0.02, 0.08, 0.15, 2, 1, -6, , , , , , , , , 0.5, 0.05] as P,
   sweep: [0.6, 0.1, 240, 0.01, 0.05, 0.12, 4, 1.6, -25, , , , , 0.2, , , , 0.6, 0.02] as P,
+  edgeWave: [0.55, 0.05, 180, 0.01, 0.08, 0.16, 4, 1.4, 18, , , , , 0.5, , 0.1, , 0.6, 0.03] as P,
 };
 
 export type SfxName = keyof typeof SFX;
@@ -224,6 +225,44 @@ export function startMusic(): void {
     pulseTimer = window.setTimeout(beat, 700 - intensity * 250);
   };
   beat();
+}
+
+// --- thruster loop: filtered noise that fades in while steering in space ---
+let thruster: { src: AudioBufferSourceNode; gain: GainNode; filter: BiquadFilterNode } | null = null;
+let thrustLevel = 0;
+
+export function setThrust(level: number): void {
+  const ac = audioContext();
+  if (!ac || !master) return;
+  if (!thruster) {
+    const len = SR * 2;
+    const buf = ac.createBuffer(1, len, SR);
+    const d = buf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < len; i++) {
+      // brown-ish noise reads as a rocket better than white
+      last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02;
+      d[i] = last * 3.5;
+    }
+    const src = ac.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    const filter = ac.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.value = 420;
+    filter.Q.value = 0.7;
+    const gain = ac.createGain();
+    gain.gain.value = 0;
+    src.connect(filter).connect(gain).connect(master);
+    src.start();
+    thruster = { src, gain, filter };
+  }
+  const target = Math.max(0, Math.min(1, level));
+  if (Math.abs(target - thrustLevel) < 0.01) return;
+  thrustLevel = target;
+  const t = ac.currentTime;
+  thruster.gain.gain.setTargetAtTime(target * 0.35 * sfxGain, t, target > 0 ? 0.05 : 0.12);
+  thruster.filter.frequency.setTargetAtTime(380 + target * 500, t, 0.1);
 }
 
 export function stopMusic(): void {

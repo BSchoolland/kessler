@@ -22,13 +22,14 @@ Keyboard only is the intended way to play. The mouse is optional.
 - **Where you are decides the weapon.** On a planet you have the **edge**, a kinetic
   crescent on the nose of the ship. In space you have the **gun**.
 - Standing still on a planet you face straight up and the edge does a wide overhead
-  sweep covering both sides. Moving, you face left or right and the edge is a
-  directed launch. Hits knock enemies *away*.
+  sweep covering both sides. Moving, you face left or right: the edge is a directed
+  launch *and* sends a fast wave running along the surface ahead of you, well past
+  your reach. Hits knock enemies *away*.
 - **Dash** goes where you're moving and always lifts you off the planet. Attack right
   after for a **dash-strike**: double damage, much harder launch. Invulnerable while
   dashing. No fuel, no dash.
-- **Flying**: WASD in space steers you (visible thrusters) but burns fuel. Fuel refills
-  on the ground.
+- **Flying**: WASD in space steers you (visible, audible thrusters) but burns fuel. The
+  gauge sits beside the ship. Fuel refills on the ground.
 - The **gun** auto-aims at the nearest enemy and fires a heavy homing slug that
   launches whatever it hits. Every edge hit earns one round (6 max). Turn auto-aim off
   in settings to aim with the mouse or right stick.

@@ -69,6 +69,20 @@ describe("sim", () => {
     expect(s.events.some((e) => e.type === "gunshot")).toBe(true);
   });
 
+  it("side attack sends a one-way wave along the surface; standing still sweeps wide", () => {
+    const s = createGame(5);
+    for (let i = 0; i < 30; i++) step(s, idle);
+    step(s, { ...idle, move: { x: 1, y: 0 }, attack: true });
+    for (let i = 0; i < 12; i++) step(s, { ...idle, move: { x: 1, y: 0 } });
+    const wave = s.shockwaves.find((w) => w.edge);
+    expect(wave).toBeDefined();
+    expect(wave!.dir).not.toBe(0);
+    expect(player(s).swing?.arc ?? 0).toBeLessThan(3);
+    for (let i = 0; i < 60; i++) step(s, idle);
+    step(s, { ...idle, attack: true });
+    expect(player(s).swing?.arc ?? 0).toBeGreaterThan(3);
+  });
+
   it("no fuel means no dash, with a rate-limited warning", () => {
     const s = createGame(5);
     for (let i = 0; i < 30; i++) step(s, idle);

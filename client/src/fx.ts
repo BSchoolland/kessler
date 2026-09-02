@@ -116,6 +116,10 @@ export function applyEvents(s: GameState, events: GameEvent[], particles: Partic
         cam.addTrauma(0.35);
         sfx("shockwave", ev.pos);
         break;
+      case "edgeWave":
+        particles.burst(ev.pos, 8, { color: PLAYER_COLOR, speed: 220, dir: ev.dir, spread: 0.6, shape: "spark", size: 2.5, max: 0.25 });
+        sfx("edgeWave", ev.pos, 0.7);
+        break;
       case "bossPhase":
         hooks.banner("IT'S ANGRY NOW", "phase two", "phase");
         particles.ring(ev.pos, hsl(285, 100, 70), 300, 1);

@@ -45,6 +45,10 @@ export const PLAYER = {
     knockback: 540,
     stun: 0.85,
     comboWindow: 0.45,
+    waveSpeed: 640,        // surface wave from the side attack: linear speed and travel distance
+    waveRange: 330,
+    waveDamageMult: 0.9,
+    waveKnockback: 620,
   },
 };
 

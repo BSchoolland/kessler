@@ -10,7 +10,7 @@ import { Input } from "./input";
 import { loadProfile, saveProfile } from "./meta";
 import { Particles } from "./particles";
 import { Renderer } from "./render";
-import { audioContext, play, setIntensity, setMusicVolume, setSfxVolume, startMusic } from "./sound";
+import { audioContext, play, setIntensity, setMusicVolume, setSfxVolume, setThrust, startMusic } from "./sound";
 import { UI } from "./ui";
 import { botInput } from "../../shared/bot";
 import { Rng } from "../../shared/rng";
@@ -69,6 +69,7 @@ function bindSettings(): void {
 
 function showMenu(): void {
   mode = "menu";
+  setThrust(0);
   ui.hideAllScreens();
   ui.show("menu");
   ui.showHud(false);
@@ -106,6 +107,7 @@ function startRun(daily: boolean): void {
 function finishRun(): void {
   if (!state) return;
   mode = "over";
+  setThrust(0);
   const s = state;
   profile.runs++;
   profile.totalKills += s.stats.kills;
@@ -187,7 +189,7 @@ function frame(now: number): void {
     renderer.thrust = mode === "playing" ? snap.frame.move : { x: 0, y: 0 };
 
     if (mode === "playing") {
-      if (snap.pausePressed) { mode = "paused"; ui.show("pause"); canvas.style.cursor = "default"; }
+      if (snap.pausePressed) { mode = "paused"; ui.show("pause"); canvas.style.cursor = "default"; setThrust(0); }
       else {
         acc += rawDt;
         let steps = 0;
@@ -228,6 +230,8 @@ function frame(now: number): void {
       cam.update(p.pos, aimWorld, p.planet === null, rawDt);
       const enemies = s.entities.length - 1;
       setIntensity(s.over ? 0 : Math.min(1, 0.2 + enemies * 0.08 + (s.wave.boss ? 0.4 : 0)));
+      const thrusting = mode === "playing" && !s.over && p.planet === null && s.fuel > 0 ? Math.min(1, len(renderer.thrust)) : 0;
+      setThrust(thrusting > 0.2 ? thrusting : 0);
     }
     const showCursor = mode === "playing" && !BOT && s.weapon === "gun" && !profile.settings.autoAim;
     renderer.draw(s, showCursor ? snap.aimScreen : null, rawDt, { paused: mode !== "playing" });

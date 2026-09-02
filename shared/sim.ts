@@ -1,5 +1,5 @@
 import { DT, FUEL, GUN, PLAYER, WAVES } from "./config";
-import { damagePlayer, emit, healPlayer, launch, makeEntity, player, playerMaxHp, resolveContactForEnemy, spawnShockwave, killEnemy, damageEnemy, type Ctx } from "./actions";
+import { damagePlayer, emit, healPlayer, launch, makeEntity, player, playerMaxHp, resolveContactForEnemy, spawnEdgeWave, spawnShockwave, killEnemy, damageEnemy, type Ctx } from "./actions";
 import { updateEnemyAi } from "./ai";
 import { resolveContactDamage, resolveEnemyCollisions, updateDebris, updateProjectiles, updateShockwaves, updateTelegraphs } from "./hazards";
 import { findContact, gravityAt, inVoid, nearestPlanet, snapToSurface, surfaceNormal, tangentOnly } from "./physics";
@@ -208,7 +208,21 @@ function updatePlayer(ctx: Ctx, input: InputFrame): void {
     sw.t -= dt;
     if (sw.phase === "active") resolveSwingHits(ctx, p, sw);
     if (sw.t <= 0) {
-      if (sw.phase === "windup") { sw.phase = "active"; sw.t = d.active; }
+      if (sw.phase === "windup") {
+        sw.phase = "active";
+        sw.t = d.active;
+        // the side attack also sends a wave running along the surface
+        if (p.planet !== null && sw.arc < 3) {
+          const planet = s.planets[p.planet];
+          const n = surfaceNormal(planet, p.pos);
+          const t = perp(n);
+          const dir = (dot(fromAngle(sw.angle), t) >= 0 ? 1 : -1) as 1 | -1;
+          const a = Math.atan2(n.y, n.x);
+          const berserk = mods.berserk && p.hp < p.maxHp * 0.5 ? 1.35 : 1;
+          const dmg = PLAYER.swing.damage * mods.damageMult * PLAYER.swing.waveDamageMult * (sw.dashStrike ? PLAYER.dashStrikeMult : 1) * berserk;
+          spawnEdgeWave(s, p.planet, a, dir, dmg, PLAYER.swing.waveKnockback * mods.knockbackMult * (sw.dashStrike ? 1.45 : 1));
+        }
+      }
       else if (sw.phase === "active") { sw.phase = "recovery"; sw.t = d.recovery; }
       else { p.swing = null; p.comboT = PLAYER.swing.comboWindow; }
     }

@@ -1,4 +1,5 @@
 import { ARENA, PLAYER } from "../../shared/config";
+import { fuelMax } from "../../shared/sim";
 import { ENEMY_DEFS } from "../../shared/enemies";
 import { Rng } from "../../shared/rng";
 import type { Entity, EnemyKind, GameState, Planet } from "../../shared/types";
@@ -285,19 +286,28 @@ export class Renderer {
       const color = w.friendly ? PLAYER_COLOR : hsl(285, 100, 70);
       ctx.strokeStyle = color;
       ctx.globalCompositeOperation = "lighter";
-      for (const dir of [1, -1]) {
-        const a0 = w.angle + dir * Math.max(0, w.spread - 0.25);
+      const tail = w.edge ? 0.12 : 0.25;
+      for (const dir of w.dir === 0 ? [1, -1] : [w.dir]) {
+        const a0 = w.angle + dir * Math.max(0, w.spread - tail);
         const a1 = w.angle + dir * w.spread;
-        ctx.lineWidth = 14;
+        ctx.lineWidth = w.edge ? 9 : 14;
         ctx.globalAlpha = 0.35;
         ctx.beginPath();
         ctx.arc(pl.pos.x, pl.pos.y, pl.r + 10, Math.min(a0, a1), Math.max(a0, a1));
         ctx.stroke();
-        ctx.lineWidth = 4;
+        ctx.lineWidth = w.edge ? 3 : 4;
         ctx.globalAlpha = 0.95;
         ctx.beginPath();
         ctx.arc(pl.pos.x, pl.pos.y, pl.r + 10, Math.min(a0, a1), Math.max(a0, a1));
         ctx.stroke();
+        if (w.edge) {
+          // bright crest at the front of the wave
+          const cx = pl.pos.x + Math.cos(a1) * (pl.r + 10), cy = pl.pos.y + Math.sin(a1) * (pl.r + 10);
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.arc(cx, cy, 4, 0, 6.283);
+          ctx.fill();
+        }
       }
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = "source-over";
@@ -494,6 +504,25 @@ export class Renderer {
       ctx.globalCompositeOperation = "source-over";
       ctx.restore();
       if (Math.random() < 0.6) this.particles.burst(p.pos, 1, { color: "#ffb347", speed: 140, dir: { x: Math.cos(a), y: Math.sin(a) }, spread: 0.5, shape: "dot", size: 2.2, max: 0.25, drag: 3 });
+    }
+    // fuel gauge: a short vertical bar off the ship's left, screen-oriented; hidden when full on the ground
+    const fm = fuelMax(s);
+    const ff = s.fuel / fm;
+    if (p.planet === null || ff < 0.999) {
+      const gx = p.pos.x - r - 13, gy = p.pos.y;
+      const H = 26, W = 4;
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.fillRect(gx - W / 2 - 1, gy - H / 2 - 1, W + 2, H + 2);
+      ctx.strokeStyle = "rgba(255,211,106,0.35)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(gx - W / 2 - 1, gy - H / 2 - 1, W + 2, H + 2);
+      const col = ff <= 0.001 ? "#ff4d7a" : ff < 0.3 && Math.floor(this.t * 6) % 2 === 0 ? "#ffb347" : "#ffd36a";
+      ctx.fillStyle = col;
+      ctx.fillRect(gx - W / 2, gy + H / 2 - H * ff, W, H * ff);
+      ctx.globalCompositeOperation = "lighter";
+      ctx.fillStyle = ff <= 0.001 ? "rgba(255,77,122,0.25)" : "rgba(255,211,106,0.22)";
+      ctx.fillRect(gx - W / 2 - 2, gy + H / 2 - H * ff - 1, W + 4, H * ff + 2);
+      ctx.globalCompositeOperation = "source-over";
     }
     // dash cooldown ring
     if (p.dashCd > 0) {
