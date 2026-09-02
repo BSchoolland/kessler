@@ -240,12 +240,13 @@ export class Renderer {
       if (!owner) continue;
       const k = 1 - t.t / t.total;
       if (t.kind === "shot") {
-        ctx.strokeStyle = hsl(200, 100, 70, 0.15 + k * 0.5);
+        const flak = owner.kind === "flak";
+        ctx.strokeStyle = hsl(flak ? 52 : 200, 100, 70, 0.15 + k * 0.5);
         ctx.lineWidth = 1.5 + k * 2;
         ctx.setLineDash([8, 10]);
         ctx.beginPath();
         ctx.moveTo(owner.pos.x, owner.pos.y);
-        const dir = fromAngle(angleOf(sub(p.pos, owner.pos)));
+        const dir = flak ? fromAngle(owner.facing) : fromAngle(angleOf(sub(p.pos, owner.pos)));
         ctx.lineTo(owner.pos.x + dir.x * 700, owner.pos.y + dir.y * 700);
         ctx.stroke();
         ctx.setLineDash([]);
@@ -646,6 +647,19 @@ export class Renderer {
         const k = 1 - e.ai.t / def.windup;
         ctx.fillStyle = hsl(hue, 100, 80, k);
         ctx.beginPath(); ctx.arc(0, 0, r * 0.4 * k, 0, 6.283); ctx.fill();
+      }
+    } else if (e.kind === "flak") {
+      ctx.rotate(facing);
+      // base slab sits across the surface, barrel points up (along facing)
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.3, -r); ctx.lineTo(r * 0.3, -r * 0.7); ctx.lineTo(r * 0.3, r * 0.7); ctx.lineTo(-r * 0.3, r);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(r * 0.2, 0); ctx.lineTo(r * 1.6, 0); ctx.stroke();
+      if (e.ai.state === "aim") {
+        const k = 1 - e.ai.t / def.windup;
+        ctx.fillStyle = hsl(hue, 100, 80, k);
+        ctx.beginPath(); ctx.arc(r * 1.6, 0, 3 + k * 4, 0, 6.283); ctx.fill();
       }
     } else if (e.kind === "bulwark") {
       ctx.rotate(facing);

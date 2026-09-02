@@ -54,6 +54,7 @@ export function updateEnemyAi(ctx: Ctx, e: Entity): void {
     return;
   }
   if (e.kind === "orbiter") return updateOrbiter(ctx, e);
+  if (e.kind === "flak") return updateFlak(ctx, e);
   if (e.kind === "accretor") return updateBoss(ctx, e);
   updateWalker(ctx, e, def.speed * (e.elite ? 1.2 : 1), def.leapSpeed, def.leapDelay);
 }
@@ -110,6 +111,87 @@ function updateWalker(ctx: Ctx, e: Entity, speed: number, leapSpeed: number, lea
       if (ai.t <= 0 && (facing || ai.t < -2)) {
         const lead = scale(p.vel, clamp(dist(p.pos, e.pos) / leapSpeed, 0, 0.9) * 0.5);
         leapAt(e, add(p.pos, lead), leapSpeed, planet);
+      }
+      break;
+    }
+    default:
+      ai.state = "idle";
+  }
+}
+
+/**
+ * Flak: gets to a planet the player is NOT on, walks until it's directly under them,
+ * and fires straight up along its surface normal. Relocates if the player comes over.
+ */
+function updateFlak(ctx: Ctx, e: Entity): void {
+  const { s, dt } = ctx;
+  const p = player(s);
+  const def = ENEMY_DEFS.flak;
+  const ai = e.ai;
+
+  if (e.planet === null) {
+    e.airTime += dt;
+    if (e.airTime > 3.5) {
+      const { planet } = nearestPlanet(s.planets, e.pos);
+      e.vel = add(scale(e.vel, Math.exp(-1.2 * dt)), scale(norm(sub(planet.pos, e.pos)), 700 * dt));
+    }
+    return;
+  }
+  const planet = s.planets[e.planet];
+  if (ai.state === "leaping") ai.state = "idle";
+  const pDom = dominantPlanet(s.planets, p.pos);
+  const playerPlanet = p.planet !== null ? p.planet : dist(p.pos, pDom.pos) - pDom.r < 200 ? pDom.id : null;
+  const sharing = playerPlanet === e.planet;
+  // barrel always points up
+  e.facing = angleOf(surfaceNormal(planet, e.pos));
+
+  switch (ai.state) {
+    case "idle":
+    case "walk": {
+      if (sharing && s.planets.length > 1) {
+        ai.state = "leapWait";
+        ai.t = def.leapDelay;
+        break;
+      }
+      ai.state = "walk";
+      const da = walkToward(ctx, e, planet, p.pos, def.speed);
+      if (Math.abs(da) < 0.1) {
+        stopWalking(ctx, e);
+        if (ai.cooldown <= 0) {
+          ai.state = "aim";
+          ai.t = def.windup;
+          s.telegraphs.push({ id: s.nextId++, kind: "shot", pos: e.pos, radius: 0, t: def.windup, total: def.windup, owner: e.id });
+          emit(s, { type: "telegraph", kind: "shot", pos: e.pos });
+        }
+      }
+      break;
+    }
+    case "leapWait": {
+      ai.t -= dt;
+      // pick the nearest planet that isn't the player's and hop to it
+      let target: Planet | null = null;
+      let bd = Infinity;
+      for (const pl of s.planets) {
+        if (pl.id === e.planet || pl.id === playerPlanet) continue;
+        const d = dist(pl.pos, e.pos);
+        if (d < bd) { bd = d; target = pl; }
+      }
+      if (!target) { ai.state = "walk"; break; }
+      const da = walkToward(ctx, e, planet, target.pos, def.speed);
+      if (ai.t <= 0 && (Math.abs(da) < 0.4 || ai.t < -2)) leapAt(e, target.pos, def.leapSpeed, planet);
+      break;
+    }
+    case "aim": {
+      stopWalking(ctx, e);
+      ai.t -= dt;
+      if (ai.t <= 0) {
+        const n = surfaceNormal(planet, e.pos);
+        const speed = 560;
+        const pr: Projectile = { id: s.nextId++, pos: add(e.pos, scale(n, e.radius + 6)), vel: scale(n, speed), radius: 5, life: 4, damage: def.damage, hue: def.hue, friendly: false, knockback: 320, slug: false };
+        s.projectiles.push(pr);
+        emit(s, { type: "shot", pos: pr.pos, dir: n });
+        ai.state = "walk";
+        ai.cooldown = def.recover * (e.elite ? 0.7 : 1);
       }
       break;
     }

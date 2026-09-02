@@ -17,7 +17,7 @@ export function createGame(seed: number, daily = false): GameState {
     tick: 0, time: 0, seed, rngState: 0, freeze: 0, planets, entities: [], debris: [], projectiles: [], shockwaves: [],
     telegraphs: [], nextId: 1, wave: initialWave(), offers: null, mods: defaultMods(), taken: [], score: 0,
     stats: { kills: 0, voidKills: 0, impactKills: 0, debrisKills: 0, collisionKills: 0, bossKills: 0, damageDealt: 0, damageTaken: 0, swings: 0, dashes: 0, time: 0, bestCombo: 0 },
-    over: false, daily, events: [], weapon: "sword", ammo: GUN.ammoStart, gunCd: 0, fuel: FUEL.max, fuelWarnT: 0, sinceHurt: 99,
+    over: false, daily, events: [], weapon: "sword", ammo: GUN.ammoStart, gunCd: 0, fuel: FUEL.max, fuelWarnT: 0, sinceHurt: 99, reloadT: 0,
   };
   const p = makeEntity(s, "player", { x: 0, y: 0 }, PLAYER.radius, PLAYER.maxHp, 190);
   p.pos = snapToSurface(planets[0], add(planets[0].pos, fromAngle(-Math.PI / 2)), p.radius);
@@ -171,6 +171,15 @@ function updatePlayer(ctx: Ctx, input: InputFrame): void {
     } else warnFuel();
   }
   if (p.planet !== null) s.fuel = Math.min(fuelMax(s), s.fuel + FUEL.regenGround * dt);
+  // completely dry: a planet slowly hands you one round back so the gun is never permanently gone
+  if (s.ammo <= 0 && p.planet !== null) {
+    s.reloadT += dt;
+    if (s.reloadT >= GUN.dryReload) {
+      s.reloadT = 0;
+      s.ammo = 1;
+      emit(s, { type: "ammo", pos: p.pos, ammo: 1 });
+    }
+  } else s.reloadT = 0;
 
   // gun: in space
   if (!grounded && p.attackBuffer > 0 && !p.swing) {
@@ -352,6 +361,7 @@ function cullVoid(ctx: Ctx): void {
   for (const e of s.entities) {
     if (e.dead || !inVoid(e.pos)) continue;
     if (e.kind === "player") {
+      if (s.over) continue;
       emit(s, { type: "void", pos: e.pos, kind: "player" });
       s.over = true;
       e.hp = 0;

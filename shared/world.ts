@@ -7,13 +7,13 @@ import { dist, fromAngle, type Vec } from "./vec";
 export function generatePlanets(rng: Rng, sector: number): Planet[] {
   const count = Math.min(ARENA.maxPlanets, ARENA.minPlanets + Math.floor((sector - 1) / 2));
   const planets: Planet[] = [];
-  const spreadRadius = ARENA.voidRadius * 0.46;
-  const gapMin = 210;
+  const spreadRadius = ARENA.voidRadius * 0.5;
+  const gapMin = 200;
   const hueBase = rng.range(0, 360);
 
   for (let attempt = 0; attempt < 400 && planets.length < count; attempt++) {
     const i = planets.length;
-    const r = i === 0 ? rng.range(150, 185) : rng.range(70, 150);
+    const r = i === 0 ? rng.range(150, 185) : rng.range(105, 150);
     const pos: Vec =
       i === 0
         ? fromAngle(rng.range(0, Math.PI * 2), rng.range(0, 120))

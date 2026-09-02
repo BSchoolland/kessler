@@ -27,7 +27,7 @@ function compose(ctx: Ctx, n: number, sector: number): WaveState["queue"] {
   let guard = 0;
   while (budget > 0.9 && guard++ < 60) {
     // cheap units stay likely; expensive ones ramp in with the wave number
-    const weights = pool.map((k) => (k === "grunt" ? 3 : k === "hopper" ? 2.2 : k === "orbiter" ? 1.4 + n * 0.08 : 0.9 + n * 0.1));
+    const weights = pool.map((k) => (k === "grunt" ? 3 : k === "hopper" ? 2.2 : k === "orbiter" ? 1.4 + n * 0.08 : k === "flak" ? 1.3 + n * 0.08 : 0.9 + n * 0.1));
     let r = rng.next() * weights.reduce((a, b) => a + b, 0);
     let kind: EnemyKind = pool[0];
     for (let i = 0; i < pool.length; i++) { r -= weights[i]; if (r <= 0) { kind = pool[i]; break; } }

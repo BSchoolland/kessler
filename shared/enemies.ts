@@ -36,10 +36,14 @@ export const ENEMY_DEFS: Record<EnemyKind, EnemyDef> = {
     name: "Bulwark", hp: 169, radius: 18, speed: 105, damage: 28, reach: 60, windup: 0.7, attack: 0.2,
     recover: 0.9, knockbackResist: 0.78, leapSpeed: 430, leapDelay: 2.2, cost: 3, minWave: 4, score: 25, hue: 35,
   },
+  flak: {
+    name: "Flak", hp: 44, radius: 12, speed: 175, damage: 11, reach: 900, windup: 0.6, attack: 0.1,
+    recover: 2.4, knockbackResist: 0, leapSpeed: 500, leapDelay: 0.6, cost: 2, minWave: 3, score: 16, hue: 52,
+  },
   accretor: {
     name: "The Accretor", hp: 1625, radius: 32, speed: 92, damage: 30, reach: 84, windup: 0.8, attack: 0.25,
     recover: 1.0, knockbackResist: 0.93, leapSpeed: 400, leapDelay: 3, cost: 0, minWave: 5, score: 400, hue: 285,
   },
 };
 
-export const SPAWNABLE: EnemyKind[] = ["grunt", "hopper", "orbiter", "bulwark"];
+export const SPAWNABLE: EnemyKind[] = ["grunt", "hopper", "orbiter", "bulwark", "flak"];

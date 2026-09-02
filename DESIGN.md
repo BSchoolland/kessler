@@ -58,7 +58,8 @@ instant and cancels a wind-up, not an active swing.
 | Grunt | baseline walker, leaps between planets | spacing |
 | Hopper | fast, fragile, constantly leaping | tracking airborne threats |
 | Orbiter | circles a planet, shoots gravity-curved shots | leaving the ground / deflecting |
-| Bulwark | slow, heavy, 78% knockback resist | dash-strikes, debris, impacts |
+| Bulwark | slow, heavy, 78% knockback resist | launch-strikes, debris, impacts |
+| Flak | goes to a planet you're not on, lines up under you, fires straight up | moving; punishes camping one spot |
 | The Accretor (boss, every 5 waves) | pull → slam, rock throws, phase 2 escorts | being airborne at the right moment |
 
 Elites (from wave 4): 1.6× HP, 1.2× speed, gold ring, double score.

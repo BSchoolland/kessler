@@ -15,7 +15,7 @@ export interface Planet {
   seed: number;
 }
 
-export type EnemyKind = "grunt" | "hopper" | "orbiter" | "bulwark" | "accretor";
+export type EnemyKind = "grunt" | "hopper" | "orbiter" | "bulwark" | "flak" | "accretor";
 
 export type EntityKind = "player" | EnemyKind;
 
@@ -248,4 +248,5 @@ export interface GameState {
   fuel: number;
   fuelWarnT: number;
   sinceHurt: number;
+  reloadT: number;
 }
