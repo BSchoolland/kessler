@@ -21,8 +21,13 @@ export const PLAYER = {
   maxHp: 100,
   walkSpeed: 250,
   walkAccel: 2200,
-  airAccel: 240,
+  airAccel: 300,
   airMaxSteer: 220,
+  diveSpeed: 260,          // airborne faster than this and a swing becomes a dive-slash
+  diveActive: 0.34,
+  liftOff: 0.5,            // minimum outward component of a dash off a surface
+  contactKnock: 240,
+  contactCd: 0.7,
   dashSpeed: 860,
   dashDuration: 0.15,
   dashCooldown: 1.7,
@@ -44,6 +49,12 @@ export const PLAYER = {
   },
 };
 
+export const FUEL = {
+  max: 100,
+  drain: 40,               // per second at full stick
+  regenGround: 60,
+};
+
 export const GUN = {
   ammoStart: 3,
   ammoMax: 6,
@@ -56,6 +67,10 @@ export const GUN = {
   life: 1.5,
   gravityScale: 0.55,
   recoil: 90,
+  homingRate: 3.2,         // radians per second the slug can turn
+  homingCone: 0.6,         // half-angle it will consider
+  homingRange: 560,
+  smallTargetBonus: 1.8,   // orbiters and hoppers pull harder
 };
 
 export const IMPACT = {

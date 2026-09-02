@@ -15,6 +15,7 @@
   <div class="hp-wrap">
     <div class="hp-bar"><div id="hp-fill"></div></div>
     <div class="hp-row"><span id="hp-text">100</span><span id="dash-text" class="dash ready">DASH</span></div>
+    <div class="fuel-bar"><div id="fuel-fill"></div></div>
     <div class="weapon-row"><span id="weapon-sword" class="wpn active">SWORD</span><span id="weapon-gun" class="wpn">GUN</span><span id="ammo-pips"></span></div>
   </div>
   <div class="top-center">
@@ -36,6 +37,7 @@
   <div id="stick-r" class="stick hidden"><div class="knob"></div></div>
   <div id="t-dash" class="tbtn">DASH</div>
   <div id="t-swap" class="tbtn">SWAP</div>
+  <div id="t-target" class="tbtn small">TGT</div>
   <div id="t-attack" class="tbtn big">SWING</div>
   <div id="t-pause" class="tbtn small">II</div>
 </div>
@@ -63,12 +65,12 @@
 <div id="howto" class="screen modal hidden">
   <h2>HOW TO PLAY</h2>
   <div class="howto-grid">
-    <div><b>MOVE</b> WASD / left stick — you walk along the planet you're standing on</div>
-    <div><b>AIM</b> mouse / right stick</div>
-    <div><b>SWING</b> left click / RT — telegraphed arc. Hits knock enemies <i>away</i></div>
-    <div><b>DASH</b> space, shift or right click / LT — the only way to leave a planet. You're invulnerable while dashing</div>
+    <div><b>MOVE</b> WASD / left stick — you walk along the planet you're standing on. The sword faces where you move</div>
+    <div><b>SWING</b> left click / RT — arc in front of you. Hits knock enemies <i>away</i>. Swing while flying fast for a long dive-slash</div>
+    <div><b>DASH</b> space, shift or right click / LT — goes where you're moving and always lifts you off. Invulnerable while dashing</div>
     <div><b>DASH-STRIKE</b> swing right after a dash for 2× damage and a much harder launch</div>
-    <div><b>SWAP</b> Q / Tab / scroll / Y — switch to the gun. It launches things from range but every round has to be earned with a sword hit</div>
+    <div><b>FLY</b> WASD in the air steers you but burns fuel (bar under HP). Fuel refills on the ground. Dashing is free</div>
+    <div><b>GUN</b> Q / E / scroll / Y swaps. Auto-aim locks a target, <b>Tab</b> / R / X cycles. Rounds are earned with sword hits</div>
   </div>
   <div class="howto-notes">
     <p>Knockback is the whole game. Launched enemies take <b>impact damage</b> when they hit a planet, <b>bowl</b> into their friends, or fly past the red ring and are <b>lost to the void</b>.</p>
@@ -82,6 +84,7 @@
   <h2>SETTINGS</h2>
   <label class="row"><span>Screen shake</span><input type="checkbox" id="set-shake" /></label>
   <label class="row"><span>Damage numbers</span><input type="checkbox" id="set-dmg" /></label>
+  <label class="row"><span>Gun auto-aim (no mouse needed, Tab cycles targets)</span><input type="checkbox" id="set-autoaim" /></label>
   <label class="row"><span>Gamepad aim assist</span><input type="checkbox" id="set-assist" /></label>
   <label class="row"><span>Show FPS</span><input type="checkbox" id="set-fps" /></label>
   <label class="row"><span>SFX volume</span><input type="range" id="set-sfx" min="0" max="1" step="0.05" /></label>

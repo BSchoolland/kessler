@@ -14,6 +14,17 @@
 4. **Juice everywhere.** Hit-stop, trauma shake, floating numbers, freeze on kills,
    kill labels (SPLAT / BOWLED / LOST TO THE VOID), music intensity tied to threat.
 
+## Input philosophy (after the first playtest)
+
+Ben's read: the sword game should be WASD and clicking, nothing else. So the sword
+faces movement, the dash goes where you're moving and always lifts off, and aiming
+only exists for the gun, where auto-aim with a cycle button is the default and the
+mouse is the opt-in. Enemies hurt on touch instead of swinging; that reads better
+when everyone is running around a circle.
+
+Flying was overpowered (enemies couldn't reach you), so air control burns fuel that
+only refills on the ground. Dash stays free so the gap-crossing verb is never gated.
+
 ## Sword and gun
 
 The sword is the economy, the gun is the spend. Sword hits earn rounds (1 each,

@@ -2,7 +2,8 @@ import { DT } from "../../shared/config";
 import { hashString } from "../../shared/rng";
 import { chooseUpgrade, createGame, step } from "../../shared/sim";
 import type { GameState } from "../../shared/types";
-import { dist, fromAngle, norm, sub, type Vec } from "../../shared/vec";
+import { add, dist, dot, fromAngle, len, norm, perp, scale, sub, type Vec } from "../../shared/vec";
+import { surfaceNormal } from "../../shared/physics";
 import { submitScore, todayKey } from "./api";
 import { Camera } from "./camera";
 import { applyEvents } from "./fx";
@@ -39,6 +40,8 @@ let voidDeath = false;
 let submitted = false;
 let finishing = false;
 let pending = { attack: false, dash: false, swap: false };
+let lastMoveDir: Vec = { x: 1, y: 0 };
+let lockedTarget: number | null = null;
 
 function applySettings(): void {
   const st = profile.settings;
@@ -49,6 +52,7 @@ function applySettings(): void {
   (document.getElementById("set-shake") as HTMLInputElement).checked = st.shake;
   (document.getElementById("set-dmg") as HTMLInputElement).checked = st.damageNumbers;
   (document.getElementById("set-assist") as HTMLInputElement).checked = st.aimAssist;
+  (document.getElementById("set-autoaim") as HTMLInputElement).checked = st.autoAim;
   (document.getElementById("set-fps") as HTMLInputElement).checked = st.showFps;
   (document.getElementById("set-sfx") as HTMLInputElement).value = `${st.sfx}`;
   (document.getElementById("set-music") as HTMLInputElement).value = `${st.music}`;
@@ -59,6 +63,7 @@ function bindSettings(): void {
   on("set-shake", (el) => (profile.settings.shake = el.checked));
   on("set-dmg", (el) => (profile.settings.damageNumbers = el.checked));
   on("set-assist", (el) => (profile.settings.aimAssist = el.checked));
+  on("set-autoaim", (el) => (profile.settings.autoAim = el.checked));
   on("set-fps", (el) => (profile.settings.showFps = el.checked));
   on("set-sfx", (el) => { profile.settings.sfx = Number(el.value); play("click"); });
   on("set-music", (el) => (profile.settings.music = Number(el.value)));
@@ -86,6 +91,8 @@ function startRun(daily: boolean): void {
   voidDeath = false;
   submitted = false;
   finishing = false;
+  lockedTarget = null;
+  lastMoveDir = { x: 1, y: 0 };
   pending = { attack: false, dash: false, swap: false };
   mode = "playing";
   ui.hideAllScreens();
@@ -138,6 +145,48 @@ function aimAssistTarget(s: GameState): Vec | null {
   return best;
 }
 
+function liveTargets(s: GameState) {
+  const p = s.entities[0];
+  return s.entities.filter((e) => e.kind !== "player" && !e.dead && e.spawnT <= 0).sort((a, b) => dist(a.pos, p.pos) - dist(b.pos, p.pos));
+}
+
+/** Keep the lock on a living enemy; cycle steps to the next-nearest. */
+function updateLock(s: GameState, cycle: boolean): void {
+  const targets = liveTargets(s);
+  if (!targets.length) { lockedTarget = null; return; }
+  const idx = targets.findIndex((e) => e.id === lockedTarget);
+  if (idx < 0) lockedTarget = targets[0].id;
+  else if (cycle) { lockedTarget = targets[(idx + 1) % targets.length].id; play("lock", 0.6); }
+}
+
+/**
+ * Sword: face where you move (WASD and clicking, nothing else).
+ * Gun: auto-aim locks a target; otherwise mouse / stick.
+ */
+function resolveAim(s: GameState, snap: ReturnType<Input["poll"]>): Vec {
+  const p = s.entities[0];
+  if (len(snap.frame.move) > 0.2) {
+    let m = norm(snap.frame.move);
+    if (p.planet !== null) {
+      const n = surfaceNormal(s.planets[p.planet], p.pos);
+      const t = perp(n);
+      const side = dot(m, t);
+      if (Math.abs(side) > 0.2) m = scale(t, Math.sign(side));
+    }
+    lastMoveDir = m;
+  }
+  if (s.weapon === "sword") {
+    if (p.planet === null && len(p.vel) > 120 && len(snap.frame.move) < 0.2) return norm(p.vel);
+    return lastMoveDir;
+  }
+  if (profile.settings.autoAim && lockedTarget !== null) {
+    const t = s.entities.find((e) => e.id === lockedTarget);
+    if (t) return norm(sub(add(t.pos, scale(t.vel, 0.15)), p.pos));
+  }
+  if (snap.usingGamepad || !snap.aimScreen) return snap.frame.aim;
+  return snap.frame.aim;
+}
+
 function frame(now: number): void {
   requestAnimationFrame(frame);
   const rawDt = Math.min(0.1, (now - last) / 1000);
@@ -149,6 +198,11 @@ function frame(now: number): void {
     const p = s.entities[0];
     const playerScreen = cam.toScreen(p.pos);
     const snap = input.poll(playerScreen, mode === "playing" ? aimAssistTarget(s) : null);
+    if (mode === "playing") {
+      updateLock(s, snap.cycle);
+      snap.frame.aim = resolveAim(s, snap);
+    }
+    renderer.lockedTarget = profile.settings.autoAim ? lockedTarget : null;
 
     if (mode === "playing") {
       if (snap.pausePressed) { mode = "paused"; ui.show("pause"); canvas.style.cursor = "default"; }
@@ -189,12 +243,13 @@ function frame(now: number): void {
 
     if (mode === "playing" || mode === "over" || mode === "offers") {
       particles.update(rawDt);
-      const aimWorld = snap.aimScreen && !BOT ? norm(sub(cam.toWorld(snap.aimScreen), p.pos)) : fromAngle(p.facing);
+      const aimWorld = fromAngle(p.facing);
       cam.update(p.pos, aimWorld, p.planet === null, rawDt);
       const enemies = s.entities.length - 1;
       setIntensity(s.over ? 0 : Math.min(1, 0.2 + enemies * 0.08 + (s.wave.boss ? 0.4 : 0)));
     }
-    renderer.draw(s, mode === "playing" && !BOT ? snap.aimScreen : null, rawDt, { paused: mode !== "playing" });
+    const showCursor = mode === "playing" && !BOT && s.weapon === "gun" && !profile.settings.autoAim;
+    renderer.draw(s, showCursor ? snap.aimScreen : null, rawDt, { paused: mode !== "playing" });
     ui.updateHud(s, profile.bestScore, profile.settings.showFps ? fpsAvg : null);
     ui.show("touch", mode === "playing" && input.usingTouch);
   } else {

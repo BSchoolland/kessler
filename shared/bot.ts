@@ -52,5 +52,6 @@ export function botInput(s: GameState, rngNext: () => number): InputFrame {
   const wantGun = s.ammo > 0 && !inReach && d < 700 && (best.kind === "orbiter" || s.ammo >= 3);
   const swap = wantGun !== (s.weapon === "gun") && rngNext() < 0.5;
   const shoot = s.weapon === "gun" && wantGun && s.gunCd <= 0 && rngNext() < 0.6;
-  return { move: add(move, zero), aim: finalAim, attack: attack || shoot, dash, swap };
+  const moveOut = dash && (crossing || orbiterHunt || threatened) ? huntAim : move;
+  return { move: add(moveOut, zero), aim: finalAim, attack: attack || shoot, dash, swap };
 }

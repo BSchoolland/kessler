@@ -22,7 +22,7 @@ export function makeEntity(s: GameState, kind: Entity["kind"], pos: Vec, radius:
     id: s.nextId++, kind, pos: { ...pos }, vel: { x: 0, y: 0 }, radius, hp, maxHp: hp, facing: 0, planet: null,
     stun: 0, invuln: 0, dead: false, swing: null, dashT: 0, dashCd: 0, sinceDash: 99, comboT: 0, comboIdx: 0,
     ai: { state: "idle", t: 0, target: null, cooldown: 0, phase: 1, rot: 0, secondRing: false, escorted: false }, knockbackResist: 0, lastHitBy: "none",
-    elite: false, orbit: null, spawnT: 0, attackBuffer: 0, dashBuffer: 0, airTime: 0, hue,
+    elite: false, orbit: null, spawnT: 0, attackBuffer: 0, dashBuffer: 0, launched: false, contactCd: 0, airTime: 0, hue,
   };
 }
 
@@ -151,7 +151,10 @@ export function launch(e: Entity, dir: Vec, speed: number, stun: number): void {
     e.ai.state = "idle";
     e.ai.t = 0;
   }
-  if (eff > 140) e.planet = null;
+  if (eff > 140) {
+    e.planet = null;
+    e.launched = true;
+  }
 }
 
 export function enemyImpact(ctx: Ctx, e: Entity, speedIn: number, normal: Vec): void {
@@ -167,9 +170,10 @@ export function resolveContactForEnemy(ctx: Ctx, e: Entity): void {
   if (!c) return;
   const wasPod = e.spawnT > 0;
   e.spawnT = 0;
-  if (!wasPod) enemyImpact(ctx, e, c.speedIn, c.normal);
+  // only things the player sent flying take impact damage; an enemy's own leap is a soft landing
+  if (e.launched) enemyImpact(ctx, e, c.speedIn, c.normal);
   if (e.dead) return;
-  const bounce = e.stun > 0 && c.speedIn > IMPACT.enemyBounceSpeed;
+  const bounce = e.launched && c.speedIn > IMPACT.enemyBounceSpeed;
   e.pos = snapToSurface(c.planet, e.pos, e.radius);
   if (bounce) {
     const vn = -c.speedIn;
@@ -180,6 +184,7 @@ export function resolveContactForEnemy(ctx: Ctx, e: Entity): void {
     const vn = e.vel.x * c.normal.x + e.vel.y * c.normal.y;
     e.vel = add(e.vel, scale(c.normal, -vn));
     e.airTime = 0;
+    e.launched = false;
     if (e.kind === "orbiter") {
       e.orbit = { planet: c.planet.id, radius: c.planet.r + 110, angle: Math.atan2(c.normal.y, c.normal.x), dir: ctx.rng.sign() as 1 | -1 };
       e.planet = null;

@@ -37,6 +37,8 @@ export class Renderer {
     this.cam.height = h;
   }
 
+  lockedTarget: number | null = null;
+
   draw(s: GameState, aimScreen: Vec | null, dt: number, hud: { paused: boolean }): void {
     const ctx = this.ctx;
     const cam = this.cam;
@@ -76,6 +78,23 @@ export class Renderer {
     this.drawProjectiles(s);
     for (const e of s.entities) if (e.kind !== "player") this.drawEnemy(s, e);
     if (!s.over) this.drawPlayer(s, p);
+    if (s.weapon === "gun" && this.lockedTarget !== null) {
+      const t = s.entities.find((e) => e.id === this.lockedTarget && !e.dead);
+      if (t) {
+        ctx.save();
+        ctx.translate(t.pos.x, t.pos.y);
+        ctx.rotate(this.t * 1.5);
+        ctx.strokeStyle = "#ffe07a";
+        ctx.lineWidth = 2;
+        const rr = t.radius * 1.25 + 9;
+        for (let i = 0; i < 4; i++) {
+          ctx.beginPath();
+          ctx.arc(0, 0, rr, i * Math.PI / 2 + 0.25, i * Math.PI / 2 + Math.PI / 2 - 0.25);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }
     this.particles.draw(ctx);
     if (this.showDamageNumbers) this.particles.drawFloaters(ctx, cam.zoom);
     ctx.restore();
@@ -370,6 +389,16 @@ export class Renderer {
         const k = 1 - sw.t / total;
         const alpha = sw.phase === "active" ? 0.85 : 0.45 * (1 - k);
         ctx.globalCompositeOperation = "lighter";
+        if (sw.dive && sw.phase === "active") {
+          // dive-slash: a streak behind the player plus the arc
+          const vl = len(p.vel);
+          ctx.strokeStyle = `rgba(77,243,255,${0.5 + 0.3 * Math.sin(this.t * 40)})`;
+          ctx.lineWidth = 10;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo((-p.vel.x / (vl || 1)) * 60, (-p.vel.y / (vl || 1)) * 60);
+          ctx.stroke();
+        }
         ctx.fillStyle = sw.dashStrike ? `rgba(255,230,120,${alpha * 0.55})` : `rgba(77,243,255,${alpha * 0.45})`;
         ctx.beginPath();
         ctx.moveTo(0, 0);
@@ -377,7 +406,7 @@ export class Renderer {
         ctx.closePath();
         ctx.fill();
         if (sw.phase === "active") {
-          const a = sw.angle + sw.dir * (half - k * 2 * half);
+          const a = sw.dive ? sw.angle + Math.sin(this.t * 50) * half * 0.9 : sw.angle + sw.dir * (half - k * 2 * half);
           ctx.strokeStyle = "#ffffff";
           ctx.lineWidth = 4;
           ctx.beginPath();

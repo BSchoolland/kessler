@@ -57,7 +57,7 @@ describe("sim", () => {
 
   it("gun spends ammo, sword hits refill it", () => {
     const s = createGame(5);
-    for (let i = 0; i < 60 * 12; i++) step(s, idle);
+    for (let i = 0; i < 60 * 2; i++) step(s, idle);
     expect(s.ammo).toBe(3);
     step(s, { ...idle, swap: true });
     expect(s.weapon).toBe("gun");
@@ -70,9 +70,11 @@ describe("sim", () => {
 
   it("dash strike launches an enemy off the planet", () => {
     const s = createGame(5);
-    for (let i = 0; i < 60 * 12; i++) step(s, idle);
+    for (let i = 0; i < 60 * 6; i++) step(s, idle);
     const p = player(s);
+    expect(s.over).toBe(false);
     const e = s.entities.find((x) => x.kind !== "player" && x.planet !== null)!;
+    expect(e).toBeDefined();
     // teleport the enemy next to the player for a clean shot
     e.pos = { x: p.pos.x + 40, y: p.pos.y };
     e.planet = p.planet;

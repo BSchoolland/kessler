@@ -3,6 +3,7 @@ import { len, norm, sub, type Vec } from "../../shared/vec";
 
 export interface InputSnapshot {
   frame: InputFrame;
+  cycle: boolean;
   aimScreen: Vec | null; // null when aiming with a stick
   usingGamepad: boolean;
   pausePressed: boolean;
@@ -22,7 +23,8 @@ export class Input {
   usingGamepad = false;
   usingTouch = false;
   lastGamepadAim: Vec = { x: 1, y: 0 };
-  private touch = { move: { x: 0, y: 0 } as Vec, aim: { x: 0, y: 0 } as Vec, attack: false, dash: false, swap: false, pause: false, lastAim: { x: 1, y: 0 } as Vec };
+  private touch = { move: { x: 0, y: 0 } as Vec, aim: { x: 0, y: 0 } as Vec, attack: false, dash: false, swap: false, cycle: false, pause: false, lastAim: { x: 1, y: 0 } as Vec };
+  lastMouseMove = 0;
   private wheelSwap = false;
 
   constructor(private canvas: HTMLCanvasElement) {
@@ -35,7 +37,7 @@ export class Input {
     });
     window.addEventListener("keyup", (e) => this.keys.delete(e.code));
     window.addEventListener("blur", () => { this.keys.clear(); this.mouseDown.clear(); });
-    canvas.addEventListener("mousemove", (e) => { this.mouse = { x: e.clientX, y: e.clientY }; this.usingGamepad = false; });
+    canvas.addEventListener("mousemove", (e) => { this.mouse = { x: e.clientX, y: e.clientY }; this.usingGamepad = false; this.lastMouseMove = performance.now(); });
     canvas.addEventListener("mousedown", (e) => { this.mouseDown.add(e.button); this.mousePressed.add(e.button); this.usingGamepad = false; e.preventDefault(); });
     window.addEventListener("mouseup", (e) => this.mouseDown.delete(e.button));
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
@@ -94,6 +96,7 @@ export class Input {
     bindBtn("t-attack", () => (this.touch.attack = true));
     bindBtn("t-dash", () => (this.touch.dash = true));
     bindBtn("t-swap", () => (this.touch.swap = true));
+    bindBtn("t-target", () => (this.touch.cycle = true));
     bindBtn("t-pause", () => (this.touch.pause = true));
     window.addEventListener("touchstart", () => { this.usingTouch = true; }, { passive: true, once: true });
   }
@@ -112,7 +115,8 @@ export class Input {
     if (k.has("KeyS") || k.has("ArrowDown")) move.y += 1;
     let attack = this.mousePressed.has(0) || this.pressed.has("KeyJ");
     let dash = this.mousePressed.has(2) || this.pressed.has("Space") || this.pressed.has("ShiftLeft") || this.pressed.has("KeyK");
-    let swap = this.pressed.has("KeyQ") || this.pressed.has("Tab") || this.pressed.has("KeyE") || this.wheelSwap;
+    let swap = this.pressed.has("KeyQ") || this.pressed.has("KeyE") || this.wheelSwap;
+    let cycle = this.pressed.has("Tab") || this.pressed.has("KeyR");
     this.wheelSwap = false;
     let pausePressed = this.pressed.has("Escape") || this.pressed.has("KeyP");
     let menuConfirm = this.pressed.has("Enter") || this.pressed.has("Space");
@@ -140,7 +144,8 @@ export class Input {
         aimScreen = null;
         attack = edge("attack", btn(7) || btn(0) || btn(5));
         dash = edge("dash", btn(6) || btn(1) || btn(4));
-        swap = edge("swap", btn(3) || btn(2));
+        swap = edge("swap", btn(3));
+        cycle = edge("cycle", btn(2));
         pausePressed = edge("pause", btn(9));
         menuConfirm = edge("confirm", btn(0)) || edge("start", btn(9));
         menuBack = edge("back", btn(1));
@@ -158,12 +163,13 @@ export class Input {
       attack = this.touch.attack;
       dash = this.touch.dash;
       swap = this.touch.swap;
+      cycle = this.touch.cycle;
       pausePressed = pausePressed || this.touch.pause;
-      this.touch.attack = this.touch.dash = this.touch.swap = this.touch.pause = false;
+      this.touch.attack = this.touch.dash = this.touch.swap = this.touch.cycle = this.touch.pause = false;
     }
     if (len(move) > 1) move = norm(move);
     this.pressed.clear();
     this.mousePressed.clear();
-    return { frame: { move, aim, attack, dash, swap }, aimScreen, usingGamepad: this.usingGamepad || this.usingTouch, pausePressed, menuConfirm, menuBack, menuNav, numberKey };
+    return { frame: { move, aim, attack, dash, swap }, cycle, aimScreen, usingGamepad: this.usingGamepad || this.usingTouch, pausePressed, menuConfirm, menuBack, menuNav, numberKey };
   }
 }

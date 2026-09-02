@@ -26,6 +26,7 @@ export interface SwingState {
   angle: number;             // center of the arc
   dir: 1 | -1;               // sweep direction
   dashStrike: boolean;
+  dive: boolean;             // airborne fast swing: long active window
   hit: number[];             // entity ids already hit by this swing
 }
 
@@ -59,11 +60,13 @@ export interface Entity {
   spawnT: number;            // pod descent guard; enemies are inert until they land the first time
   attackBuffer: number;
   dashBuffer: number;
+  launched: boolean;         // knocked flying by the player (impacts hurt, bounces)
+  contactCd: number;
   airTime: number;
   hue: number;
 }
 
-export type HitSource = "blade" | "impact" | "debris" | "collision" | "void" | "shockwave" | "projectile" | "none";
+export type HitSource = "blade" | "impact" | "debris" | "collision" | "void" | "shockwave" | "projectile" | "contact" | "none";
 
 export interface OrbitState {
   planet: number;
@@ -132,7 +135,7 @@ export interface Telegraph {
 }
 
 export type GameEvent =
-  | { type: "swing"; pos: Vec; angle: number; dashStrike: boolean }
+  | { type: "swing"; pos: Vec; angle: number; dashStrike: boolean; dive: boolean }
   | { type: "hit"; pos: Vec; dir: Vec; damage: number; crit: boolean; target: EntityKind }
   | { type: "kill"; pos: Vec; kind: EntityKind; source: HitSource; vel: Vec }
   | { type: "impact"; pos: Vec; normal: Vec; speed: number; kind: EntityKind | "debris" }
@@ -140,6 +143,7 @@ export type GameEvent =
   | { type: "dash"; pos: Vec; dir: Vec }
   | { type: "land"; pos: Vec; normal: Vec; speed: number; kind: EntityKind }
   | { type: "playerHurt"; pos: Vec; damage: number; source: HitSource }
+  | { type: "fuelEmpty"; pos: Vec }
   | { type: "playerDead"; pos: Vec }
   | { type: "waveStart"; wave: number; boss: boolean }
   | { type: "waveClear"; wave: number }
@@ -179,6 +183,8 @@ export interface UpgradeMods {
   ammoMaxBonus: number;
   ammoPerHit: number;
   slugDamageMult: number;
+  fuelMaxBonus: number;
+  fuelEfficiency: number;
 }
 
 export interface UpgradeOffer {
@@ -239,4 +245,5 @@ export interface GameState {
   weapon: Weapon;
   ammo: number;
   gunCd: number;
+  fuel: number;
 }

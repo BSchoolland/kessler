@@ -1,5 +1,5 @@
 import type { GameState, UpgradeOffer } from "../../shared/types";
-import { ammoMax } from "../../shared/sim";
+import { ammoMax, fuelMax } from "../../shared/sim";
 import { fetchLeaderboard, todayKey, type ScoreEntry } from "./api";
 import type { Profile } from "./meta";
 
@@ -24,6 +24,7 @@ export class UI {
   private wpnSword = $("#weapon-sword");
   private wpnGun = $("#weapon-gun");
   private ammoEl = $("#ammo-pips");
+  private fuelFill = $("#fuel-fill");
   private lastAmmoKey = "";
   private bannerEl = $("#banner");
   private offersEl = $("#offers");
@@ -59,6 +60,9 @@ export class UI {
     this.hpText.textContent = `${Math.ceil(p.hp)} / ${p.maxHp}`;
     this.dashText.classList.toggle("ready", p.dashCd <= 0);
     this.dashText.textContent = p.dashCd <= 0 ? "DASH READY" : `DASH ${p.dashCd.toFixed(1)}`;
+    const fm = fuelMax(s);
+    this.fuelFill.style.width = `${(s.fuel / fm) * 100}%`;
+    this.fuelFill.classList.toggle("empty", s.fuel <= 0);
     this.wpnSword.classList.toggle("active", s.weapon === "sword");
     this.wpnGun.classList.toggle("active", s.weapon === "gun");
     const ammoKey = `${s.ammo}/${ammoMax(s)}`;

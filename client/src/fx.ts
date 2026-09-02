@@ -19,7 +19,11 @@ export function applyEvents(s: GameState, events: GameEvent[], particles: Partic
   for (const ev of events) {
     switch (ev.type) {
       case "swing":
-        sfx(ev.dashStrike ? "swingHeavy" : "swing", ev.pos, 0.7);
+        sfx(ev.dive ? "dive" : ev.dashStrike ? "swingHeavy" : "swing", ev.pos, 0.7);
+        break;
+      case "fuelEmpty":
+        particles.float(ev.pos, "NO FUEL", "#ff8fb0", 13);
+        sfx("fuelEmpty", ev.pos, 0.7);
         break;
       case "hit": {
         if (ev.damage <= 0) { sfx("deflect", ev.pos); particles.burst(ev.pos, 8, { color: PLAYER_COLOR, speed: 300, shape: "spark", size: 2.5, max: 0.3 }); break; }

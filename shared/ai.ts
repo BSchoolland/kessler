@@ -42,11 +42,6 @@ function leapAt(e: Entity, target: Vec, speed: number, planet: Planet): void {
   e.airTime = 0;
 }
 
-function meleeStrike(ctx: Ctx, e: Entity, damage: number, reach: number): void {
-  const p = player(ctx.s);
-  if (dist(p.pos, e.pos) <= reach + p.radius + 4) damagePlayer(ctx, damage, "blade");
-}
-
 export function updateEnemyAi(ctx: Ctx, e: Entity): void {
   const { s, dt } = ctx;
   if (e.spawnT > 0 || e.dead || s.over) return;
@@ -60,10 +55,10 @@ export function updateEnemyAi(ctx: Ctx, e: Entity): void {
   }
   if (e.kind === "orbiter") return updateOrbiter(ctx, e);
   if (e.kind === "accretor") return updateBoss(ctx, e);
-  updateWalker(ctx, e, def.speed * (e.elite ? 1.2 : 1), def.damage, def.reach, def.windup, def.attack, def.recover, def.leapSpeed, def.leapDelay);
+  updateWalker(ctx, e, def.speed * (e.elite ? 1.2 : 1), def.leapSpeed, def.leapDelay);
 }
 
-function updateWalker(ctx: Ctx, e: Entity, speed: number, damage: number, reach: number, windup: number, attack: number, recover: number, leapSpeed: number, leapDelay: number): void {
+function updateWalker(ctx: Ctx, e: Entity, speed: number, leapSpeed: number, leapDelay: number): void {
   const { s, dt } = ctx;
   const p = player(s);
   const ai = e.ai;
@@ -79,20 +74,17 @@ function updateWalker(ctx: Ctx, e: Entity, speed: number, damage: number, reach:
   }
   const planet = s.planets[e.planet];
   if (ai.state === "leaping") { ai.state = "idle"; ai.cooldown = Math.max(ai.cooldown, 0.25); }
-  const playerHere = p.planet === e.planet || (p.planet === null && dominantPlanet(s.planets, p.pos).id === e.planet && dist(p.pos, planet.pos) - planet.r < 160);
-  const d = dist(p.pos, e.pos);
+  // where is the player, planet-wise? null = out in space, not worth leaping at
+  const pDom = dominantPlanet(s.planets, p.pos);
+  const pGap = dist(p.pos, pDom.pos) - pDom.r;
+  const playerPlanet = p.planet !== null ? p.planet : pGap < 200 ? pDom.id : null;
+  const playerHere = playerPlanet === e.planet;
 
   switch (ai.state) {
     case "idle":
     case "walk": {
       if (playerHere) {
         ai.state = "walk";
-        if (d <= reach + p.radius - 4 && ai.cooldown <= 0) {
-          stopWalking(ctx, e);
-          ai.state = "windup";
-          ai.t = windup;
-          break;
-        }
         const surfaceGap = Math.abs(angleDelta(angleAround(planet, e.pos), angleAround(planet, p.pos))) * planet.r;
         if (e.kind === "hopper" && surfaceGap > 300 && ai.cooldown <= 0) {
           ai.state = "leapWait";
@@ -100,14 +92,18 @@ function updateWalker(ctx: Ctx, e: Entity, speed: number, damage: number, reach:
           break;
         }
         walkToward(ctx, e, planet, p.pos, speed);
-      } else {
+      } else if (playerPlanet !== null) {
         ai.state = "leapWait";
         ai.t = leapDelay;
+      } else {
+        // player is floating: pace toward their side of the planet and wait for them to come down
+        walkToward(ctx, e, planet, p.pos, speed * 0.6);
       }
       break;
     }
     case "leapWait": {
       if (playerHere && ai.t > 0.3) { ai.state = "walk"; break; }
+      if (playerPlanet === null) { ai.state = "walk"; break; }
       ai.t -= dt;
       const da = walkToward(ctx, e, planet, p.pos, speed);
       const facing = Math.abs(da) < 0.35;
@@ -115,32 +111,6 @@ function updateWalker(ctx: Ctx, e: Entity, speed: number, damage: number, reach:
         const lead = scale(p.vel, clamp(dist(p.pos, e.pos) / leapSpeed, 0, 0.9) * 0.5);
         leapAt(e, add(p.pos, lead), leapSpeed, planet);
       }
-      break;
-    }
-    case "windup": {
-      stopWalking(ctx, e);
-      ai.t -= dt;
-      if (ai.t <= 0) {
-        ai.state = "attack";
-        ai.t = attack;
-        meleeStrike(ctx, e, damage, reach);
-        // lunge a little along the surface toward the player
-        const n = surfaceNormal(planet, e.pos);
-        const t = perp(n);
-        const toP = sub(p.pos, e.pos);
-        e.vel = scale(t, Math.sign(dot(toP, t)) * 260);
-      }
-      break;
-    }
-    case "attack": {
-      ai.t -= dt;
-      if (ai.t <= 0) { ai.state = "recover"; ai.t = recover; }
-      break;
-    }
-    case "recover": {
-      stopWalking(ctx, e);
-      ai.t -= dt;
-      if (ai.t <= 0) { ai.state = "idle"; ai.cooldown = 0.2; }
       break;
     }
     default:
@@ -318,7 +288,7 @@ function updateBoss(ctx: Ctx, e: Entity): void {
         spawnEnemyPod(ctx, "orbiter", planet.id, false);
         spawnEnemyPod(ctx, "orbiter", planet.id, false);
       }
-      updateWalker(ctx, e, def.speed * (phase2 ? 1.25 : 1), def.damage, def.reach, def.windup, def.attack, def.recover, def.leapSpeed, def.leapDelay);
+      updateWalker(ctx, e, def.speed * (phase2 ? 1.25 : 1), def.leapSpeed, def.leapDelay);
     }
   }
 }

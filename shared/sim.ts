@@ -1,7 +1,7 @@
-import { DT, GUN, PLAYER, WAVES } from "./config";
+import { DT, FUEL, GUN, PLAYER, WAVES } from "./config";
 import { damagePlayer, emit, healPlayer, launch, makeEntity, player, playerMaxHp, resolveContactForEnemy, spawnShockwave, killEnemy, damageEnemy, type Ctx } from "./actions";
 import { updateEnemyAi } from "./ai";
-import { resolveEnemyCollisions, updateDebris, updateProjectiles, updateShockwaves, updateTelegraphs } from "./hazards";
+import { resolveContactDamage, resolveEnemyCollisions, updateDebris, updateProjectiles, updateShockwaves, updateTelegraphs } from "./hazards";
 import { findContact, gravityAt, inVoid, nearestPlanet, snapToSurface, surfaceNormal, tangentOnly } from "./physics";
 import { Rng } from "./rng";
 import type { Entity, GameState, InputFrame, Projectile, SwingState } from "./types";
@@ -17,7 +17,7 @@ export function createGame(seed: number, daily = false): GameState {
     tick: 0, time: 0, seed, rngState: 0, freeze: 0, planets, entities: [], debris: [], projectiles: [], shockwaves: [],
     telegraphs: [], nextId: 1, wave: initialWave(), offers: null, mods: defaultMods(), taken: [], score: 0,
     stats: { kills: 0, voidKills: 0, impactKills: 0, debrisKills: 0, collisionKills: 0, bossKills: 0, damageDealt: 0, damageTaken: 0, swings: 0, dashes: 0, time: 0, bestCombo: 0 },
-    over: false, daily, events: [], weapon: "sword", ammo: GUN.ammoStart, gunCd: 0,
+    over: false, daily, events: [], weapon: "sword", ammo: GUN.ammoStart, gunCd: 0, fuel: FUEL.max,
   };
   const p = makeEntity(s, "player", { x: 0, y: 0 }, PLAYER.radius, PLAYER.maxHp, 190);
   p.pos = snapToSurface(planets[0], add(planets[0].pos, fromAngle(-Math.PI / 2)), p.radius);
@@ -33,6 +33,7 @@ export function chooseUpgrade(s: GameState, id: string): void {
   applyOffer(id, s.mods, (frac, flat) => healPlayer(s, frac, flat));
   s.taken.push(id);
   if (id.startsWith("magazine:")) s.ammo = ammoMax(s);
+  if (id.startsWith("fuel:")) s.fuel = fuelMax(s);
   s.offers = null;
   player(s).maxHp = playerMaxHp(s);
   s.wave.phase = "intermission";
@@ -57,6 +58,7 @@ export function step(s: GameState, input: InputFrame): void {
   for (const e of s.entities) if (e.kind !== "player") updateEnemyAi(ctx, e);
   integrateEntities(ctx);
   resolveEnemyCollisions(ctx);
+  resolveContactDamage(ctx);
   updateDebris(ctx);
   updateProjectiles(ctx);
   updateShockwaves(ctx);
@@ -68,6 +70,10 @@ export function step(s: GameState, input: InputFrame): void {
 
 export function ammoMax(s: GameState): number {
   return GUN.ammoMax + s.mods.ammoMaxBonus;
+}
+
+export function fuelMax(s: GameState): number {
+  return FUEL.max + s.mods.fuelMaxBonus;
 }
 
 function swingDurations(s: GameState) {
@@ -107,21 +113,21 @@ function updatePlayer(ctx: Ctx, input: InputFrame): void {
     p.sinceDash = 0;
     s.stats.dashes++;
     if (p.swing && p.swing.phase !== "active") p.swing = null;
+    // dash where you're moving; aim only if you're standing still
+    let dir = len(input.move) > 0.2 ? norm(input.move) : aim;
     if (p.planet !== null) {
       const n = surfaceNormal(s.planets[p.planet], p.pos);
-      if (dot(aim, n) < 0.18) {
-        // skim along the surface
+      const out = dot(dir, n);
+      if (out < PLAYER.liftOff) {
+        // always leave the ground: keep the sideways part, force enough outward component
         const t = perp(n);
-        const dir = scale(t, Math.sign(dot(aim, t)) || 1);
-        p.vel = scale(dir, speed);
-      } else {
-        p.vel = scale(aim, speed);
-        p.planet = null;
+        const side = dot(dir, t);
+        dir = norm(add(scale(t, side), scale(n, PLAYER.liftOff)));
       }
-    } else {
-      p.vel = scale(aim, speed);
+      p.planet = null;
     }
-    emit(s, { type: "dash", pos: p.pos, dir: aim });
+    p.vel = scale(dir, speed);
+    emit(s, { type: "dash", pos: p.pos, dir });
   }
 
   if (p.dashT > 0) {
@@ -139,10 +145,13 @@ function updatePlayer(ctx: Ctx, input: InputFrame): void {
     const accel = PLAYER.walkAccel * dt;
     const nv = cur + clamp(want - cur, -accel, accel);
     p.vel = scale(t, nv);
-  } else {
+  } else if (s.fuel > 0 && len(input.move) > 0.1) {
     const steer = PLAYER.airAccel * mods.airControlMult;
     p.vel = add(p.vel, scale(input.move, steer * dt));
+    s.fuel -= (FUEL.drain / mods.fuelEfficiency) * Math.min(1, len(input.move)) * dt;
+    if (s.fuel <= 0) { s.fuel = 0; emit(s, { type: "fuelEmpty", pos: p.pos }); }
   }
+  if (p.planet !== null) s.fuel = Math.min(fuelMax(s), s.fuel + FUEL.regenGround * dt);
 
   // gun
   if (s.weapon === "gun" && p.attackBuffer > 0 && !p.swing) {
@@ -169,18 +178,20 @@ function updatePlayer(ctx: Ctx, input: InputFrame): void {
     const d = swingDurations(s);
     if (p.comboT > 0) p.comboIdx = (p.comboIdx + 1) % 2;
     else p.comboIdx = 0;
-    const sw: SwingState = { phase: "windup", t: d.windup, angle: p.facing, dir: p.comboIdx === 0 ? 1 : -1, dashStrike: p.sinceDash < PLAYER.dashStrikeWindow, hit: [] };
+    const dive = p.planet === null && len(p.vel) > PLAYER.diveSpeed;
+    const sw: SwingState = { phase: "windup", t: dive ? d.windup * 0.5 : d.windup, angle: p.facing, dir: p.comboIdx === 0 ? 1 : -1, dashStrike: p.sinceDash < PLAYER.dashStrikeWindow, dive, hit: [] };
     p.swing = sw;
     s.stats.swings++;
-    emit(s, { type: "swing", pos: p.pos, angle: sw.angle, dashStrike: sw.dashStrike });
+    emit(s, { type: "swing", pos: p.pos, angle: sw.angle, dashStrike: sw.dashStrike, dive });
   }
   if (p.swing) {
     const sw = p.swing;
     const d = swingDurations(s);
     sw.t -= dt;
+    if (sw.dive && sw.phase !== "recovery") sw.angle = len(p.vel) > 40 ? angleOf(p.vel) : p.facing;
     if (sw.phase === "active") resolveSwingHits(ctx, p, sw);
     if (sw.t <= 0) {
-      if (sw.phase === "windup") { sw.phase = "active"; sw.t = d.active; }
+      if (sw.phase === "windup") { sw.phase = "active"; sw.t = sw.dive ? PLAYER.diveActive / mods.swingSpeedMult : d.active; }
       else if (sw.phase === "active") { sw.phase = "recovery"; sw.t = d.recovery; }
       else { p.swing = null; p.comboT = PLAYER.swing.comboWindow; }
     }

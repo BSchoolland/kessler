@@ -1,7 +1,9 @@
-import { DEBRIS, GRAVITY, GUN, IMPACT } from "./config";
+import { DEBRIS, GRAVITY, GUN, IMPACT, PLAYER } from "./config";
 import { damageEnemy, damagePlayer, emit, launch, player, type Ctx } from "./actions";
 import { findContact, gravityAt, inVoid, snapToSurface, surfaceNormal } from "./physics";
-import { add, angleDelta, dist, dot, len, scale, sub } from "./vec";
+import { add, angleDelta, angleOf, clamp, dist, dot, fromAngle, len, norm, scale, sub } from "./vec";
+import type { Entity, EnemyKind, GameState, Projectile } from "./types";
+import { ENEMY_DEFS } from "./enemies";
 
 export function updateDebris(ctx: Ctx): void {
   const { s, dt } = ctx;
@@ -41,7 +43,7 @@ export function updateDebris(ctx: Ctx): void {
           const dir = { x: d.vel.x / (speed || 1), y: d.vel.y / (speed || 1) };
           e.vel = add(e.vel, scale(d.vel, 0.3 * (1 - e.knockbackResist)));
           if (e.orbit) e.orbit = null;
-          if (len(e.vel) > 140 && e.knockbackResist < 0.5) e.planet = null;
+          if (len(e.vel) > 140 && e.knockbackResist < 0.5) { e.planet = null; e.launched = true; }
           e.stun = Math.max(e.stun, 0.25);
           emit(s, { type: "debrisHit", pos: d.pos, damage: dmg });
           damageEnemy(ctx, e, dmg, "debris", d.pos, dir);
@@ -71,6 +73,7 @@ export function updateProjectiles(ctx: Ctx): void {
   for (const pr of s.projectiles) {
     pr.life -= dt;
     pr.vel = add(pr.vel, scale(gravityAt(s.planets, pr.pos, pr.slug ? GUN.gravityScale : GRAVITY.projectileScale), dt));
+    if (pr.friendly) homeProjectile(s, pr, dt);
     pr.pos = add(pr.pos, scale(pr.vel, dt));
     if (pr.life <= 0 || inVoid(pr.pos)) continue;
     const c = findContact(s.planets, pr.pos, pr.vel, pr.radius);
@@ -97,6 +100,52 @@ export function updateProjectiles(ctx: Ctx): void {
   s.projectiles = keep;
 }
 
+/** Slight aimbot: bend a friendly projectile toward the best enemy in its forward cone. */
+function homeProjectile(s: GameState, pr: Projectile, dt: number): void {
+  const speed = len(pr.vel);
+  if (speed < 1) return;
+  const heading = angleOf(pr.vel);
+  let best: Entity | null = null;
+  let bestScore = Infinity;
+  for (const e of s.entities) {
+    if (e.kind === "player" || e.dead || e.spawnT > 0) continue;
+    const to = sub(e.pos, pr.pos);
+    const d = len(to);
+    if (d > GUN.homingRange) continue;
+    const off = Math.abs(angleDelta(heading, angleOf(to)));
+    if (off > GUN.homingCone) continue;
+    const score = d * (0.4 + off);
+    if (score < bestScore) { bestScore = score; best = e; }
+  }
+  if (!best) return;
+  const small = best.kind === "orbiter" || best.kind === "hopper";
+  const lead = scale(best.vel, Math.min(0.5, dist(best.pos, pr.pos) / speed) * 0.6);
+  const want = angleOf(sub(add(best.pos, lead), pr.pos));
+  const maxTurn = GUN.homingRate * (small ? GUN.smallTargetBonus : 1) * dt;
+  const turn = clamp(angleDelta(heading, want), -maxTurn, maxTurn);
+  pr.vel = fromAngle(heading + turn, speed);
+}
+
+/** Enemies hurt on touch; launched ones are your projectiles and don't. */
+export function resolveContactDamage(ctx: Ctx): void {
+  const { s, dt } = ctx;
+  const p = player(s);
+  for (const e of s.entities) {
+    if (e.kind === "player" || e.dead || e.spawnT > 0) continue;
+    e.contactCd -= dt;
+    if (e.stun > 0 || e.launched || e.contactCd > 0 || s.over) continue;
+    if (dist(e.pos, p.pos) >= e.radius + p.radius + 2) continue;
+    const def = ENEMY_DEFS[e.kind as EnemyKind];
+    // the boss also pulls you into itself, so its touch is softer than its slam
+    const mult = (e.elite ? 1.2 : 1) * (e.kind === "accretor" ? 0.6 : 1);
+    if (damagePlayer(ctx, Math.round(def.damage * mult), "contact")) {
+      e.contactCd = PLAYER.contactCd;
+      const away = norm(sub(p.pos, e.pos));
+      p.vel = add(p.vel, scale(away, PLAYER.contactKnock));
+    }
+  }
+}
+
 export function updateShockwaves(ctx: Ctx): void {
   const { s, dt } = ctx;
   const p = player(s);
@@ -120,7 +169,7 @@ export function updateShockwaves(ctx: Ctx): void {
           w.hit.push(e.id);
           const n = surfaceNormal(planet, e.pos);
           e.vel = add(e.vel, scale(n, 380 * (1 - e.knockbackResist)));
-          if (e.knockbackResist < 0.5) e.planet = null;
+          if (e.knockbackResist < 0.5) { e.planet = null; e.launched = true; }
           e.stun = Math.max(e.stun, 0.5);
           damageEnemy(ctx, e, w.damage, "shockwave", e.pos, n);
         }
@@ -176,7 +225,7 @@ export function resolveEnemyCollisions(ctx: Ctx): void {
         for (const e of [a, b]) {
           e.stun = Math.max(e.stun, 0.6);
           e.orbit = null;
-          if (len(e.vel) > 140 && e.knockbackResist < 0.5) e.planet = null;
+          if (len(e.vel) > 140 && e.knockbackResist < 0.5) { e.planet = null; e.launched = true; }
         }
         damageEnemy(ctx, a, dmg, "collision", mid, scale(n, -1));
         damageEnemy(ctx, b, dmg, "collision", mid, n);

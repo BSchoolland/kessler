@@ -10,20 +10,27 @@ arena gets more dangerous the better you're doing. Hence the name.
 
 ## Controls
 
+The sword game is WASD and clicking. The mouse only matters for the gun, and only if
+you turn auto-aim off.
+
 | | Keyboard + mouse | Gamepad |
 |---|---|---|
 | Move (along the surface) | WASD / arrows | left stick |
-| Aim | mouse | right stick (aim assist when idle) |
 | Swing | left click / J | RT / A |
 | Dash | space / shift / right click / K | LT / B |
-| Swap sword / gun | Q / Tab / E / scroll | Y / X |
+| Swap sword / gun | Q / E / scroll | Y |
+| Cycle gun target | Tab / R | X |
 | Pause | Esc / P | Start |
 
-Swing right after a dash for a **dash-strike**: double damage and a much harder launch.
-You're invulnerable while dashing.
-
-The **gun** fires a heavy slug that launches whatever it hits from range. It has no
-reload: every sword hit on an enemy earns one round (6 max, more with upgrades).
+- The sword faces the direction you're moving. Swing while flying fast for a long
+  **dive-slash** that stays out and hits whatever you pass through.
+- **Dash** goes where you're moving and always lifts you off the planet. Swing right
+  after for a **dash-strike**: double damage, much harder launch. Invulnerable while dashing.
+- **Flying**: WASD in the air steers you but burns fuel (bar under HP). Fuel refills on
+  the ground. Dashing is free.
+- The **gun** fires a heavy homing slug that launches whatever it hits. Every sword hit
+  earns one round (6 max). With auto-aim on it locks the nearest target; Tab cycles.
+- Enemies hurt on touch. Only enemies *you* launched take impact damage.
 
 ## Architecture
 

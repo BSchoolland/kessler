@@ -6,7 +6,7 @@ export function defaultMods(): UpgradeMods {
     reachMult: 1, swingSpeedMult: 1, damageMult: 1, knockbackMult: 1, moveSpeedMult: 1,
     dashCooldownMult: 1, dashSpeedMult: 1, maxHpBonus: 0, impactMult: 1, debrisExtra: 0,
     debrisDamageMult: 1, lifesteal: 0, aftershock: false, gravityBoots: false, airControlMult: 1,
-    voidBonusMult: 1, berserk: false, ammoMaxBonus: 0, ammoPerHit: 1, slugDamageMult: 1,
+    voidBonusMult: 1, berserk: false, ammoMaxBonus: 0, ammoPerHit: 1, slugDamageMult: 1, fuelMaxBonus: 0, fuelEfficiency: 1,
   };
 }
 
@@ -35,13 +35,14 @@ export const FAMILIES: Family[] = [
   { key: "dashspeed", name: "Escape Velocity", rarities: RARITIES, desc: (r) => `Dash speed and distance +${pct(tier(r, 0.12, 0.2, 0.32))}`, apply: (m, r) => { m.dashSpeedMult *= 1 + tier(r, 0.12, 0.2, 0.32); } },
   { key: "hp", name: "Vitality", rarities: RARITIES, desc: (r) => `Max HP +${tier(r, 15, 25, 40)} and heal that much`, apply: (m, r, heal) => { m.maxHpBonus += tier(r, 15, 25, 40); heal(0, tier(r, 15, 25, 40)); } },
   { key: "heal", name: "Patch Up", rarities: RARITIES, desc: (r) => `Heal ${pct(tier(r, 0.4, 0.65, 1))} of max HP`, apply: (_m, r, heal) => heal(tier(r, 0.4, 0.65, 1), 0) },
-  { key: "impact", name: "Meteor", rarities: RARITIES, desc: (r) => `Impact damage +${pct(tier(r, 0.3, 0.5, 0.8))}`, apply: (m, r) => { m.impactMult *= 1 + tier(r, 0.3, 0.5, 0.8); } },
+  { key: "impact", name: "Meteor", rarities: RARITIES, desc: (r) => `Enemies you launch take +${pct(tier(r, 0.3, 0.5, 0.8))} damage when they smash into a planet or each other`, apply: (m, r) => { m.impactMult *= 1 + tier(r, 0.3, 0.5, 0.8); } },
   { key: "debris", name: "Fragmentation", rarities: RARITIES, desc: (r) => `+${tier(r, 1, 2, 3)} debris per kill`, apply: (m, r) => { m.debrisExtra += tier(r, 1, 2, 3); } },
   { key: "shrapnel", name: "Shrapnel", rarities: RARITIES, desc: (r) => `Debris damage +${pct(tier(r, 0.3, 0.5, 0.8))}`, apply: (m, r) => { m.debrisDamageMult *= 1 + tier(r, 0.3, 0.5, 0.8); } },
-  { key: "thrusters", name: "Thrusters", rarities: RARITIES, desc: (r) => `Air control +${pct(tier(r, 0.5, 0.9, 1.5))}`, apply: (m, r) => { m.airControlMult *= 1 + tier(r, 0.5, 0.9, 1.5); } },
+  { key: "thrusters", name: "Thrusters", rarities: RARITIES, desc: (r) => `Air control +${pct(tier(r, 0.4, 0.7, 1.1))} and burns ${pct(tier(r, 0.15, 0.25, 0.4))} less fuel`, apply: (m, r) => { m.airControlMult *= 1 + tier(r, 0.4, 0.7, 1.1); m.fuelEfficiency *= 1 + tier(r, 0.15, 0.25, 0.4); } },
+  { key: "fuel", name: "Fuel Tank", rarities: RARITIES, desc: (r) => `Fuel +${tier(r, 30, 50, 80)} and a full refill`, apply: (m, r, heal) => { m.fuelMaxBonus += tier(r, 30, 50, 80); heal(0, 0); } },
   { key: "leech", name: "Leech", rarities: ["rare", "epic"], desc: (r) => `Heal ${pct(tier(r, 0, 0.06, 0.1))} of blade damage dealt`, apply: (m, r) => { m.lifesteal += tier(r, 0, 0.06, 0.1); } },
   { key: "voidtax", name: "Void Tax", rarities: ["rare"], once: true, desc: () => `Void kills are worth triple`, apply: (m) => { m.voidBonusMult = 3; } },
-  { key: "boots", name: "Gravity Boots", rarities: ["rare"], once: true, desc: () => `No impact damage from landings, air control +60%`, apply: (m) => { m.gravityBoots = true; m.airControlMult *= 1.6; } },
+  { key: "boots", name: "Gravity Boots", rarities: ["rare"], once: true, desc: () => `No impact damage from landings, fuel +40`, apply: (m) => { m.gravityBoots = true; m.fuelMaxBonus += 40; } },
   { key: "aftershock", name: "Aftershock", rarities: ["epic"], once: true, desc: () => `Landing hard sends a shockwave around the planet`, apply: (m) => { m.aftershock = true; } },
   { key: "magazine", name: "Magazine", rarities: RARITIES, desc: (r) => `Gun holds +${tier(r, 2, 3, 5)} rounds, and reloads`, apply: (m, r, heal) => { m.ammoMaxBonus += tier(r, 2, 3, 5); heal(0, 0); } },
   { key: "slugs", name: "Heavy Slugs", rarities: RARITIES, desc: (r) => `Gun damage +${pct(tier(r, 0.2, 0.35, 0.55))}`, apply: (m, r) => { m.slugDamageMult *= 1 + tier(r, 0.2, 0.35, 0.55); } },
