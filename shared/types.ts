@@ -249,4 +249,5 @@ export interface GameState {
   gunCd: number;
   fuel: number;
   fuelWarnT: number;
+  sinceHurt: number;
 }

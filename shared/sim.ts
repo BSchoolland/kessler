@@ -17,7 +17,7 @@ export function createGame(seed: number, daily = false): GameState {
     tick: 0, time: 0, seed, rngState: 0, freeze: 0, planets, entities: [], debris: [], projectiles: [], shockwaves: [],
     telegraphs: [], nextId: 1, wave: initialWave(), offers: null, mods: defaultMods(), taken: [], score: 0,
     stats: { kills: 0, voidKills: 0, impactKills: 0, debrisKills: 0, collisionKills: 0, bossKills: 0, damageDealt: 0, damageTaken: 0, swings: 0, dashes: 0, time: 0, bestCombo: 0 },
-    over: false, daily, events: [], weapon: "sword", ammo: GUN.ammoStart, gunCd: 0, fuel: FUEL.max, fuelWarnT: 0,
+    over: false, daily, events: [], weapon: "sword", ammo: GUN.ammoStart, gunCd: 0, fuel: FUEL.max, fuelWarnT: 0, sinceHurt: 99,
   };
   const p = makeEntity(s, "player", { x: 0, y: 0 }, PLAYER.radius, PLAYER.maxHp, 190);
   p.pos = snapToSurface(planets[0], add(planets[0].pos, fromAngle(-Math.PI / 2)), p.radius);
@@ -93,7 +93,9 @@ function updatePlayer(ctx: Ctx, input: InputFrame): void {
   p.dashBuffer -= dt;
   s.gunCd -= dt;
   s.fuelWarnT -= dt;
+  s.sinceHurt += dt;
   if (s.over) return;
+  if (s.sinceHurt > PLAYER.regenDelay && p.hp < p.maxHp) p.hp = Math.min(p.maxHp, p.hp + PLAYER.regen * dt);
 
   const grounded = p.planet !== null;
   s.weapon = grounded ? "sword" : "gun";

@@ -17,11 +17,11 @@ function compose(ctx: Ctx, n: number, sector: number): WaveState["queue"] {
   const boss = n % WAVES.bossEvery === 0;
   if (boss) {
     queue.push({ at: 0.5, kind: "accretor", elite: false });
-    const escorts = 1 + sector;
+    const escorts = 2 + sector * 2;
     for (let i = 0; i < escorts; i++) queue.push({ at: 2 + i * 1.5, kind: rng.chance(0.6) ? "grunt" : "hopper", elite: false });
     return queue;
   }
-  let budget = 3 + n * 1.7 + sector * 1.2;
+  let budget = 5 + n * 2.4 + sector * 1.8;
   const pool = SPAWNABLE.filter((k) => ENEMY_DEFS[k].minWave <= n);
   const eliteChance = n > 3 ? Math.min(0.28, (n - 3) * 0.045) : 0;
   let guard = 0;

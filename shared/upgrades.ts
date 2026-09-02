@@ -33,7 +33,7 @@ export const FAMILIES: Family[] = [
   { key: "speed", name: "Fleet", rarities: RARITIES, desc: (r) => `Move speed +${pct(tier(r, 0.08, 0.14, 0.22))}`, apply: (m, r) => { m.moveSpeedMult *= 1 + tier(r, 0.08, 0.14, 0.22); } },
   { key: "dashcd", name: "Slingshot", rarities: RARITIES, desc: (r) => `Dash cooldown -${pct(tier(r, 0.12, 0.2, 0.3))}`, apply: (m, r) => { m.dashCooldownMult *= 1 - tier(r, 0.12, 0.2, 0.3); } },
   { key: "dashspeed", name: "Escape Velocity", rarities: RARITIES, desc: (r) => `Dash speed and distance +${pct(tier(r, 0.12, 0.2, 0.32))}`, apply: (m, r) => { m.dashSpeedMult *= 1 + tier(r, 0.12, 0.2, 0.32); } },
-  { key: "hp", name: "Vitality", rarities: RARITIES, desc: (r) => `Max HP +${tier(r, 15, 25, 40)} and heal that much`, apply: (m, r, heal) => { m.maxHpBonus += tier(r, 15, 25, 40); heal(0, tier(r, 15, 25, 40)); } },
+  { key: "hp", name: "Vitality", rarities: RARITIES, desc: (r) => `Max HP +${tier(r, 8, 12, 20)} and heal that much`, apply: (m, r, heal) => { m.maxHpBonus += tier(r, 8, 12, 20); heal(0, tier(r, 8, 12, 20)); } },
   { key: "heal", name: "Patch Up", rarities: RARITIES, desc: (r) => `Heal ${pct(tier(r, 0.4, 0.65, 1))} of max HP`, apply: (_m, r, heal) => heal(tier(r, 0.4, 0.65, 1), 0) },
   { key: "impact", name: "Meteor", rarities: RARITIES, desc: (r) => `Enemies you launch take +${pct(tier(r, 0.3, 0.5, 0.8))} damage when they smash into a planet or each other`, apply: (m, r) => { m.impactMult *= 1 + tier(r, 0.3, 0.5, 0.8); } },
   { key: "debris", name: "Fragmentation", rarities: RARITIES, desc: (r) => `+${tier(r, 1, 2, 3)} debris per kill`, apply: (m, r) => { m.debrisExtra += tier(r, 1, 2, 3); } },

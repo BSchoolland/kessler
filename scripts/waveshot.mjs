@@ -1,0 +1,15 @@
+import { chromium } from "playwright";
+const browser = await chromium.launch({ executablePath: "/usr/bin/google-chrome" });
+const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+await page.goto("http://localhost:3006/kessler/?seed=5", { waitUntil: "networkidle" });
+await page.click("#btn-play");
+await page.waitForTimeout(3500);
+await page.keyboard.down("KeyD");
+await page.waitForTimeout(250);
+await page.keyboard.press("Space");
+await page.waitForTimeout(230);
+await page.screenshot({ path: ".playtest/wave-1.png" });
+await page.waitForTimeout(220);
+await page.screenshot({ path: ".playtest/wave-2.png" });
+await page.keyboard.up("KeyD");
+await browser.close();

@@ -18,7 +18,9 @@ export const GRAVITY = {
 
 export const PLAYER = {
   radius: 13,
-  maxHp: 100,
+  maxHp: 50,
+  regen: 1.6,              // HP per second once you've gone regenDelay without being hit
+  regenDelay: 4,
   walkSpeed: 250,
   walkAccel: 2200,
   airAccel: 300,
@@ -112,7 +114,7 @@ export const SCORE = {
 };
 
 export const WAVES = {
-  spawnSpread: 6,          // seconds over which a wave's pods arrive
+  spawnSpread: 7,          // seconds over which a wave's pods arrive
   podSpeed: 380,
   intermission: 2.2,
   bossEvery: 5,

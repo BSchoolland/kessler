@@ -141,6 +141,7 @@ export function damagePlayer(ctx: Ctx, dmg: number, source: HitSource): boolean 
   if (s.over || p.invuln > 0 || p.dashT > 0) return false;
   p.hp -= dmg;
   p.invuln = PLAYER.invulnAfterHit;
+  s.sinceHurt = 0;
   s.stats.damageTaken += dmg;
   emit(s, { type: "playerHurt", pos: p.pos, damage: dmg, source });
   if (p.hp <= 0) {

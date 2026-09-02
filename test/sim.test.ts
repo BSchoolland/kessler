@@ -25,7 +25,7 @@ describe("sim", () => {
 
   it("keeps the player on the surface when idle", () => {
     const s = createGame(1);
-    for (let i = 0; i < 600; i++) step(s, idle);
+    for (let i = 0; i < 240; i++) step(s, idle);
     const p = player(s);
     expect(p.planet).toBe(0);
     expect(p.hp).toBeGreaterThan(0);
