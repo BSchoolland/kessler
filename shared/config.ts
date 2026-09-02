@@ -64,7 +64,7 @@ export const FUEL = {
 export const GUN = {
   ammoStart: 3,
   ammoMax: 6,
-  dryReload: 5,            // seconds on a planet with zero rounds to get one back
+  dryReload: 5,            // seconds on a planet per round regained
   speed: 980,
   damage: 34,
   knockback: 760,

@@ -62,11 +62,12 @@ export class UI {
     this.dashText.textContent = p.planet === null ? "IN FLIGHT" : s.fuel > 0 ? "LAUNCH READY" : "NO FUEL";
     this.wpnSword.classList.toggle("active", s.weapon === "sword");
     this.wpnGun.classList.toggle("active", s.weapon === "gun");
-    const reload = s.ammo <= 0 && s.reloadT > 0 ? Math.floor((s.reloadT / 5) * 10) : 0;
+    const reload = s.reloadT > 0 ? Math.floor((s.reloadT / 5) * 10) : 0;
     const ammoKey = `${s.ammo}/${ammoMax(s)}/${reload}`;
     if (ammoKey !== this.lastAmmoKey) {
       this.lastAmmoKey = ammoKey;
-      this.ammoEl.innerHTML = Array.from({ length: ammoMax(s) }, (_, i) => `<i class="${i < s.ammo ? "full" : ""}"${i === 0 && reload ? ` style="background:linear-gradient(to top,var(--gold) ${reload * 10}%,transparent ${reload * 10}%)"` : ""}></i>`).join("");
+      // the next pip to fill shows the reload progress
+      this.ammoEl.innerHTML = Array.from({ length: ammoMax(s) }, (_, i) => `<i class="${i < s.ammo ? "full" : ""}"${i === s.ammo && reload ? ` style="background:linear-gradient(to top,var(--gold) ${reload * 10}%,transparent ${reload * 10}%)"` : ""}></i>`).join("");
     }
     this.waveLabel.textContent = s.wave.n > 0 ? `WAVE ${s.wave.n}` : "INCOMING";
     this.sectorLabel.textContent = `SECTOR ${s.wave.sector}${s.daily ? " · DAILY" : ""}`;

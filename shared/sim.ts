@@ -171,13 +171,13 @@ function updatePlayer(ctx: Ctx, input: InputFrame): void {
     } else warnFuel();
   }
   if (p.planet !== null) s.fuel = Math.min(fuelMax(s), s.fuel + FUEL.regenGround * dt);
-  // completely dry: a planet slowly hands you one round back so the gun is never permanently gone
-  if (s.ammo <= 0 && p.planet !== null) {
+  // standing on a planet slowly reloads: one round every few seconds, up to the max
+  if (p.planet !== null && s.ammo < ammoMax(s)) {
     s.reloadT += dt;
     if (s.reloadT >= GUN.dryReload) {
       s.reloadT = 0;
-      s.ammo = 1;
-      emit(s, { type: "ammo", pos: p.pos, ammo: 1 });
+      s.ammo++;
+      emit(s, { type: "ammo", pos: p.pos, ammo: s.ammo });
     }
   } else s.reloadT = 0;
 
