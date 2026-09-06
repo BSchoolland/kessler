@@ -53,7 +53,7 @@ export function spawnEnemyPod(ctx: Ctx, kind: EnemyKind, targetPlanet: number, e
   const def = ENEMY_DEFS[kind];
   const target = s.planets[targetPlanet];
   const start = from ?? fromAngle(rng.range(0, Math.PI * 2), 1450);
-  const sectorScale = isBoss(kind) ? 1 + 0.15 * (s.wave.sector - 1) : 1 + 0.06 * (s.wave.sector - 1);
+  const sectorScale = isBoss(kind) ? 1 + 0.15 * (s.wave.sector - 1) : (1 + 0.06 * (s.wave.sector - 1)) * s.wave.buff;
   const e = makeEntity(s, kind, start, def.radius, Math.round(def.hp * (elite ? 1.6 : 1) * sectorScale), def.hue);
   e.knockbackResist = def.knockbackResist;
   e.elite = elite;

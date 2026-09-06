@@ -241,6 +241,7 @@ export interface WaveState {
   phase: "spawning" | "fighting" | "cleared" | "choosing" | "intermission";
   phaseT: number;
   boss: boolean;
+  buff: number;      // HP multiplier on everything spawned this wave: budget the 12-unit cap couldn't spend
 }
 
 export interface Stats {

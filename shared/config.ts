@@ -123,6 +123,10 @@ export const WAVES = {
   bossEvery: 5,
   arc: 20,                 // the run is "won" when this wave's boss falls; waves keep coming after
   winBonus: 2000,
+  maxUnits: 12,            // a wave never spawns more than this; leftover budget goes into elites, then HP
+  eliteCost: 2,            // budget to promote a queued unit to elite once the wave is full
+  maxElites: 6,            // half the wave at most keeps the gold ring meaning something
+  buffPerBudget: 0.035,    // HP multiplier gained per point of budget left after elites (capped at +100%)
 };
 
 export const BLAST = {

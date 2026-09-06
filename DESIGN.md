@@ -78,7 +78,10 @@ Elites (from wave 4): 1.6× HP, 1.2× speed, gold ring, double score.
 
 ## Run structure
 
-Wave → clear → pick 1 of 3 upgrades (rarity-weighted) → next wave. Boss every 5 waves,
+Wave → clear → pick 1 of 3 upgrades (rarity-weighted) → next wave. A wave never spawns more
+than 12 units (debris scales with kills, and 20 bodies made wave 19 a one-shot); budget past
+that promotes up to 6 elites, and what's left becomes an HP multiplier on the whole wave (up to
+2×, reached around wave 30). Boss every 5 waves,
 the four bosses in order; each boss kill moves you to a new sector with a fresh planet
 layout and one more planet. Wave 20's boss is the arc: killing it is a win (2000 points,
 a screen, a counter on the menu) and the run continues endless, bosses cycling. Score is

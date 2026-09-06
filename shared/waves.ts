@@ -6,10 +6,11 @@ import type { EnemyKind, WaveState } from "./types";
 import { generatePlanets } from "./world";
 
 export function initialWave(): WaveState {
-  return { n: 0, sector: 1, queue: [], t: 0, alive: 0, phase: "intermission", phaseT: 1.2, boss: false };
+  return { n: 0, sector: 1, queue: [], t: 0, alive: 0, phase: "intermission", phaseT: 1.2, boss: false, buff: 1 };
 }
 
-function compose(ctx: Ctx, n: number, sector: number): WaveState["queue"] {
+/** Roll a wave: up to maxUnits by budget; budget left over promotes elites, then buffs everyone's HP. */
+function compose(ctx: Ctx, n: number, sector: number): { queue: WaveState["queue"]; buff: number } {
   const { rng } = ctx;
   const queue: WaveState["queue"] = [];
   const boss = n % WAVES.bossEvery === 0;
@@ -17,9 +18,9 @@ function compose(ctx: Ctx, n: number, sector: number): WaveState["queue"] {
     const kind = bossForWave(n, WAVES.bossEvery);
     queue.push({ at: 0.5, kind, elite: false });
     if (kind === "twin") queue.push({ at: 1.3, kind, elite: false });
-    const escorts = 2 + sector * 2;
+    const escorts = Math.min(WAVES.maxUnits - queue.length, 2 + sector * 2);
     for (let i = 0; i < escorts; i++) queue.push({ at: 2 + i * 1.5, kind: rng.chance(0.6) ? "grunt" : "hopper", elite: false });
-    return queue;
+    return { queue, buff: 1 + Math.max(0, sector - 4) * 0.15 };
   }
   let budget = 4 + n * 1.7 + sector * 2;
   const pool = SPAWNABLE.filter((k) => ENEMY_DEFS[k].minWave <= n);
@@ -30,7 +31,7 @@ function compose(ctx: Ctx, n: number, sector: number): WaveState["queue"] {
     lancer: (n) => 1.2 + n * 0.06, mine: (n) => 1.1 + n * 0.05, splitter: (n) => 0.8 + n * 0.06, sweeper: (n) => 0.5 + n * 0.05,
     aegis: (n) => 0.9 + n * 0.05, bomber: (n) => 0.6 + n * 0.05,
   };
-  while (budget > 0.9 && guard++ < 60) {
+  while (budget > 0.9 && guard++ < 60 && queue.length < WAVES.maxUnits) {
     // cheap units stay likely; expensive ones ramp in with the wave number
     const weights = pool.map((k) => (WEIGHT[k] ?? ((n) => 0.9 + n * 0.1))(n));
     let r = rng.next() * weights.reduce((a, b) => a + b, 0);
@@ -43,8 +44,15 @@ function compose(ctx: Ctx, n: number, sector: number): WaveState["queue"] {
     budget -= cost;
     queue.push({ at: rng.range(0, WAVES.spawnSpread), kind, elite: rng.chance(eliteChance) });
   }
+  // the cap held the count: the rest of the budget makes the wave meaner instead of bigger
+  const plain = queue.filter((q) => !q.elite);
+  while (budget >= WAVES.eliteCost && plain.length && queue.filter((q) => q.elite).length < WAVES.maxElites) {
+    plain.splice(rng.int(0, plain.length), 1)[0].elite = true;
+    budget -= WAVES.eliteCost;
+  }
+  const buff = 1 + Math.min(1, Math.max(0, budget) * WAVES.buffPerBudget);
   queue.sort((a, b) => a.at - b.at);
-  return queue;
+  return { queue, buff };
 }
 
 function startSector(ctx: Ctx, sector: number): void {
@@ -64,7 +72,8 @@ export function startWave(ctx: Ctx, n: number): void {
   const sector = Math.floor((n - 1) / WAVES.bossEvery) + 1;
   if (sector !== s.wave.sector) startSector(ctx, sector);
   const boss = n % WAVES.bossEvery === 0;
-  s.wave = { n, sector, queue: compose(ctx, n, sector), t: 0, alive: 0, phase: "spawning", phaseT: 0, boss };
+  const { queue, buff } = compose(ctx, n, sector);
+  s.wave = { n, sector, queue, t: 0, alive: 0, phase: "spawning", phaseT: 0, boss, buff };
   emit(s, { type: "waveStart", wave: n, boss });
 }
 
