@@ -162,7 +162,7 @@ export function updateShockwaves(ctx: Ctx): void {
     const prev = w.spread;
     w.spread += w.speed * dt;
     const planet = s.planets[w.planet];
-    const height = w.edge ? PLAYER.swing.waveHeight : 26;
+    const height = w.edge ? PLAYER.swing.waveHeight : w.heavy ? 44 : 26;
     const band = (e: { pos: { x: number; y: number }; radius: number }) => {
       const gap = dist(e.pos, planet.pos) - planet.r - e.radius;
       if (gap > height) return false;
@@ -221,7 +221,7 @@ export function updateShockwaves(ctx: Ctx): void {
       w.hit.push(p.id);
       if (damagePlayer(ctx, w.damage, "shockwave")) {
         const n = surfaceNormal(planet, p.pos);
-        p.vel = add(p.vel, scale(n, 300));
+        p.vel = add(p.vel, scale(n, w.heavy ? 420 : 300));
         p.planet = null;
       }
     }

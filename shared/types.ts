@@ -75,7 +75,7 @@ export interface OrbitState {
 }
 
 export interface AiState {
-  state: "idle" | "walk" | "leapWait" | "leaping" | "windup" | "attack" | "recover" | "aim" | "cast" | "slam" | "throw";
+  state: "idle" | "walk" | "leapWait" | "leaping" | "windup" | "attack" | "recover" | "aim" | "cast" | "throw";
   t: number;
   target: Vec | null;
   cooldown: number;
@@ -123,13 +123,14 @@ export interface Shockwave {
   hit: number[];
   friendly: boolean;
   dir: -1 | 0 | 1;    // 0 = both ways around the planet, else one way
-  edge: boolean;      // the player's side-attack wave: knocks along its travel and earns ammo
+  edge: boolean;      // the player's side-attack wave: knocks along its travel
+  heavy: boolean;     // the boss's ground pound: taller, drawn as a wall
   knockback: number;
 }
 
 export interface Telegraph {
   id: number;
-  kind: "slam" | "throw" | "shot";
+  kind: "throw" | "shot";
   pos: Vec;
   radius: number;
   t: number;
@@ -156,6 +157,7 @@ export type GameEvent =
   | { type: "rocket"; pos: Vec; dir: Vec }
   | { type: "telegraph"; kind: Telegraph["kind"]; pos: Vec }
   | { type: "shockwave"; pos: Vec }
+  | { type: "pound"; pos: Vec; normal: Vec }
   | { type: "edgeWave"; pos: Vec; dir: Vec }
   | { type: "bossPhase"; pos: Vec }
   | { type: "debrisHit"; pos: Vec; damage: number }

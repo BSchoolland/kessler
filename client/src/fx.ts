@@ -120,6 +120,18 @@ export function applyEvents(s: GameState, events: GameEvent[], particles: Partic
         cam.addTrauma(0.35);
         sfx("shockwave", ev.pos);
         break;
+      case "pound": {
+        // the landing: dust sheets both ways along the ground, a white ring, a big hit of shake
+        const t = { x: -ev.normal.y, y: ev.normal.x };
+        for (const d of [1, -1]) particles.burst(ev.pos, 26, { color: "#ffb7dc", speed: 520, dir: { x: t.x * d + ev.normal.x * 0.25, y: t.y * d + ev.normal.y * 0.25 }, spread: 0.45, shape: "spark", size: 3.5, max: 0.6, drag: 2.5 });
+        particles.burst(ev.pos, 24, { color: "#ffffff", speed: 260, dir: ev.normal, spread: 1.4, shape: "dot", size: 3, max: 0.5 });
+        particles.ring(ev.pos, "#ffffff", 150, 0.5);
+        particles.ring(ev.pos, hsl(330, 100, 70), 90, 0.35);
+        cam.addTrauma(0.85);
+        sfx("impact", ev.pos, 1);
+        sfx("shockwave", ev.pos, 1);
+        break;
+      }
       case "edgeWave":
         particles.burst(ev.pos, 8, { color: PLAYER_COLOR, speed: 220, dir: ev.dir, spread: 0.6, shape: "spark", size: 2.5, max: 0.25 });
         sfx("edgeWave", ev.pos, 0.7);

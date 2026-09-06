@@ -373,12 +373,17 @@ function updateBoss(ctx: Ctx, e: Entity): void {
   const phase2 = ai.phase === 2;
   const airborne = e.planet === null;
 
-  if (ai.wasAirborne && !airborne && ai.state !== "slam" && ai.state !== "recover") {
-    ai.state = "slam";
-    ai.t = 0.35;
+  // the landing is the telegraph: the pound goes off the moment it touches down
+  if (ai.wasAirborne && !airborne) {
+    const pl = s.planets[e.planet!];
+    const n = surfaceNormal(pl, e.pos);
     stopWalking(ctx, e);
-    s.telegraphs.push({ id: s.nextId++, kind: "slam", pos: e.pos, radius: s.planets[e.planet!].r + 40, t: ai.t, total: ai.t, owner: e.id });
-    emit(s, { type: "telegraph", kind: "slam", pos: e.pos });
+    spawnShockwave(s, pl.id, angleAround(pl, e.pos), def.damage * 0.85, false, phase2 ? 4 : 3.4, Math.PI, true);
+    spawnDebris(ctx, e.pos, { x: 0, y: 0 }, phase2 ? 6 : 4, def.hue, false, 0.8);
+    s.freeze = Math.max(s.freeze, 0.11);
+    emit(s, { type: "pound", pos: e.pos, normal: n });
+    ai.state = "recover";
+    ai.t = phase2 ? 0.35 : 0.6;
   }
   ai.wasAirborne = airborne;
 
@@ -399,16 +404,8 @@ function updateBoss(ctx: Ctx, e: Entity): void {
   }
   const planet = s.planets[e.planet!];
 
+  void planet;
   switch (ai.state) {
-    case "slam": {
-      ai.t -= dt;
-      if (ai.t <= 0) {
-        spawnShockwave(s, planet.id, angleAround(planet, e.pos), def.damage * 0.85, false, phase2 ? 4 : 3.4);
-        ai.state = "recover";
-        ai.t = phase2 ? 0.3 : 0.55;
-      }
-      break;
-    }
     case "throw": {
       ai.t -= dt;
       if (ai.t <= 0) {

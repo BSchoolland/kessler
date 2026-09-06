@@ -96,8 +96,8 @@ export function spawnDebris(ctx: Ctx, pos: Vec, inherit: Vec, count: number, hue
   while (s.debris.length > DEBRIS.maxCount) s.debris.shift();
 }
 
-export function spawnShockwave(s: GameState, planet: number, angle: number, damage: number, friendly: boolean, speed = 3.2, maxSpread = Math.PI): Shockwave {
-  const w: Shockwave = { id: s.nextId++, planet, angle, spread: 0, maxSpread, speed, damage, hit: [], friendly, dir: 0, edge: false, knockback: 380 };
+export function spawnShockwave(s: GameState, planet: number, angle: number, damage: number, friendly: boolean, speed = 3.2, maxSpread = Math.PI, heavy = false): Shockwave {
+  const w: Shockwave = { id: s.nextId++, planet, angle, spread: 0, maxSpread, speed, damage, hit: [], friendly, dir: 0, edge: false, heavy, knockback: heavy ? 520 : 380 };
   s.shockwaves.push(w);
   emit(s, { type: "shockwave", pos: snapToSurface(s.planets[planet], add(s.planets[planet].pos, fromAngle(angle)), 0) });
   return w;
@@ -108,7 +108,7 @@ export function spawnEdgeWave(s: GameState, planet: number, angle: number, dir: 
   const pl = s.planets[planet];
   const w: Shockwave = {
     id: s.nextId++, planet, angle, spread: 0, maxSpread: PLAYER.swing.waveRange / pl.r, speed: PLAYER.swing.waveSpeed / pl.r,
-    damage, hit: [], friendly: true, dir, edge: true, knockback,
+    damage, hit: [], friendly: true, dir, edge: true, heavy: false, knockback,
   };
   s.shockwaves.push(w);
   const n = fromAngle(angle);

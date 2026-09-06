@@ -308,14 +308,6 @@ export class Renderer {
         ctx.lineTo(owner.pos.x + dir.x * 700, owner.pos.y + dir.y * 700);
         ctx.stroke();
         ctx.setLineDash([]);
-      } else if (t.kind === "slam") {
-        const pl = owner.planet !== null ? s.planets[owner.planet] : null;
-        if (!pl) continue;
-        ctx.strokeStyle = hsl(285, 100, 65, 0.2 + k * 0.6);
-        ctx.lineWidth = 6 + k * 14;
-        ctx.beginPath();
-        ctx.arc(pl.pos.x, pl.pos.y, pl.r + 12, 0, 6.283);
-        ctx.stroke();
       } else if (t.kind === "throw") {
         ctx.strokeStyle = hsl(285, 100, 70, 0.3 + k * 0.6);
         ctx.lineWidth = 2;
@@ -332,9 +324,41 @@ export class Renderer {
     const ctx = this.ctx;
     for (const w of s.shockwaves) {
       const pl = s.planets[w.planet];
-      const color = w.friendly ? PLAYER_COLOR : hsl(285, 100, 70);
+      const color = w.friendly ? PLAYER_COLOR : hsl(w.heavy ? 330 : 285, 100, 70);
       ctx.strokeStyle = color;
       ctx.globalCompositeOperation = "lighter";
+      if (w.heavy) {
+        // the ground pound: a wall of light running both ways around the planet, cracks of white at the fronts
+        const H = 44;
+        for (const dir of [1, -1]) {
+          const a0 = w.angle + dir * Math.max(0, w.spread - 0.22);
+          const a1 = w.angle + dir * w.spread;
+          const lo = Math.min(a0, a1), hi = Math.max(a0, a1);
+          const g = ctx.createRadialGradient(pl.pos.x, pl.pos.y, pl.r, pl.pos.x, pl.pos.y, pl.r + H);
+          g.addColorStop(0, "rgba(255,80,170,0.6)");
+          g.addColorStop(1, "rgba(255,80,170,0.04)");
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(pl.pos.x, pl.pos.y, pl.r + H, lo, hi);
+          ctx.arc(pl.pos.x, pl.pos.y, pl.r, hi, lo, true);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = "#fff";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(pl.pos.x + Math.cos(a1) * pl.r, pl.pos.y + Math.sin(a1) * pl.r);
+          ctx.lineTo(pl.pos.x + Math.cos(a1) * (pl.r + H + 10), pl.pos.y + Math.sin(a1) * (pl.r + H + 10));
+          ctx.stroke();
+          ctx.strokeStyle = "rgba(255,120,200,0.9)";
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(pl.pos.x, pl.pos.y, pl.r + H, lo, hi);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
+        continue;
+      }
       if (w.edge) {
         // a wall of light running along the surface: filled annular sector plus a bright leading face
         const H = PLAYER.swing.waveHeight;
@@ -766,7 +790,22 @@ export class Renderer {
       for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.283; ctx.lineTo(Math.cos(a) * r * 0.55, Math.sin(a) * r * 0.55); }
       ctx.closePath(); ctx.stroke();
     } else {
-      // the hammer: a blunt head across the front, a short haft behind, a hot core
+      // the hammer: a blunt head across the front, a short haft behind, a hot core; a streak while it's in the air
+      if (e.planet === null) {
+        const sp = Math.hypot(e.vel.x, e.vel.y);
+        if (sp > 60) {
+          ctx.save();
+          ctx.globalCompositeOperation = "lighter";
+          const g = ctx.createLinearGradient(0, 0, -e.vel.x * 0.14, -e.vel.y * 0.14);
+          g.addColorStop(0, hsl(hue, 100, 70, 0.6));
+          g.addColorStop(1, hsl(hue, 100, 70, 0));
+          ctx.strokeStyle = g;
+          ctx.lineWidth = r * 1.6;
+          ctx.lineCap = "round";
+          ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-e.vel.x * 0.14, -e.vel.y * 0.14); ctx.stroke();
+          ctx.restore();
+        }
+      }
       ctx.save();
       ctx.rotate(facing);
       ctx.beginPath();
