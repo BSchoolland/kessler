@@ -1,6 +1,6 @@
 import { ARENA, PLAYER } from "../../shared/config";
 import { fuelMax } from "../../shared/sim";
-import { ENEMY_DEFS } from "../../shared/enemies";
+import { ENEMY_DEFS, isBoss } from "../../shared/enemies";
 import { Rng } from "../../shared/rng";
 import type { Entity, EnemyKind, GameState, Planet } from "../../shared/types";
 import { angleOf, fromAngle, len, sub, type Vec } from "../../shared/vec";
@@ -76,6 +76,7 @@ export class Renderer {
     for (const pl of s.planets) this.drawPlanet(pl);
     if (s.tutorial?.goal) this.drawBeacon(s.planets[s.tutorial.goal.planet], s.tutorial.goal.angle);
     this.drawTelegraphs(s);
+    this.drawBeams(s);
     this.drawShockwaves(s);
     this.drawDebris(s);
     this.drawProjectiles(s);
@@ -290,6 +291,43 @@ export class Renderer {
     ctx.restore();
   }
 
+  /** Sweeper and Belt lasers: a blade of light standing on the surface, sliding around the planet. */
+  private drawBeams(s: GameState): void {
+    const ctx = this.ctx;
+    for (const e of s.entities) {
+      const b = e.ai.beam;
+      if (!b || e.dead || e.planet === null) continue;
+      const pl = s.planets[e.planet];
+      const hue = e.hue;
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      // track ring at beam height
+      ctx.strokeStyle = hsl(hue, 100, 70, 0.12);
+      ctx.lineWidth = 1;
+      ctx.setLineDash([6, 12]);
+      ctx.beginPath(); ctx.arc(pl.pos.x, pl.pos.y, pl.r + b.height, 0, 6.283); ctx.stroke();
+      ctx.setLineDash([]);
+      for (let i = 0; i < b.blades; i++) {
+        const a = b.angle + (i / b.blades) * Math.PI * 2;
+        const dirv = fromAngle(a);
+        const x0 = pl.pos.x + dirv.x * (pl.r - 4), y0 = pl.pos.y + dirv.y * (pl.r - 4);
+        const x1 = pl.pos.x + dirv.x * (pl.r + b.height), y1 = pl.pos.y + dirv.y * (pl.r + b.height);
+        ctx.strokeStyle = hsl(hue, 100, 70, 0.35);
+        ctx.lineWidth = 12;
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+        // scorch trail behind the blade
+        const tail = 0.35 * b.dir;
+        ctx.strokeStyle = hsl(hue, 100, 65, 0.25);
+        ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.arc(pl.pos.x, pl.pos.y, pl.r + 6, Math.min(a, a - tail), Math.max(a, a - tail)); ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+
   private drawTelegraphs(s: GameState): void {
     const ctx = this.ctx;
     const p = s.entities[0];
@@ -306,6 +344,22 @@ export class Renderer {
         ctx.moveTo(owner.pos.x, owner.pos.y);
         const dir = flak ? fromAngle(owner.facing) : fromAngle(angleOf(sub(p.pos, owner.pos)));
         ctx.lineTo(owner.pos.x + dir.x * 700, owner.pos.y + dir.y * 700);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      } else if (t.kind === "charge") {
+        // the lancer's run: a dashed arc along the ground in the direction it'll go
+        const pl = owner.planet !== null ? s.planets[owner.planet] : null;
+        if (!pl) continue;
+        const a0 = Math.atan2(owner.pos.y - pl.pos.y, owner.pos.x - pl.pos.x);
+        const pa = Math.atan2(p.pos.y - pl.pos.y, p.pos.x - pl.pos.x);
+        let d = pa - a0; d = ((d + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
+        const dir = Math.sign(d) || 1;
+        const len = (620 * 0.55) / pl.r;
+        ctx.strokeStyle = hsl(owner.hue, 100, 70, 0.2 + k * 0.6);
+        ctx.lineWidth = 3 + k * 3;
+        ctx.setLineDash([10, 8]);
+        ctx.beginPath();
+        ctx.arc(pl.pos.x, pl.pos.y, pl.r + 14, Math.min(a0, a0 + dir * len), Math.max(a0, a0 + dir * len));
         ctx.stroke();
         ctx.setLineDash([]);
       } else if (t.kind === "throw") {
@@ -713,7 +767,7 @@ export class Renderer {
     const flash = e.launched && e.planet === null && Math.floor(this.t * 40) % 2 === 0;
     const stroke = flash ? "#ffffff" : hsl(hue, 95, 65);
     const fill = flash ? "rgba(255,255,255,0.7)" : hsl(hue, 60, 14);
-    ctx.lineWidth = e.kind === "hammer" ? 3.5 : 2;
+    ctx.lineWidth = isBoss(e.kind as EnemyKind) ? 3.5 : 2;
     ctx.strokeStyle = stroke;
     ctx.fillStyle = fill;
 
@@ -766,6 +820,107 @@ export class Renderer {
         ctx.fillStyle = hsl(hue, 100, 80, k);
         ctx.beginPath(); ctx.arc(r * 1.6, 0, 3 + k * 4, 0, 6.283); ctx.fill();
       }
+    } else if (e.kind === "lancer") {
+      // a needle: long nose, swept fins; glows along the shaft while charging
+      ctx.rotate(e.ai.state === "attack" || e.ai.state === "windup" ? Math.atan2(e.vel.y, e.vel.x) || facing : facing);
+      if (e.ai.state === "attack") {
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.strokeStyle = hsl(hue, 100, 70, 0.5);
+        ctx.lineWidth = r * 1.2;
+        ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(-r * 0.5, 0); ctx.lineTo(-r * 4, 0); ctx.stroke();
+        ctx.restore();
+      }
+      ctx.beginPath();
+      ctx.moveTo(r * 1.8, 0); ctx.lineTo(-r * 0.4, r * 0.55); ctx.lineTo(-r * 1.1, r * 0.9); ctx.lineTo(-r * 0.7, 0); ctx.lineTo(-r * 1.1, -r * 0.9); ctx.lineTo(-r * 0.4, -r * 0.55);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    } else if (e.kind === "mine") {
+      // spiked ball with a blinking core; blinks faster the closer it is to you
+      const d = Math.hypot(p.pos.x - e.pos.x, p.pos.y - e.pos.y);
+      const rate = d < 200 ? 14 : d < 450 ? 6 : 2.5;
+      const on = Math.floor(this.t * rate) % 2 === 0;
+      ctx.rotate(this.t * 0.8);
+      ctx.beginPath();
+      for (let i = 0; i < 16; i++) { const a = (i / 16) * 6.283; const rr = i % 2 === 0 ? r * 1.25 : r * 0.8; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = on ? "#fff" : hsl(hue, 100, 55);
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.32, 0, 6.283); ctx.fill();
+      if (on) {
+        ctx.globalCompositeOperation = "lighter";
+        ctx.fillStyle = hsl(hue, 100, 60, 0.35);
+        ctx.beginPath(); ctx.arc(0, 0, r * 1.9, 0, 6.283); ctx.fill();
+        ctx.globalCompositeOperation = "source-over";
+      }
+    } else if (e.kind === "splitter") {
+      // two lobes joined at a waist: it's already two things
+      ctx.rotate(facing);
+      ctx.beginPath();
+      ctx.arc(-r * 0.45, 0, r * 0.7, 0, 6.283); ctx.fill(); ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(r * 0.45, 0, r * 0.7, 0, 6.283); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = hsl(hue, 100, 75, 0.7);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(0, -r * 0.5); ctx.lineTo(0, r * 0.5); ctx.stroke();
+    } else if (e.kind === "sweeper") {
+      // squat dome on the surface with a rotating emitter head
+      ctx.rotate(facing);
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.2, -r * 1.1); ctx.lineTo(r * 0.5, -r * 0.8); ctx.lineTo(r * 0.8, 0); ctx.lineTo(r * 0.5, r * 0.8); ctx.lineTo(-r * 0.2, r * 1.1);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.save();
+      ctx.translate(r * 0.4, 0);
+      ctx.rotate(e.ai.beam ? this.t * 6 : 0);
+      ctx.strokeStyle = e.ai.beam ? "#fff" : stroke;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(-r * 0.45, 0); ctx.lineTo(r * 0.45, 0); ctx.moveTo(0, -r * 0.45); ctx.lineTo(0, r * 0.45); ctx.stroke();
+      ctx.restore();
+      if (e.ai.state === "aim" && !e.ai.beam) {
+        const k = 1 - Math.max(0, e.ai.t) / def.windup;
+        ctx.fillStyle = hsl(hue, 100, 80, k);
+        ctx.beginPath(); ctx.arc(r * 0.4, 0, 3 + k * 5, 0, 6.283); ctx.fill();
+      }
+    } else if (e.kind === "warden") {
+      // a broad gunship: two swept wings, a bright core, engine slots; sits flat when landed
+      ctx.rotate(e.planet !== null ? facing : Math.atan2(e.vel.y, e.vel.x) || facing);
+      ctx.beginPath();
+      ctx.moveTo(r * 1.4, 0); ctx.lineTo(r * 0.2, r * 0.5); ctx.lineTo(-r * 0.3, r * 1.3); ctx.lineTo(-r * 0.9, r * 1.1); ctx.lineTo(-r * 0.6, r * 0.35);
+      ctx.lineTo(-r * 1.0, 0); ctx.lineTo(-r * 0.6, -r * 0.35); ctx.lineTo(-r * 0.9, -r * 1.1); ctx.lineTo(-r * 0.3, -r * 1.3); ctx.lineTo(r * 0.2, -r * 0.5);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.globalCompositeOperation = "lighter";
+      const cg = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.6);
+      cg.addColorStop(0, hsl(hue, 100, e.planet !== null ? 85 : 70, 0.9));
+      cg.addColorStop(1, hsl(hue, 100, 60, 0));
+      ctx.fillStyle = cg;
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.6, 0, 6.283); ctx.fill();
+      ctx.globalCompositeOperation = "source-over";
+      if (e.ai.state === "aim") {
+        const k = 1 - e.ai.t / def.windup;
+        ctx.fillStyle = hsl(hue, 100, 85, k);
+        ctx.beginPath(); ctx.arc(r * 1.1, 0, 3 + k * 6, 0, 6.283); ctx.fill();
+      }
+    } else if (e.kind === "belt") {
+      // a ringed giant: heavy octagon body, a slow counter-rotating outer ring, a furnace core
+      ctx.save();
+      ctx.rotate(this.t * 0.4);
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) { const a = (i / 8) * 6.283; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      ctx.save();
+      ctx.rotate(-this.t * 0.9);
+      ctx.strokeStyle = hsl(hue, 100, 70, 0.8);
+      ctx.lineWidth = 4;
+      ctx.setLineDash([18, 14]);
+      ctx.beginPath(); ctx.arc(0, 0, r + 16, 0, 6.283); ctx.stroke();
+      ctx.restore();
+      ctx.globalCompositeOperation = "lighter";
+      const cg = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.75);
+      cg.addColorStop(0, hsl(hue, 100, e.ai.phase === 2 ? 82 : 65, 0.95));
+      cg.addColorStop(1, hsl(hue, 100, 60, 0));
+      ctx.fillStyle = cg;
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.75, 0, 6.283); ctx.fill();
+      ctx.globalCompositeOperation = "source-over";
     } else if (e.kind === "raider") {
       // a wide gunship: swept wings, a bright engine slot at the back
       ctx.rotate(facing);
@@ -790,7 +945,7 @@ export class Renderer {
       for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.283; ctx.lineTo(Math.cos(a) * r * 0.55, Math.sin(a) * r * 0.55); }
       ctx.closePath(); ctx.stroke();
     } else {
-      // the hammer: a blunt head across the front, a short haft behind, a hot core; a streak while it's in the air
+      // hammer and twins: a blunt head across the front, a short haft behind; a streak while in the air
       if (e.planet === null) {
         const sp = Math.hypot(e.vel.x, e.vel.y);
         if (sp > 60) {
@@ -832,7 +987,7 @@ export class Renderer {
     ctx.restore();
 
     // hp bar
-    if (e.hp < e.maxHp && e.kind !== "hammer") {
+    if (e.hp < e.maxHp && !isBoss(e.kind as EnemyKind)) {
       const w = r * 2.4, h = 3;
       const x = e.pos.x - w / 2, y = e.pos.y - r - 10;
       ctx.fillStyle = "rgba(0,0,0,0.6)";

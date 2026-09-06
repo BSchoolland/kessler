@@ -3,7 +3,7 @@ import { damageEnemy, damagePlayer, emit, launch, player, type Ctx } from "./act
 import { findContact, gravityAt, inVoid, snapToSurface, surfaceNormal } from "./physics";
 import { add, angleDelta, angleOf, clamp, dist, dot, fromAngle, len, norm, scale, sub } from "./vec";
 import type { Entity, EnemyKind, GameState, Projectile } from "./types";
-import { ENEMY_DEFS } from "./enemies";
+import { ENEMY_DEFS, isBoss } from "./enemies";
 
 export function updateDebris(ctx: Ctx): void {
   const { s, dt } = ctx;
@@ -144,8 +144,8 @@ export function resolveContactDamage(ctx: Ctx): void {
     if (e.stun > 0 || e.launched || e.contactCd > 0 || s.over) continue;
     if (dist(e.pos, p.pos) >= e.radius + p.radius + 2) continue;
     const def = ENEMY_DEFS[e.kind as EnemyKind];
-    // the boss also pulls you into itself, so its touch is softer than its slam
-    const mult = (e.elite ? 1.2 : 1) * (e.kind === "hammer" ? 0.6 : 1);
+    // bosses' touch is softer than their real attacks; a charging lancer hits harder
+    const mult = (e.elite ? 1.2 : 1) * (isBoss(e.kind as EnemyKind) ? 0.6 : 1) * (e.kind === "lancer" && e.ai.state === "attack" ? 1.4 : 1);
     if (damagePlayer(ctx, Math.round(def.damage * mult), "contact")) {
       e.contactCd = PLAYER.contactCd;
       const away = norm(sub(p.pos, e.pos));

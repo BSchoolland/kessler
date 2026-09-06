@@ -62,16 +62,24 @@ instant and cancels a wind-up, not an active swing.
 | Bulwark | slow, heavy, 78% knockback resist | launch-strikes, debris, impacts |
 | Flak | goes to a planet you're not on, lines up under you, fires straight up | moving; punishes camping one spot |
 | Raider | never lands; patrols the outer ring toward your bearing, fires 3-shot spreads inward | staying off the outside of outer planets; the gun (a slug can knock it into the void) |
-| The Hammer (boss, every 5 waves) | fast chaser that leaps at you; every landing is a full-ring ground pound; heavy-debris shotgun only with line of sight; calls a pod every 6.5s (4.5s in phase 2, capped at 4 alive) | being airborne when it lands; fighting near the middle |
+| Lancer (w6) | telegraphs, then charges 620 u/s along the surface; contact hurts more mid-charge | leaving the ground on the cue, or swinging it away |
+| Mine (w7) | drifts in through space, blows at 62 units; hit it and it's a thrown bomb that detonates on anything it touches | the sweep and the gun as bomb-throwing tools |
+| Splitter (w9) | walker; dies into two launched hoppers | cleaning up; the debris economy |
+| Sweeper (w12) | lands on your planet, runs a 36-unit laser around the surface at 1.15 rad/s | hopping over the blade; knocking the turret off the ground kills the beam |
+| The Hammer (boss, wave 5) | fast chaser that leaps at you (and hops every 5.5s even up close); every landing is a full-ring ground pound; heavy-debris shotgun only with line of sight; calls a pod every 6.5s (4.5s in phase 2, capped at 4 alive) | being airborne when it lands; fighting near the middle |
+| The Warden (boss, wave 10) | gunship in a 260-unit orbit around your planet; 5-shot fans (7 in phase 2), drops mines on a clock, dives onto your planet every 9.5s and sits there 2.6s after a small pound | the gun while it orbits, melee during the dive |
+| The Twins (boss, wave 15) | two pounders, 620 HP each; when one dies the other enrages and starts calling pods | splitting attention; killing one fast |
+| The Belt (boss, wave 20) | slow giant on the main planet: 5s sweeping laser (two blades in phase 2), a straight-up leap that lands as a pound, a ring of 8 heavy rocks thrown into orbit; pods every 5.5s | the whole kit; winning here ends the arc and rolls into endless |
 
 Elites (from wave 4): 1.6× HP, 1.2× speed, gold ring, double score.
 
 ## Run structure
 
-Wave → clear → pick 1 of 3 upgrades (rarity-weighted, 18 families) → next wave.
-Boss every 5 waves; each boss kill moves you to a new sector with a fresh planet
-layout and one more planet. Endless. Score is the leaderboard metric; the daily
-challenge shares a seed for everyone.
+Wave → clear → pick 1 of 3 upgrades (rarity-weighted) → next wave. Boss every 5 waves,
+the four bosses in order; each boss kill moves you to a new sector with a fresh planet
+layout and one more planet. Wave 20's boss is the arc: killing it is a win (2000 points,
+a screen, a counter on the menu) and the run continues endless, bosses cycling. Score is
+the leaderboard metric.
 
 ## Tutorial
 

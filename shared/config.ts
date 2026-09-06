@@ -121,6 +121,18 @@ export const WAVES = {
   podSpeed: 380,
   intermission: 2.2,
   bossEvery: 5,
+  arc: 20,                 // the run is "won" when this wave's boss falls; waves keep coming after
+  winBonus: 2000,
+};
+
+export const BLAST = {
+  enemyRadius: 115,
+  enemyDamage: 42,
+  enemyKnock: 480,
+  playerRadius: 90,
+  playerDamage: 18,
+  playerKnock: 420,
+  fuse: 62,                // a resting mine goes off this close to the player
 };
 
 export const CAMERA = {

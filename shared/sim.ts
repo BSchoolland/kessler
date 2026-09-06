@@ -25,7 +25,7 @@ export function baseState(seed: number, planets: Planet[], daily = false): GameS
     tick: 0, time: 0, seed, rngState: seed >>> 0, freeze: 0, planets, entities: [], debris: [], projectiles: [], shockwaves: [],
     telegraphs: [], nextId: 1, wave: initialWave(), offers: null, mods: defaultMods(), taken: [], score: 0,
     stats: { kills: 0, voidKills: 0, impactKills: 0, debrisKills: 0, collisionKills: 0, bossKills: 0, damageDealt: 0, damageTaken: 0, swings: 0, dashes: 0, time: 0, bestCombo: 0 },
-    over: false, daily, events: [], weapon: "sword", ammo: GUN.ammoStart, gunCd: 0, fuel: FUEL.max, fuelWarnT: 0, sinceHurt: 99, reloadT: 0, pulseT: 0, tutorial: null,
+    over: false, won: false, daily, events: [], weapon: "sword", ammo: GUN.ammoStart, gunCd: 0, fuel: FUEL.max, fuelWarnT: 0, sinceHurt: 99, reloadT: 0, pulseT: 0, tutorial: null,
   };
   s.entities.push(makeEntity(s, "player", { x: 0, y: 0 }, PLAYER.radius, PLAYER.maxHp, 190));
   return s;
@@ -331,7 +331,7 @@ function integrateEntities(ctx: Ctx): void {
   const { s, dt } = ctx;
   for (const e of s.entities) {
     if (e.dead) continue;
-    if (e.orbit) continue; // kinematic: orbiters around a planet, raiders around the arena
+    if (e.orbit || (e.kind === "mine" && !e.launched)) continue; // kinematic: orbiters, ring patrols, drifting mines
     if (e.planet !== null) {
       const planet = s.planets[e.planet];
       if (e.stun > 0 && e.kind !== "player") {

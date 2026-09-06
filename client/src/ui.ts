@@ -1,5 +1,6 @@
-import type { GameState, TutorialStep, UpgradeOffer } from "../../shared/types";
+import type { EnemyKind, GameState, TutorialStep, UpgradeOffer } from "../../shared/types";
 import { GUN } from "../../shared/config";
+import { ENEMY_DEFS, isBoss } from "../../shared/enemies";
 import { ammoMax } from "../../shared/sim";
 import { fetchLeaderboard, type ScoreEntry } from "./api";
 import type { Profile } from "./meta";
@@ -84,9 +85,13 @@ export class UI {
       this.lastScore = s.score;
     }
     this.bestEl.textContent = `BEST ${Math.max(best, s.score)}`;
-    const boss = s.entities.find((e) => e.kind === "hammer" && !e.dead && e.spawnT <= 0);
-    this.bossBar.classList.toggle("hidden", !boss);
-    if (boss) this.bossFill.style.width = `${Math.max(0, (boss.hp / boss.maxHp) * 100)}%`;
+    const bosses = s.entities.filter((e) => isBoss(e.kind as EnemyKind) && !e.dead && e.spawnT <= 0);
+    this.bossBar.classList.toggle("hidden", !bosses.length);
+    if (bosses.length) {
+      const hp = bosses.reduce((a, b) => a + b.hp, 0), max = bosses.reduce((a, b) => a + b.maxHp, 0);
+      this.bossFill.style.width = `${Math.max(0, (hp / max) * 100)}%`;
+      $(".boss-name").textContent = ENEMY_DEFS[bosses[0].kind as EnemyKind].name.toUpperCase();
+    }
     this.fpsEl.classList.toggle("hidden", fps === null);
     if (fps !== null) this.fpsEl.textContent = `${Math.round(fps)} fps · ${s.debris.length} debris`;
   }

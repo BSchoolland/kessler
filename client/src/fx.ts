@@ -4,14 +4,23 @@ import type { Camera } from "./camera";
 import type { Particles } from "./particles";
 import { hsl, PLAYER_COLOR } from "./render";
 import { play, type SfxName } from "./sound";
-import { ENEMY_DEFS } from "../../shared/enemies";
+import { WAVES } from "../../shared/config";
+import { bossForWave } from "../../shared/enemies";
+import type { EnemyKind } from "../../shared/types";
+import { ENEMY_DEFS, isBoss } from "../../shared/enemies";
 
 export interface FxHooks {
   banner: (title: string, sub?: string, kind?: "wave" | "boss" | "sector" | "clear" | "phase") => void;
   hurtFlash: () => void;
 }
 
-const SOURCE_LABEL: Record<string, string> = { impact: "SPLAT", debris: "DEBRIS", collision: "BOWLED", shockwave: "QUAKE", projectile: "RETURNED" };
+const SOURCE_LABEL: Record<string, string> = { impact: "SPLAT", debris: "DEBRIS", collision: "BOWLED", shockwave: "QUAKE", projectile: "RETURNED", blast: "BLASTED" };
+const BOSS_LINE: Record<string, string> = {
+  hammer: "it jumps. it lands. move.",
+  warden: "it circles. it dives. that's your window.",
+  twin: "two of them. one gets angry.",
+  belt: "the belt itself. break it.",
+};
 
 export function applyEvents(s: GameState, events: GameEvent[], particles: Particles, cam: Camera, hooks: FxHooks): void {
   const pan = (pos: Vec) => ((cam.toScreen(pos).x / cam.width) - 0.5) * 1.4;
@@ -36,7 +45,7 @@ export function applyEvents(s: GameState, events: GameEvent[], particles: Partic
       }
       case "kill": {
         const hue = ENEMY_DEFS[ev.kind as keyof typeof ENEMY_DEFS]?.hue ?? 0;
-        const boss = ev.kind === "hammer";
+        const boss = isBoss(ev.kind as EnemyKind);
         particles.burst(ev.pos, boss ? 90 : 22, { color: hsl(hue, 95, 65), speed: boss ? 600 : 320, shape: "shard", size: boss ? 7 : 4, max: boss ? 1.4 : 0.7, vx: ev.vel.x * 0.3, vy: ev.vel.y * 0.3 });
         particles.burst(ev.pos, boss ? 60 : 14, { color: "#ffffff", speed: boss ? 500 : 260, shape: "dot", size: 3, max: 0.5 });
         particles.ring(ev.pos, hsl(hue, 95, 70), boss ? 260 : 60, boss ? 0.9 : 0.4);
@@ -44,7 +53,6 @@ export function applyEvents(s: GameState, events: GameEvent[], particles: Partic
         const label = SOURCE_LABEL[ev.source];
         if (label) particles.float(scale({ x: ev.pos.x, y: ev.pos.y - 18 }, 1), label, hsl(hue, 95, 75), 14);
         sfx(boss ? "bossKill" : "kill", ev.pos);
-        if (boss) hooks.banner("THE HAMMER IS DOWN", "sector cleared", "clear");
         break;
       }
       case "impact": {
@@ -90,7 +98,7 @@ export function applyEvents(s: GameState, events: GameEvent[], particles: Partic
         play("death");
         break;
       case "waveStart":
-        if (ev.boss) { hooks.banner("THE HAMMER", `wave ${ev.wave} · it jumps. it lands. move.`, "boss"); play("boss"); }
+        if (ev.boss) { const k = bossForWave(ev.wave, WAVES.bossEvery); hooks.banner(ENEMY_DEFS[k].name.toUpperCase(), `wave ${ev.wave} · ${BOSS_LINE[k]}`, "boss"); play("boss"); }
         else { hooks.banner(`WAVE ${ev.wave}`, undefined, "wave"); play("wave", 0.7); }
         break;
       case "waveClear":
@@ -119,6 +127,30 @@ export function applyEvents(s: GameState, events: GameEvent[], particles: Partic
       case "shockwave":
         cam.addTrauma(0.35);
         sfx("shockwave", ev.pos);
+        break;
+      case "bossDown":
+        hooks.banner(`${ENEMY_DEFS[ev.kind].name.toUpperCase()} IS DOWN`, "sector cleared", "clear");
+        break;
+      case "won":
+        hooks.banner("THE BELT IS BROKEN", "wave 20 cleared · it keeps going if you do", "clear");
+        play("sector");
+        break;
+      case "explode":
+        particles.ring(ev.pos, "#ffb347", ev.radius * 1.6, 0.35);
+        particles.ring(ev.pos, "#ffffff", ev.radius * 0.8, 0.25);
+        particles.burst(ev.pos, 34, { color: "#ff8a3d", speed: 420, shape: "spark", size: 3.5, max: 0.5, drag: 3 });
+        particles.burst(ev.pos, 18, { color: "#ffe0b0", speed: 220, shape: "dot", size: 3, max: 0.6 });
+        cam.addTrauma(0.5);
+        sfx("impact", ev.pos, 1);
+        sfx("kill", ev.pos, 0.8);
+        break;
+      case "charge":
+        particles.burst(ev.pos, 12, { color: hsl(130, 100, 70), speed: 200, dir: scale(ev.dir, -1), spread: 0.6, shape: "spark", size: 2.5, max: 0.3 });
+        sfx("dash", ev.pos, 0.8);
+        break;
+      case "beam":
+        particles.ring(ev.pos, hsl(265, 100, 75), 60, 0.4);
+        sfx("telegraph", ev.pos, 0.9);
         break;
       case "pound": {
         // the landing: dust sheets both ways along the ground, a white ring, a big hit of shake

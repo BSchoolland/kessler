@@ -20,7 +20,7 @@ const params = new URLSearchParams(location.search);
 const BOT = params.get("bot") === "1";
 const botRng = new Rng(99);
 
-type Mode = "menu" | "playing" | "paused" | "offers" | "over";
+type Mode = "menu" | "playing" | "paused" | "offers" | "over" | "won";
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 const profile = loadProfile();
@@ -75,7 +75,7 @@ function showMenu(): void {
   ui.showHud(false);
   ui.show("tut", false);
   ui.show("tut-badge", !profile.tutorialDone);
-  document.getElementById("menu-best")!.textContent = profile.bestScore ? `BEST ${profile.bestScore} · WAVE ${profile.bestWave} · ${profile.runs} RUNS` : "no runs yet";
+  document.getElementById("menu-best")!.textContent = profile.bestScore ? `BEST ${profile.bestScore} · WAVE ${profile.bestWave} · ${profile.runs} RUNS${profile.wins ? ` · ${profile.wins} CLEARS` : ""}` : "no runs yet";
   canvas.style.cursor = "default";
 }
 
@@ -109,6 +109,15 @@ function enter(s: GameState): void {
   canvas.style.cursor = "none";
   acc = 0;
   ui.updateTutorial(state);
+}
+
+function showWon(s: GameState): void {
+  profile.wins++;
+  saveProfile(profile);
+  const st = s.stats;
+  const rows: [string, number | string][] = [["SCORE", s.score], ["KILLS", st.kills], ["VOID", st.voidKills], ["BOSSES", st.bossKills], ["TIME", `${Math.round(st.time)}s`], ["LAUNCHES", st.dashes]];
+  document.getElementById("won-stats")!.innerHTML = rows.map(([k, v]) => `<div><b>${v}</b>${k}</div>`).join("");
+  window.setTimeout(() => { if (state === s && !s.over) { mode = "won"; ui.show("won"); canvas.style.cursor = "default"; setThrust(0); } }, 2600);
 }
 
 function finishTutorial(): void {
@@ -221,6 +230,7 @@ function frame(now: number): void {
           for (const ev of s.events) {
             if (ev.type === "void" && ev.kind === "player" && s.over) voidDeath = true;
             if (ev.type === "tutorial" && ev.step === "done") finishTutorial();
+            if (ev.type === "won") showWon(s);
           }
           acc -= DT;
           steps++;
@@ -239,9 +249,11 @@ function frame(now: number): void {
       else if (snap.menuConfirm && s.offers) pickOffer(s.offers[ui.focusIdx].id);
     } else if (mode === "paused") {
       if (snap.pausePressed || snap.menuBack) resume();
+    } else if (mode === "won") {
+      if (snap.menuConfirm || snap.pausePressed) { ui.show("won", false); resume(); }
     }
 
-    if (mode === "playing" || mode === "over" || mode === "offers") {
+    if (mode === "playing" || mode === "over" || mode === "offers" || mode === "won") {
       particles.update(rawDt);
       const aimWorld = fromAngle(p.facing);
       cam.update(p.pos, aimWorld, p.planet === null, rawDt);
@@ -312,6 +324,8 @@ function bindMenu(): void {
   document.getElementById("btn-leaderboard")!.addEventListener("click", () => { ui.show("menu", false); ui.show("leaderboard"); void ui.loadLeaderboard(document.getElementById("lb-list")!, profile.name); });
   document.querySelectorAll(".modal .close").forEach((b) => b.addEventListener("click", () => { ui.hideAllScreens(); ui.show("menu"); }));
   document.getElementById("btn-resume")!.addEventListener("click", resume);
+  document.getElementById("btn-won-go")!.addEventListener("click", () => { ui.show("won", false); resume(); });
+  document.getElementById("btn-won-menu")!.addEventListener("click", () => { state = null; showMenu(); });
   document.getElementById("btn-quit")!.addEventListener("click", () => { state = null; showMenu(); });
   document.getElementById("btn-again")!.addEventListener("click", startRun);
   document.getElementById("btn-menu")!.addEventListener("click", () => { state = null; showMenu(); });

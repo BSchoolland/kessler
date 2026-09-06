@@ -15,7 +15,9 @@ export interface Planet {
   seed: number;
 }
 
-export type EnemyKind = "grunt" | "hopper" | "orbiter" | "bulwark" | "flak" | "raider" | "hammer";
+export type EnemyKind =
+  | "grunt" | "hopper" | "orbiter" | "bulwark" | "flak" | "raider" | "lancer" | "mine" | "splitter" | "sweeper"
+  | "hammer" | "warden" | "twin" | "belt";
 
 export type EntityKind = "player" | EnemyKind;
 
@@ -65,13 +67,23 @@ export interface Entity {
   hue: number;
 }
 
-export type HitSource = "blade" | "impact" | "debris" | "collision" | "void" | "shockwave" | "projectile" | "contact" | "none";
+export type HitSource = "blade" | "impact" | "debris" | "collision" | "void" | "shockwave" | "projectile" | "contact" | "blast" | "beam" | "none";
 
 export interface OrbitState {
   planet: number;            // -1 = the arena itself (raiders patrol the outer ring)
   radius: number;
   angle: number;
   dir: 1 | -1;
+}
+
+/** A low laser that sweeps around a planet's surface; anything grounded in its path is hit. */
+export interface BeamState {
+  angle: number;
+  dir: 1 | -1;
+  height: number;
+  speed: number;      // radians per second
+  blades: number;     // evenly spaced around the planet
+  t: number;          // seconds left, Infinity for as long as the owner stands
 }
 
 export interface AiState {
@@ -81,8 +93,9 @@ export interface AiState {
   cooldown: number;
   phase: number;
   rot: number;
-  wasAirborne: boolean;      // the boss pounds the ground on every landing
-  timer: number;             // orbiters: seconds until they consider hopping; the boss: seconds until it calls a pod
+  wasAirborne: boolean;      // pounders hit the ground on every landing
+  timer: number;             // a per-kind clock: orbiter hops, boss pod calls, warden dives
+  beam: BeamState | null;
 }
 
 export interface Debris {
@@ -130,7 +143,7 @@ export interface Shockwave {
 
 export interface Telegraph {
   id: number;
-  kind: "throw" | "shot";
+  kind: "throw" | "shot" | "charge";
   pos: Vec;
   radius: number;
   t: number;
@@ -158,6 +171,11 @@ export type GameEvent =
   | { type: "telegraph"; kind: Telegraph["kind"]; pos: Vec }
   | { type: "shockwave"; pos: Vec }
   | { type: "pound"; pos: Vec; normal: Vec }
+  | { type: "explode"; pos: Vec; radius: number }
+  | { type: "charge"; pos: Vec; dir: Vec }
+  | { type: "beam"; pos: Vec }
+  | { type: "bossDown"; kind: EnemyKind }
+  | { type: "won" }
   | { type: "edgeWave"; pos: Vec; dir: Vec }
   | { type: "bossPhase"; pos: Vec }
   | { type: "debrisHit"; pos: Vec; damage: number }
@@ -258,6 +276,7 @@ export interface GameState {
   score: number;
   stats: Stats;
   over: boolean;
+  won: boolean;            // the wave-20 boss is down; the run keeps going as endless
   daily: boolean;
   events: GameEvent[];
   weapon: Weapon;

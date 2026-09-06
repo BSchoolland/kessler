@@ -16,6 +16,7 @@ export interface Profile {
   totalKills: number;
   voidKills: number;
   bossKills: number;
+  wins: number;
   settings: Settings;
   tutorialDone: boolean;
 }
@@ -23,7 +24,7 @@ export interface Profile {
 const KEY = "kessler.profile.v1";
 
 const defaults: Profile = {
-  name: "", bestScore: 0, bestWave: 0, runs: 0, totalKills: 0, voidKills: 0, bossKills: 0,
+  name: "", bestScore: 0, bestWave: 0, runs: 0, totalKills: 0, voidKills: 0, bossKills: 0, wins: 0,
   settings: { shake: true, damageNumbers: true, sfx: 0.8, music: 0.5, aimAssist: true, showFps: false, autoAim: true },
   tutorialDone: false,
 };

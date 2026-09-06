@@ -1,6 +1,6 @@
 import { SCORE, WAVES } from "./config";
 import { emit, healPlayer, placePlayer, player, spawnEnemyPod, type Ctx } from "./actions";
-import { ENEMY_DEFS, SPAWNABLE } from "./enemies";
+import { bossForWave, ENEMY_DEFS, isBoss, SPAWNABLE } from "./enemies";
 import { rollOffers } from "./upgrades";
 import type { EnemyKind, WaveState } from "./types";
 import { generatePlanets } from "./world";
@@ -14,18 +14,24 @@ function compose(ctx: Ctx, n: number, sector: number): WaveState["queue"] {
   const queue: WaveState["queue"] = [];
   const boss = n % WAVES.bossEvery === 0;
   if (boss) {
-    queue.push({ at: 0.5, kind: "hammer", elite: false });
+    const kind = bossForWave(n, WAVES.bossEvery);
+    queue.push({ at: 0.5, kind, elite: false });
+    if (kind === "twin") queue.push({ at: 1.3, kind, elite: false });
     const escorts = 2 + sector * 2;
     for (let i = 0; i < escorts; i++) queue.push({ at: 2 + i * 1.5, kind: rng.chance(0.6) ? "grunt" : "hopper", elite: false });
     return queue;
   }
-  let budget = 5 + n * 2.4 + sector * 1.8;
+  let budget = 4 + n * 1.7 + sector * 2;
   const pool = SPAWNABLE.filter((k) => ENEMY_DEFS[k].minWave <= n);
-  const eliteChance = n > 3 ? Math.min(0.28, (n - 3) * 0.045) : 0;
+  const eliteChance = n > 3 ? Math.min(0.35, (n - 3) * 0.035) : 0;
   let guard = 0;
+  const WEIGHT: Partial<Record<EnemyKind, (n: number) => number>> = {
+    grunt: () => 3, hopper: () => 2.2, orbiter: (n) => 1.4 + n * 0.08, flak: (n) => 1.3 + n * 0.08, raider: (n) => 0.7 + n * 0.07,
+    lancer: (n) => 1.2 + n * 0.06, mine: (n) => 1.1 + n * 0.05, splitter: (n) => 0.8 + n * 0.06, sweeper: (n) => 0.5 + n * 0.05,
+  };
   while (budget > 0.9 && guard++ < 60) {
     // cheap units stay likely; expensive ones ramp in with the wave number
-    const weights = pool.map((k) => (k === "grunt" ? 3 : k === "hopper" ? 2.2 : k === "orbiter" ? 1.4 + n * 0.08 : k === "flak" ? 1.3 + n * 0.08 : k === "raider" ? 0.7 + n * 0.07 : 0.9 + n * 0.1));
+    const weights = pool.map((k) => (WEIGHT[k] ?? ((n) => 0.9 + n * 0.1))(n));
     let r = rng.next() * weights.reduce((a, b) => a + b, 0);
     let kind: EnemyKind = pool[0];
     for (let i = 0; i < pool.length; i++) { r -= weights[i]; if (r <= 0) { kind = pool[i]; break; } }
@@ -73,9 +79,9 @@ export function updateWave(ctx: Ctx): void {
       while (w.queue.length && w.queue[0].at <= w.t) {
         const item = w.queue.shift()!;
         const p = player(s);
-        // prefer planets the player isn't standing on, boss always takes the big one
+        // prefer planets the player isn't standing on; bosses take the big one; sweepers come to yours
         const candidates = s.planets.filter((pl) => pl.id !== p.planet);
-        const target = item.kind === "hammer" ? s.planets[0] : rng.pick(candidates.length ? candidates : s.planets);
+        const target = isBoss(item.kind) ? s.planets[0] : item.kind === "sweeper" && p.planet !== null ? s.planets[p.planet] : rng.pick(candidates.length ? candidates : s.planets);
         spawnEnemyPod(ctx, item.kind, target.id, item.elite);
       }
       if (!w.queue.length) w.phase = "fighting";
@@ -87,6 +93,11 @@ export function updateWave(ctx: Ctx): void {
         w.phaseT = 0.9;
         s.score += SCORE.waveClear * w.sector;
         emit(s, { type: "waveClear", wave: w.n });
+        if (w.boss && w.n === WAVES.arc && !s.won) {
+          s.won = true;
+          s.score += WAVES.winBonus;
+          emit(s, { type: "won" });
+        }
       }
       break;
     case "cleared":

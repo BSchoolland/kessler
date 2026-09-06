@@ -1,9 +1,9 @@
-import { DEBRIS, IMPACT, PLAYER, SCORE } from "./config";
-import { ENEMY_DEFS, RAIDER_RING } from "./enemies";
+import { BLAST, DEBRIS, IMPACT, PLAYER, SCORE } from "./config";
+import { ENEMY_DEFS, isBoss, RAIDER_RING } from "./enemies";
 import { findContact, snapToSurface } from "./physics";
 import type { Rng } from "./rng";
 import type { Debris, EnemyKind, Entity, GameEvent, GameState, HitSource, Shockwave } from "./types";
-import { add, fromAngle, len, norm, scale, type Vec } from "./vec";
+import { add, dist, fromAngle, len, norm, scale, sub, type Vec } from "./vec";
 
 export interface Ctx {
   s: GameState;
@@ -21,7 +21,7 @@ export function makeEntity(s: GameState, kind: Entity["kind"], pos: Vec, radius:
   return {
     id: s.nextId++, kind, pos: { ...pos }, vel: { x: 0, y: 0 }, radius, hp, maxHp: hp, facing: 0, planet: null,
     stun: 0, invuln: 0, dead: false, swing: null, dashT: 0, sinceDash: 99, comboT: 0, comboIdx: 0,
-    ai: { state: "idle", t: 0, target: null, cooldown: 0, phase: 1, rot: 0, wasAirborne: false, timer: 0 }, knockbackResist: 0, lastHitBy: "none",
+    ai: { state: "idle", t: 0, target: null, cooldown: 0, phase: 1, rot: 0, wasAirborne: false, timer: 0, beam: null }, knockbackResist: 0, lastHitBy: "none",
     elite: false, orbit: null, spawnT: 0, attackBuffer: 0, dashBuffer: 0, launched: false, splatT: 0, contactCd: 0, airTime: 0, hue,
   };
 }
@@ -53,7 +53,7 @@ export function spawnEnemyPod(ctx: Ctx, kind: EnemyKind, targetPlanet: number, e
   const def = ENEMY_DEFS[kind];
   const target = s.planets[targetPlanet];
   const start = from ?? fromAngle(rng.range(0, Math.PI * 2), 1450);
-  const sectorScale = kind === "hammer" ? 1 + 0.4 * (s.wave.sector - 1) : 1 + 0.06 * (s.wave.sector - 1);
+  const sectorScale = isBoss(kind) ? 1 + 0.15 * (s.wave.sector - 1) : 1 + 0.06 * (s.wave.sector - 1);
   const e = makeEntity(s, kind, start, def.radius, Math.round(def.hp * (elite ? 1.6 : 1) * sectorScale), def.hue);
   e.knockbackResist = def.knockbackResist;
   e.elite = elite;
@@ -61,12 +61,25 @@ export function spawnEnemyPod(ctx: Ctx, kind: EnemyKind, targetPlanet: number, e
   e.vel = scale(norm(add(target.pos, scale(start, -1))), 380);
   e.ai.cooldown = kind === "orbiter" ? 1.2 : kind === "raider" ? 2 : 0.4;
   if (kind === "orbiter") e.ai.timer = rng.range(6, 10);
-  if (kind === "hammer") e.ai.timer = 4;
+  if (kind === "hammer" || kind === "belt") e.ai.timer = 4;
+  if (kind === "warden") e.ai.timer = 6;
   if (kind === "raider") {
     // no pod: it arrives on the outer ring and starts patrolling at once
     e.spawnT = 0;
     e.vel = { x: 0, y: 0 };
     e.orbit = { planet: -1, radius: RAIDER_RING, angle: Math.atan2(start.y, start.x), dir: rng.sign() as 1 | -1 };
+  }
+  if (kind === "mine") {
+    // no pod: it drifts in from the edge under its own power
+    e.spawnT = 0;
+    e.vel = scale(norm(sub(player(s).pos, start)), def.speed);
+  }
+  if (kind === "warden") {
+    // no pod: it takes up a wide orbit around whatever planet you're on
+    e.spawnT = 0;
+    const p = player(s);
+    const home = s.planets[p.planet ?? 0];
+    e.orbit = { planet: home.id, radius: home.r + 260, angle: Math.atan2(start.y - home.pos.y, start.x - home.pos.x), dir: rng.sign() as 1 | -1 };
   }
   s.entities.push(e);
   s.wave.alive++;
@@ -117,13 +130,52 @@ export function spawnEdgeWave(s: GameState, planet: number, angle: number, dir: 
   return w;
 }
 
+/** A mine going off: hurts and shoves everything nearby, the player included. */
+export function explode(ctx: Ctx, pos: Vec, hue: number): void {
+  const { s } = ctx;
+  const p = player(s);
+  for (const e of s.entities) {
+    if (e.kind === "player" || e.dead || e.spawnT > 0) continue;
+    const d = dist(e.pos, pos);
+    if (d > BLAST.enemyRadius + e.radius) continue;
+    const away = d > 1e-3 ? norm(sub(e.pos, pos)) : { x: 0, y: -1 };
+    launch(e, away, BLAST.enemyKnock, 0.6);
+    damageEnemy(ctx, e, BLAST.enemyDamage, "blast", e.pos, away);
+  }
+  if (!s.over && dist(p.pos, pos) < BLAST.playerRadius + p.radius && damagePlayer(ctx, BLAST.playerDamage, "blast")) {
+    const away = norm(sub(p.pos, pos));
+    p.vel = add(p.vel, scale(away, BLAST.playerKnock));
+    if (p.planet !== null) p.planet = null;
+  }
+  spawnDebris(ctx, pos, { x: 0, y: 0 }, 4, hue, false, 1.1);
+  s.freeze = Math.max(s.freeze, 0.05);
+  emit(s, { type: "explode", pos, radius: BLAST.enemyRadius });
+}
+
+/** A splitter's two halves: hoppers thrown out sideways from where it died. */
+function split(ctx: Ctx, at: Entity): void {
+  const { s } = ctx;
+  const def = ENEMY_DEFS.hopper;
+  const n = at.planet !== null ? norm(sub(at.pos, s.planets[at.planet].pos)) : { x: 0, y: -1 };
+  const t = { x: -n.y, y: n.x };
+  for (const side of [1, -1]) {
+    const h = makeEntity(s, "hopper", add(at.pos, scale(t, side * 10)), def.radius, def.hp, def.hue);
+    h.vel = add(scale(t, side * 240), scale(n, 220));
+    h.planet = null;
+    h.ai.cooldown = 0.6;
+    h.contactCd = 0.5;
+    s.entities.push(h);
+    s.wave.alive++;
+  }
+}
+
 export function killEnemy(ctx: Ctx, e: Entity, source: HitSource): void {
   const { s } = ctx;
   if (e.dead) return;
   e.dead = true;
   s.wave.alive--;
   const def = ENEMY_DEFS[e.kind as EnemyKind];
-  const boss = e.kind === "hammer";
+  const boss = isBoss(e.kind as EnemyKind);
   let pts = def.score * (e.elite ? 2 : 1);
   s.stats.kills++;
   if (source === "void") { pts += SCORE.voidKill * s.mods.voidBonusMult; s.stats.voidKills++; }
@@ -138,6 +190,9 @@ export function killEnemy(ctx: Ctx, e: Entity, source: HitSource): void {
   }
   s.freeze = Math.max(s.freeze, boss ? 0.4 : 0.075);
   emit(s, { type: "kill", pos: e.pos, kind: e.kind, source, vel: e.vel });
+  if (e.kind === "mine" && source !== "void" && source !== "blast") explode(ctx, e.pos, e.hue);
+  if (e.kind === "splitter" && source !== "void") split(ctx, e);
+  if (boss && !s.entities.some((x) => x !== e && !x.dead && isBoss(x.kind as EnemyKind))) emit(s, { type: "bossDown", kind: e.kind as EnemyKind });
 }
 
 export function damageEnemy(ctx: Ctx, e: Entity, dmg: number, source: HitSource, at?: Vec, dir?: Vec, crit = false): void {
@@ -148,7 +203,7 @@ export function damageEnemy(ctx: Ctx, e: Entity, dmg: number, source: HitSource,
   if (source === "blade" && ctx.s.mods.lifesteal > 0) healPlayer(ctx.s, 0, dmg * ctx.s.mods.lifesteal);
   emit(ctx.s, { type: "hit", pos: at ?? e.pos, dir: dir ?? { x: 0, y: -1 }, damage: dmg, crit, target: e.kind });
   if (e.hp <= 0) killEnemy(ctx, e, source);
-  else if (e.kind === "hammer" && e.ai.phase === 1 && e.hp < e.maxHp * 0.5) {
+  else if (isBoss(e.kind as EnemyKind) && e.kind !== "twin" && e.ai.phase === 1 && e.hp < e.maxHp * 0.5) {
     e.ai.phase = 2;
     emit(ctx.s, { type: "bossPhase", pos: e.pos });
   }

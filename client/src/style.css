@@ -85,6 +85,7 @@ ol li span:nth-child(3) { text-align: right; font-weight: 700; } ol li span:nth-
 .stats { display: grid; grid-template-columns: repeat(4, 130px); gap: 10px 20px; text-align: center; }
 .stats div b { display: block; font-size: 30px; color: #fff; font-weight: 700; }
 .stats div { font-size: 13px; letter-spacing: 0.2em; color: #9fb1d8; }
+#won h2 { color: var(--gold); text-shadow: 0 0 30px rgba(255,211,106,0.6); font-size: 44px; }
 #go-title { font-size: 64px; color: var(--red); text-shadow: 0 0 30px rgba(255,77,122,0.6); margin: 0; }
 #go-sub { margin: -10px 0 0; color: #9fb1d8; letter-spacing: 0.15em; }
 #go-rank { color: var(--gold); letter-spacing: 0.2em; font-weight: 700; min-height: 22px; }
