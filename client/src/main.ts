@@ -359,6 +359,10 @@ function bindMenu(): void {
 // the stage fills the window; on a touch device held portrait it is rotated so the game stays landscape
 const stage = document.getElementById("stage")!;
 const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && !("MSStream" in window);
+// a phone is a phone before it's touched: coarse pointer means touch layout and rotation from the first frame
+const TOUCH = window.matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+if (TOUCH) input.usingTouch = true;
+const baseHeight = window.innerHeight;
 function layout(): void {
   const w = window.innerWidth, h = window.innerHeight;
   const rot = input.usingTouch && h > w;
@@ -381,16 +385,37 @@ if (IOS && !STANDALONE) document.documentElement.classList.add("ios-browser");
 function updateSwipeHint(): void {
   const el = document.getElementById("swipe")!;
   const landscape = window.innerWidth > window.innerHeight;
-  const full = Math.min(screen.width, screen.height);
-  const barsVisible = window.innerHeight < full - 6;
+  const h = window.innerHeight;
+  // collapsed bars: landscape fills the short side; portrait leaves the status bar and a thin strip; or the viewport simply grew since load
+  const collapsed = landscape ? h >= Math.min(screen.width, screen.height) - 6 : h >= Math.max(screen.width, screen.height) - 110 || h > baseHeight + 25;
   // the on-screen keyboard also shrinks the viewport; that's not Safari's bars
   const typing = document.activeElement instanceof HTMLInputElement;
-  const show = IOS && !STANDALONE && landscape && barsVisible && !typing;
+  const show = IOS && !STANDALONE && !collapsed && !typing;
   el.classList.toggle("hidden", !show);
 }
 function collapseBar(): void {
   updateSwipeHint();
 }
+// Once the bars are tucked, the document must never scroll again or Safari brings them back: every touch
+// move is cancelled unless it is the gate's own swipe, or it scrolls a modal that still has room that way.
+let lastTouch = { x: 0, y: 0 };
+document.addEventListener("touchstart", (e) => { lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }, { passive: true });
+document.addEventListener("touchmove", (e) => {
+  if (!IOS || STANDALONE) return;
+  if (!document.getElementById("swipe")!.classList.contains("hidden")) return;
+  const t = e.touches[0];
+  const dx = t.clientX - lastTouch.x, dy = t.clientY - lastTouch.y;
+  lastTouch = { x: t.clientX, y: t.clientY };
+  // finger movement along the stage's vertical axis (the stage is rotated on a portrait phone)
+  const d = stage.classList.contains("rot") ? -dx : dy;
+  const scroller = (e.target as HTMLElement).closest?.(".modal.scroll, ol") as HTMLElement | null;
+  if (scroller && scroller.scrollHeight > scroller.clientHeight) {
+    const atTop = scroller.scrollTop <= 0;
+    const atBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 1;
+    if ((d > 0 && !atTop) || (d < 0 && !atBottom)) return;
+  }
+  if (e.cancelable) e.preventDefault();
+}, { passive: false });
 window.addEventListener("resize", () => { layout(); updateSwipeHint(); });
 window.addEventListener("scroll", updateSwipeHint, { passive: true });
 window.visualViewport?.addEventListener("resize", updateSwipeHint);
