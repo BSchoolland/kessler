@@ -804,7 +804,7 @@ function updateOrbital(ctx: Ctx, e: Entity): void {
 }
 
 /**
- * Aegis: a walker behind a shield that turns toward you, but slowly. Slugs and the wave break
+ * Aegis: a walker behind a shield that turns toward you, but very slowly (a quarter turn takes 3.5s). Slugs and the wave break
  * on the shield's front; the overhead sweep, anything from behind, and debris all get through.
  */
 function updateAegis(ctx: Ctx, e: Entity): void {
@@ -812,7 +812,7 @@ function updateAegis(ctx: Ctx, e: Entity): void {
   const p = player(s);
   const def = ENEMY_DEFS.aegis;
   const want = angleOf(sub(p.pos, e.pos));
-  const turn = clamp(angleDelta(e.ai.rot, want), -2.2 * dt, 2.2 * dt);
+  const turn = clamp(angleDelta(e.ai.rot, want), -0.44 * dt, 0.44 * dt);
   e.ai.rot += turn;
   updateWalker(ctx, e, def.speed * (e.elite ? 1.2 : 1), def.leapSpeed, def.leapDelay, Infinity);
 }
