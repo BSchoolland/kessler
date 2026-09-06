@@ -807,8 +807,31 @@ function updateRaider(ctx: Ctx, e: Entity): void {
   const ai = e.ai;
 
   if (!e.orbit) {
-    // knocked off the ring: drift under gravity until slow, then climb back onto it
+    if (e.planet !== null) {
+      // down on a planet after a dive: sits exposed for a moment, then climbs back to the ring
+      stopWalking(ctx, e);
+      ai.t -= dt;
+      if (ai.t <= 0) {
+        const n = surfaceNormal(s.planets[e.planet], e.pos);
+        e.planet = null;
+        e.vel = scale(n, 240);
+        e.airTime = 0;
+        ai.state = "idle";
+        e.orbit = { planet: -1, radius: RAIDER_RING, angle: angleOf(e.pos), dir: 1 };
+      }
+      return;
+    }
     e.airTime += dt;
+    if (ai.state === "leaping") {
+      // diving at you: a landing is a short exposed stop, handled above once contact sets planet
+      ai.t = 1.8;
+      if (e.airTime > 3) {
+        const { planet } = nearestPlanet(s.planets, e.pos);
+        e.vel = add(scale(e.vel, Math.exp(-1.2 * dt)), scale(norm(sub(planet.pos, e.pos)), 900 * dt));
+      }
+      return;
+    }
+    // knocked off the ring: drift under gravity until slow, then climb back onto it
     if (len(e.vel) < 300 || e.airTime > 2) {
       e.orbit = { planet: -1, radius: RAIDER_RING, angle: angleOf(e.pos), dir: 1 };
       e.planet = null;
@@ -817,6 +840,18 @@ function updateRaider(ctx: Ctx, e: Entity): void {
     return;
   }
   const o = e.orbit;
+  // the last one standing doesn't get to snipe forever: after a few seconds alone it dives at you
+  const alone = !s.entities.some((x) => x !== e && x.kind !== "player" && !x.dead);
+  ai.timer = alone ? ai.timer + dt : 0;
+  if (ai.timer > 6 && ai.state === "idle") {
+    e.orbit = null;
+    ai.state = "leaping";
+    ai.timer = 0;
+    e.vel = scale(norm(sub(add(p.pos, scale(p.vel, 0.4)), e.pos)), 560);
+    e.airTime = 0;
+    emit(s, { type: "telegraph", kind: "shot", pos: e.pos });
+    return;
+  }
   const curR = len(e.pos);
   const R = curR + clamp(o.radius - curR, -160 * dt, 160 * dt);
   const da = angleDelta(o.angle, angleOf(p.pos));
