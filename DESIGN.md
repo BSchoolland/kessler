@@ -25,14 +25,14 @@ when everyone is running around a circle.
 Flying was overpowered (enemies couldn't reach you), so air control burns fuel that
 only refills on the ground. Dash stays free so the gap-crossing verb is never gated.
 
-## Edge and gun
+## Melee and gun
 
-Round two of Ben's feedback made it positional: the edge is the weapon on a planet,
+Round two of Ben's feedback made it positional: melee (called the edge in the code) is the weapon on a planet,
 the gun is the weapon in space, and there is no swap. Standing still you face up and
 sweep both sides; moving you face sideways and launch. Auto-aim always takes the
 nearest enemy. Shift dashes, space attacks, so the whole game is keyboard-only.
 
-The edge is the economy, the gun is the spend. Sword hits earn rounds (1 each,
+Melee is the economy, the gun is the spend. Sword hits earn rounds (1 each,
 Scavenger makes it 2); the gun fires a fast slug that launches on hit with more
 knockback than a normal swing, at range, with gravity drop. It exists for the two
 things the sword can't do: reach orbiters without leaving the ground, and line
@@ -73,12 +73,16 @@ challenge shares a seed for everyone.
 
 ## Tutorial
 
-Five lessons on a fixed two-planet layout, scripted inside the sim so it replays like
-anything else. Walk over the top of the big planet to a beacon; launch straight up at a
-beacon on the small one; the flight runs at 3% speed until two steering keys have been
-tried, then eases back to full; three grunts drop on the small planet; then one orbiter,
-which only the gun can reach. HP floors at 1 and the void respawns you, so it can't be
-failed. The menu badges the button until it's been finished once.
+Eight lessons on a fixed two-planet layout, scripted inside the sim so it replays like
+anything else. Walk over the top of the big planet to a beacon; launch at the small one,
+which sits far enough and far enough off-axis that the thrusters are needed; the flight
+runs at 3% speed until two steering keys have been tried, then eases back to full. On the
+small planet a grunt pod is steered onto the player's head and parked there in slow motion
+until the standing sweep lands; the debris it leaves gets its own slow beat; a second grunt
+lands down the surface for the moving wave (the lesson repeats until a wave has been fired);
+three at once; then one orbiter, which only the gun can reach. Tutorial enemies have 1 HP.
+HP floors at 1 and the void respawns you, so it can't be failed. The menu badges the button
+until it's been finished once.
 
 ## Not in v1 (engine is shaped for it)
 

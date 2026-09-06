@@ -244,7 +244,11 @@ function frame(now: number): void {
     if (mode === "playing" || mode === "over" || mode === "offers") {
       particles.update(rawDt);
       const aimWorld = fromAngle(p.facing);
-      cam.update(p.pos, aimWorld, p.planet === null, rawDt);
+      // the crossing lessons pull the camera back and lean it toward the far beacon
+      const crossing = s.tutorial?.goal && (s.tutorial.step === "launch" || s.tutorial.step === "fly") ? s.tutorial.goal : null;
+      cam.zoomMult = crossing ? 0.55 : 1;
+      const beacon = crossing ? add(s.planets[crossing.planet].pos, fromAngle(crossing.angle, s.planets[crossing.planet].r)) : null;
+      cam.update(beacon ? add(p.pos, scale(sub(beacon, p.pos), 0.35)) : p.pos, aimWorld, p.planet === null, rawDt);
       const enemies = s.entities.length - 1;
       setIntensity(s.over ? 0 : Math.min(1, 0.2 + enemies * 0.08 + (s.wave.boss ? 0.4 : 0)));
       const thrusting = mode === "playing" && !s.over && p.planet === null && s.fuel > 0 ? Math.min(1, len(renderer.thrust)) : 0;

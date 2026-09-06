@@ -8,9 +8,9 @@ arena gets more dangerous the better you're doing. Hence the name.
 
 **Play:** https://wreckingwheels.com/kessler/
 
-New here? The menu's **TUTORIAL** (badged until you've done it once) is five short lessons
-on two planets: walk to a beacon, launch, steer in slow motion, three grunts, one orbiter
-with the gun. You can't lose it.
+New here? The menu's **TUTORIAL** (badged until you've done it once) is eight short lessons
+on two planets: walk to a beacon, launch, steer across a real gap, the melee sweep, debris,
+the melee wave, three grunts at once, one orbiter with the gun. You can't lose it.
 
 ## Controls
 
@@ -23,10 +23,10 @@ Keyboard only is the intended way to play. The mouse is optional.
 | Launch (leave the planet) | shift / K / right click | LT / B |
 | Pause | Esc / P | Start |
 
-- **Where you are decides the weapon.** On a planet you have the **edge**, a kinetic
+- **Where you are decides the weapon.** On a planet you have **melee**, a kinetic
   crescent on the nose of the ship. In space you have the **gun**.
-- Standing still on a planet you face straight up and the edge does a wide overhead
-  sweep covering both sides. Moving, you face left or right and the edge becomes a
+- Standing still on a planet you face straight up and melee does a wide overhead
+  sweep covering both sides. Moving, you face left or right and melee becomes a
   **wave**: a wall of light two ship-heights tall that runs along the surface ahead
   of you, shoving enemies along its travel, batting enemy shots back and sending
   debris flying. Hits knock enemies *away*.
@@ -37,7 +37,7 @@ Keyboard only is the intended way to play. The mouse is optional.
 - **Flying**: WASD in space steers you (visible, audible thrusters) but burns fuel. The
   gauge sits beside the ship. Fuel refills on the ground.
 - The **gun** auto-aims at the nearest enemy and fires a heavy homing slug that
-  launches whatever it hits. Every edge hit earns one round (6 max). Turn auto-aim off
+  launches whatever it hits. Every melee hit earns one round (6 max). Turn auto-aim off
   in settings to aim with the mouse or right stick.
 - Enemies hurt on touch. Only enemies *you* launched take impact damage.
 

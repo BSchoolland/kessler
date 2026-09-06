@@ -48,28 +48,51 @@ await shot("03-fly-slowmo");
 await hold("KeyW", 250);
 await page.waitForTimeout(400);
 await shot("03b-fly-onekey");
-await hold("KeyA", 250);
-log(`fly ok: ${await until("fight", 15000, async () => { await page.waitForTimeout(200); })}`);
+await hold("KeyD", 250);
+await page.waitForTimeout(600);
+// a short burst of W, then coast; relaunch if we ended up back on the big planet
+log(`fly ok: ${await until("sweep", 40000, async () => {
+  const st = await stepNow();
+  if (st === "launch") { await page.waitForTimeout(500); await page.keyboard.press("ShiftLeft"); await page.waitForTimeout(1500); await hold("KeyW", 200); await hold("KeyA", 200); }
+  else if (st === "fly") { await hold("KeyW", 300); await page.waitForTimeout(900); }
+  else await page.waitForTimeout(200);
+})}`);
 await page.waitForTimeout(2500);
-await shot("04-fight");
-// 4. fight: wiggle and swing
+await shot("04-sweep-hover");
+// 4. stand still and swing
+log(`sweep ok: ${await until("debris", 30000, async () => { await page.keyboard.press("Space"); await page.waitForTimeout(700); })}`);
+await page.waitForTimeout(800);
+await shot("05-debris");
+log(`debris ok: ${await until("wave", 15000, async () => { await page.waitForTimeout(200); })}`);
+await page.waitForTimeout(2500);
+await shot("06-wave");
+// 6. move toward it and swing while moving
+let wi2 = 0;
+log(`wave ok: ${await until("brawl", 60000, async () => {
+  const key = wi2 % 8 < 4 ? "KeyA" : "KeyD";
+  await page.keyboard.down(key); await page.waitForTimeout(120); await page.keyboard.press("Space"); await page.waitForTimeout(200); await page.keyboard.up(key);
+  wi2++;
+})}`);
+await page.waitForTimeout(2500);
+await shot("07-brawl");
+// 7. wiggle and swing
 let fi = 0;
-log(`fight ok: ${await until("gun", 90000, async () => {
+log(`brawl ok: ${await until("gun", 90000, async () => {
   await page.keyboard.press("Space");
   await hold(fi % 2 ? "KeyA" : "KeyD", 220);
   await page.keyboard.press("Space");
   await page.waitForTimeout(150);
-  if (++fi % 40 === 0) await shot(`04-fight-${fi}`);
+  if (++fi % 40 === 0) await shot(`07-brawl-${fi}`);
 })}`);
 await page.waitForTimeout(3000);
-await shot("05-gun");
-// 5. gun: launch, then fire while airborne
+await shot("08-gun");
+// 8. gun: launch, then fire while airborne
 let gi = 0;
 log(`gun ok: ${await until("done", 90000, async () => {
   await page.keyboard.press("ShiftLeft");
   for (let i = 0; i < 4; i++) { await page.waitForTimeout(350); await page.keyboard.press("Space"); }
   await page.waitForTimeout(1800);
-  if (++gi % 6 === 0) await shot(`05-gun-${gi}`);
+  if (++gi % 6 === 0) await shot(`08-gun-${gi}`);
 })}`);
 await page.waitForTimeout(2200);
 await shot("06-done");

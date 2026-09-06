@@ -104,6 +104,7 @@ export class Renderer {
 
     // screen-space overlays
     if (s.tutorial && s.tutorial.timeScale < 1) this.vignette(`rgba(60,110,255,${0.45 * (1 - s.tutorial.timeScale)})`);
+    if (s.tutorial?.goal) this.drawOffscreenBeacon(s.planets[s.tutorial.goal.planet], s.tutorial.goal.angle);
     const distC = len(p.pos);
     if (distC > 1050 && !s.over) {
       const a = Math.min(0.75, (distC - 1050) / 450) * (0.7 + 0.3 * Math.sin(this.t * 9));
@@ -260,6 +261,32 @@ export class Renderer {
     ctx.beginPath();
     ctx.arc(6, 0, 4, 0, 6.283);
     ctx.fill();
+    ctx.restore();
+  }
+
+  /** When the beacon is off screen, a gold chevron at the edge points the way. */
+  private drawOffscreenBeacon(pl: Planet, angle: number): void {
+    const n = fromAngle(angle);
+    const sp = this.cam.toScreen({ x: pl.pos.x + n.x * pl.r, y: pl.pos.y + n.y * pl.r });
+    const w = this.cam.width, h = this.cam.height, m = 44;
+    if (sp.x > m && sp.x < w - m && sp.y > m && sp.y < h - m) return;
+    const cx = w / 2, cy = h / 2;
+    const dx = sp.x - cx, dy = sp.y - cy;
+    const k = Math.min((cx - m) / Math.abs(dx || 1e-6), (cy - m) / Math.abs(dy || 1e-6));
+    const x = cx + dx * k, y = cy + dy * k;
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(Math.atan2(dy, dx));
+    const pulse = 0.6 + 0.4 * Math.sin(this.t * 5);
+    ctx.fillStyle = `rgba(255,211,106,${pulse})`;
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(16, 0); ctx.lineTo(-10, -12); ctx.lineTo(-4, 0); ctx.lineTo(-10, 12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
     ctx.restore();
   }
 

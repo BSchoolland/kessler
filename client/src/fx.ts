@@ -63,6 +63,7 @@ export function applyEvents(s: GameState, events: GameEvent[], particles: Partic
         particles.ring(ev.pos, "#ff4d7a", 80, 0.6);
         particles.burst(ev.pos, 12, { color: "#ff4d7a", speed: 120, shape: "dot", size: 3, max: 0.8 });
         if (ev.kind !== "player") { particles.float(ev.pos, "LOST TO THE VOID", "#ff8fb0", 16); sfx("void", ev.pos); }
+        else if (s.tutorial) { hooks.banner("THE VOID", "past the red ring you're gone. again, from the beacon", "wave"); sfx("void", ev.pos); }
         break;
       case "dash":
         particles.burst(ev.pos, 14, { color: PLAYER_COLOR, speed: 160, dir: scale(ev.dir, -1), spread: 0.9, shape: "spark", size: 3, max: 0.3 });
@@ -153,12 +154,13 @@ export function applyEvents(s: GameState, events: GameEvent[], particles: Partic
         sfx("combo", ev.pos, 0.6);
         break;
       case "tutorial":
-        if (ev.step === "fight") { hooks.banner("INCOMING", "three grunts", "wave"); play("wave", 0.7); }
-        else if (ev.step === "gun") { hooks.banner("ORBITER", "it's out of reach. take the gun up", "wave"); play("wave", 0.7); }
+        if (ev.step === "sweep") { hooks.banner("INCOMING", "right on top of you", "wave"); play("wave", 0.7); }
+        else if (ev.step === "wave") { hooks.banner("INCOMING", "down the surface", "wave"); play("wave", 0.7); }
+        else if (ev.step === "brawl") { hooks.banner("THREE AT ONCE", undefined, "wave"); play("wave", 0.7); }
+        else if (ev.step === "gun") { hooks.banner("ORBITER", "out of melee reach", "wave"); play("wave", 0.7); }
         else if (ev.step === "done") { hooks.banner("YOU'RE READY", "tutorial complete", "clear"); play("sector"); }
         else play("upgrade", 0.5);
         break;
     }
   }
-  void s;
 }

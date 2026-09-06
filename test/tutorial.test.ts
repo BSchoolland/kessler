@@ -44,7 +44,7 @@ describe("tutorial", () => {
     expect(runUntil(s, () => walkToGoal(s), () => tut().step === "launch", 60 * 10)).toBe(true);
     expect(tut().goal?.planet).toBe(1);
 
-    // 2. stand still, launch: straight up toward the small planet
+    // 2. stand still, launch
     for (let i = 0; i < 20; i++) step(s, frame());
     step(s, frame({ dash: true }));
     expect(tut().step).toBe("fly");
@@ -56,21 +56,54 @@ describe("tutorial", () => {
     expect(tut().timeScale).toBeLessThan(0.1);
     for (let i = 0; i < 4; i++) step(s, frame({ move: { x: 0, y: -1 } }));
     expect(tut().timeScale).toBeLessThan(0.1);
-    for (let i = 0; i < 4; i++) step(s, frame({ move: { x: -1, y: 0 } }));
-    expect(tut().keys).toBe(1 | 2);
+    for (let i = 0; i < 4; i++) step(s, frame({ move: { x: 1, y: 0 } }));
+    expect(tut().keys).toBe(1 | 8);
     expect(runUntil(s, () => frame(), () => tut().timeScale === 1, 60)).toBe(true);
-    expect(runUntil(s, () => frame(), () => tut().step === "fight", 60 * 8)).toBe(true);
+    // a burst of W to hurry, then coast in
+    for (let i = 0; i < 40; i++) step(s, frame({ move: { x: 0, y: -1 } }));
+    expect(runUntil(s, () => frame(), () => tut().step === "sweep", 60 * 8)).toBe(true);
     expect(player(s).planet).toBe(1);
 
-    // 4. three grunts drop onto the small planet
-    const grunts = () => s.entities.filter((e) => e.kind === "grunt");
+    // 4. a 1 HP grunt parks over the player's head in slow motion; a standing swing kills it
+    const grunts = () => s.entities.filter((e) => e.kind === "grunt" && !e.dead);
+    expect(runUntil(s, () => frame(), () => tut().hover !== null, 60 * 6)).toBe(true);
+    expect(grunts()[0].hp).toBe(1);
+    expect(tut().timeScale).toBeLessThan(0.1);
+    for (let i = 0; i < 60; i++) step(s, frame());
+    expect(tut().hover).not.toBeNull();
+    step(s, frame({ attack: true }));
+    expect(runUntil(s, () => frame(), () => tut().step === "debris", 60 * 3)).toBe(true);
+    expect(s.debris.length).toBeGreaterThan(0);
+
+    // 5. debris beat runs slow, then the wave lesson
+    expect(tut().timeScale).toBeLessThan(0.5);
+    expect(runUntil(s, () => frame(), () => tut().step === "wave", 60 * 8)).toBe(true);
+
+    // 6. a grunt lands down the surface; killing it without a wave brings another, a wave kill moves on
+    expect(runUntil(s, () => frame(), () => grunts().length === 1 && grunts()[0].spawnT <= 0, 60 * 8)).toBe(true);
+    step(s, frame());
+    expect(tut().timeScale).toBeLessThan(0.5);
+    killAllLanded(s);
+    expect(runUntil(s, () => frame(), () => grunts().length === 1 && grunts()[0].spawnT <= 0, 60 * 10)).toBe(true);
+    expect(tut().step).toBe("wave");
+    // stray debris can kill the lesson grunt first; the lesson then drops another, so keep going
+    const towardGrunt = () => {
+      const p = player(s);
+      const g = grunts()[0];
+      if (!g || p.planet !== 1) return frame();
+      const pl = s.planets[1];
+      const da = angleDelta(angleOf(sub(p.pos, pl.pos)), angleOf(sub(g.pos, pl.pos)));
+      return frame({ move: scale(perp(surfaceNormal(pl, p.pos)), Math.sign(da) || 1), attack: s.tick % 20 === 0 });
+    };
+    expect(runUntil(s, towardGrunt, () => tut().step === "brawl", 60 * 30)).toBe(true);
+
+    // 7. three at once
     expect(runUntil(s, () => frame(), () => grunts().length === 3 && grunts().every((g) => g.spawnT <= 0), 60 * 12)).toBe(true);
-    expect(grunts().every((g) => g.planet === 1 || g.planet === null)).toBe(true);
-    expect(player(s).hp).toBeGreaterThan(0);
+    expect(grunts().every((g) => g.hp === 1)).toBe(true);
     killAllLanded(s);
     expect(runUntil(s, () => frame(), () => tut().step === "gun", 60 * 4)).toBe(true);
 
-    // 5. one orbiter, then done
+    // 8. one orbiter, then done
     const orbiters = () => s.entities.filter((e) => e.kind === "orbiter" && !e.dead);
     expect(runUntil(s, () => frame(), () => orbiters().length === 1 && orbiters()[0].spawnT <= 0, 60 * 12)).toBe(true);
     killAllLanded(s);

@@ -100,7 +100,7 @@ export class UI {
     this.lastTutKey = key;
     const lesson = LESSONS[tut.step];
     this.tutEl.dataset.step = tut.step;
-    $("#tut-step").textContent = lesson.n ? `${lesson.n} / 5` : "";
+    $("#tut-step").textContent = lesson.n ? `${lesson.n} / 8` : "";
     $("#tut-title").textContent = lesson.title;
     $("#tut-body").innerHTML = lesson.body;
     this.tutKeys.classList.toggle("hidden", tut.step !== "fly");
@@ -166,10 +166,13 @@ export class UI {
 
 const LESSONS: Record<TutorialStep, { n: number; title: string; body: string }> = {
   walk: { n: 1, title: "WALK TO THE BEACON", body: "<b>W A S D</b> walk you along the surface, whichever way you push. It's round, so keep steering; the beacon is over the top." },
-  launch: { n: 2, title: "LAUNCH", body: "<b>SHIFT</b> (or K, or right click) leaves the planet the way you're moving. Standing still, that's straight up. The beacon is straight up." },
-  fly: { n: 3, title: "STEER", body: "In space <b>W A S D</b> fire the thrusters. They burn fuel, and fuel only refills on the ground." },
-  fight: { n: 4, title: "THREE GRUNTS INBOUND", body: "<b>SPACE</b> (or J, or click) is the edge. Standing still it sweeps over your head; moving, it sends a wave along the ground. Hits <b>launch</b> enemies: into the planet, into each other, into the void." },
-  gun: { n: 5, title: "AN ORBITER", body: "It circles out of the edge's reach. <b>LAUNCH</b>, then <b>SPACE</b> in space fires the gun. It aims itself at the nearest enemy. Edge hits earn the rounds." },
+  launch: { n: 2, title: "LAUNCH", body: "<b>SHIFT</b> (or K, or right click) leaves the planet the way you're moving. Standing still, that's straight up. The beacon is straight up, a long way up." },
+  fly: { n: 3, title: "STEER", body: "In space <b>W A S D</b> fire the thrusters: W to hurry, S to brake, A / D to drift. They burn fuel, and fuel only refills on the ground. Come in too fast and the landing hurts." },
+  sweep: { n: 4, title: "MELEE: THE SWEEP", body: "Something's dropping right on top of you. <b>Stand still</b> and press <b>SPACE</b> (or J, or click): the melee sweeps over your head, both sides." },
+  debris: { n: 5, title: "DEBRIS", body: "Every kill shatters into debris. It obeys the same gravity as everything else, it hurts whatever it hits (you included), and a swing bats it. The better you're doing, the messier it gets. Hence the name." },
+  wave: { n: 6, title: "MELEE: THE WAVE", body: "That one's landing down the surface. <b>Move toward it</b> and press <b>SPACE</b> while moving: the melee becomes a wave that runs along the ground ahead of you." },
+  brawl: { n: 7, title: "THREE AT ONCE", body: "Sweep when they're on you, wave when they're coming. Hits <b>launch</b> enemies: into the planet, into each other, into the void." },
+  gun: { n: 8, title: "AN ORBITER", body: "It circles out of melee reach. <b>LAUNCH</b>, then <b>SPACE</b> in space fires the gun. It aims itself at the nearest enemy. Melee hits earn the rounds." },
   done: { n: 0, title: "", body: "" },
 };
 

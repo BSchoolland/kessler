@@ -48,12 +48,11 @@ export function healPlayer(s: GameState, frac: number, flat: number): void {
   p.hp = Math.min(p.maxHp, p.hp + p.maxHp * frac + flat);
 }
 
-export function spawnEnemyPod(ctx: Ctx, kind: EnemyKind, targetPlanet: number, elite: boolean, fromAngleAroundArena?: number): Entity {
+export function spawnEnemyPod(ctx: Ctx, kind: EnemyKind, targetPlanet: number, elite: boolean, from?: Vec): Entity {
   const { s, rng } = ctx;
   const def = ENEMY_DEFS[kind];
   const target = s.planets[targetPlanet];
-  const ang = fromAngleAroundArena ?? rng.range(0, Math.PI * 2);
-  const start = fromAngle(ang, 1450);
+  const start = from ?? fromAngle(rng.range(0, Math.PI * 2), 1450);
   const sectorScale = kind === "accretor" ? 1 + 0.4 * (s.wave.sector - 1) : 1 + 0.06 * (s.wave.sector - 1);
   const e = makeEntity(s, kind, start, def.radius, Math.round(def.hp * (elite ? 1.6 : 1) * sectorScale), def.hue);
   e.knockbackResist = def.knockbackResist;

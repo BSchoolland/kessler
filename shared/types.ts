@@ -166,15 +166,21 @@ export type GameEvent =
 
 export type Weapon = "sword" | "gun";
 
-export type TutorialStep = "walk" | "launch" | "fly" | "fight" | "gun" | "done";
+export type TutorialStep = "walk" | "launch" | "fly" | "sweep" | "debris" | "wave" | "brawl" | "gun" | "done";
+
+/** Where a tutorial pod is steered while it descends: an angle around the small planet, the player's head, or nowhere (plain pod). */
+export type PodAim = number | "player" | null;
 
 export interface TutorialState {
   step: TutorialStep;
   t: number;                                   // sim seconds spent in the current step
   goal: { planet: number; angle: number } | null;
   keys: number;                                // steering directions pressed during the flight lesson (W=1 A=2 S=4 D=8)
-  timeScale: number;                           // sim seconds per real second; the flight lesson runs slow until two directions are pressed
-  queue: { at: number; kind: EnemyKind; from: number }[];   // pods still to drop, and the angle around the arena they come from
+  timeScale: number;                           // sim seconds per real second; lessons slow the clock while they wait on the player
+  queue: { at: number; kind: EnemyKind; start: Vec; aim: PodAim }[];
+  guided: { id: number; aim: PodAim }[];       // pods in flight that are being steered
+  hover: number | null;                        // the sweep lesson's grunt, held over the player's head until they swing
+  waved: boolean;                              // the wave lesson has seen a wave fired
 }
 
 export interface UpgradeMods {
