@@ -10,7 +10,9 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "balance": "tsx scripts/balance.ts",
-    "playtest": "node scripts/playtest.mjs"
+    "playtest": "node scripts/playtest.mjs",
+    "smoke": "tsx scripts/smoke.ts",
+    "shots": "node scripts/shots.mjs"
   },
   "dependencies": {
     "express": "^4.19.2"

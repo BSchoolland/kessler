@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { chooseUpgrade, createGame, step } from "../shared/sim";
 import { botInput } from "../shared/bot";
 import { Rng } from "../shared/rng";
-import { player } from "../shared/actions";
+import { player, spawnEnemyPod, spawnShockwave } from "../shared/actions";
 import type { InputFrame } from "../shared/types";
 import { inVoid } from "../shared/physics";
 
@@ -165,5 +165,28 @@ describe("ammo and fuel", () => {
     expect(pushed).toBeGreaterThan(0);
     expect(pushed).toBeLessThan(30);
     void before;
+  });
+});
+
+describe("orbiting units", () => {
+  it("shake off stun while in orbit, and a shockwave that lifts them takes them out of orbit", () => {
+    const s = createGame(5);
+    for (let i = 0; i < 30; i++) step(s, idle);
+    const planet = s.planets[0];
+    const ctx = { s, rng: new Rng(1), dt: 1 / 60 };
+    const e = spawnEnemyPod(ctx, "orbiter", 0, false);
+    e.spawnT = 0;
+    e.orbit = { planet: 0, radius: planet.r + 110, angle: 0, dir: 1 };
+    e.pos = { x: planet.pos.x + planet.r + 110, y: planet.pos.y };
+    e.stun = 0.5;
+    for (let i = 0; i < 60; i++) step(s, idle);
+    expect(e.stun).toBe(0);
+    expect(e.dead).toBe(false);
+    // a hostile ring passing under it at orbit height: the band is 26 high, so bring it down to the surface band first
+    e.orbit.radius = planet.r + 20;
+    e.pos = { x: planet.pos.x + planet.r + 20, y: planet.pos.y };
+    spawnShockwave(s, 0, 0.3, 10, true, 3.2, Math.PI);
+    for (let i = 0; i < 30; i++) step(s, idle);
+    expect(e.orbit).toBeNull();
   });
 });

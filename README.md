@@ -70,11 +70,16 @@ npm install
 npm run dev          # vite on :5174 (/kessler/) + API on :3006
 npm test             # engine tests
 npm run balance 12   # bot sim, 12 seeds
+npm run smoke        # every enemy kind and every boss wave through the sim, incl. the wave-20 win
 npm run playtest     # headless Chrome; screenshots + video in .playtest/
+npm run shots -- [url] 6,10,20   # bot-driven screenshots of given waves (EXTRA="&god=1" to keep it alive)
 node scripts/playtest-tutorial.mjs [url]   # scripted run through the tutorial
+node scripts/winflow.mjs [url]             # watches the wave-20 boss fall and checks the win screen
 ```
 
-Debug URL params: `?bot=1` lets the balance bot drive, `?seed=N`, `?wave=N`.
+Debug URL params: `?bot=1` lets the balance bot drive, `?seed=N`, `?wave=N` starts there,
+`?god=1` keeps you alive (and out of the void), `?smite=1` chips bosses down so a boss fight
+can be watched end to end.
 
 ## Deploy
 
