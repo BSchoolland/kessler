@@ -4,8 +4,8 @@ html, body { margin: 0; height: 100%; background: #04050a; color: #e6ecff; font-
 /* everything lives in the stage; on a portrait phone the stage is rotated so the game is always landscape */
 #stage { position: fixed; left: 0; top: 0; width: 100%; height: 100%; }
 /* iPhone Safari (in the browser, not from the home screen): a document a hair taller than the viewport lets a scroll nudge collapse the toolbar */
-html.ios-browser { height: 140%; overflow: auto; }
-html.ios-browser body { height: 140%; touch-action: pan-y; }
+html.ios-browser { height: 140%; overflow: auto; touch-action: pan-y; }
+html.ios-browser body { height: 140%; overflow: visible; touch-action: pan-y; }
 html.ios-browser #stage { touch-action: none; }
 #swipe { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: rgba(4,5,10,0.9); touch-action: pan-y; color: var(--cyan); }
 #swipe .chev { width: 64px; height: 64px; animation: swipeup 1.2s ease-in-out infinite; }
