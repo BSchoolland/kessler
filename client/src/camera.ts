@@ -10,7 +10,6 @@ export class Camera {
   shakeRot = 0;
   private t = 0;
   shakeEnabled = true;
-  zoomMult = 1;   // the tutorial pulls back for the crossing so the far beacon is on screen
   width = 1;
   height = 1;
 
@@ -28,7 +27,7 @@ export class Camera {
     this.pos.x = damp(this.pos.x, look.x, 6, dt);
     this.pos.y = damp(this.pos.y, look.y, 6, dt);
     const dist = Math.hypot(target.x, target.y);
-    this.targetZoom = CAMERA.zoom * (airborne ? 0.9 : 1) * (dist > 900 ? 0.86 : 1) * this.fitScale() * this.zoomMult;
+    this.targetZoom = CAMERA.zoom * (airborne ? 0.9 : 1) * (dist > 900 ? 0.86 : 1) * this.fitScale();
     this.zoom = damp(this.zoom, this.targetZoom, 2.5, dt);
     this.trauma = Math.max(0, this.trauma - dt * 1.6);
     const s = this.shakeEnabled ? this.trauma * this.trauma : 0;
