@@ -33,9 +33,10 @@ export const PLAYER = {
   dashStrikeWindow: 0.32,  // seconds after a launch during which a swing is a launch-strike
   spaceDrag: 0.07,         // per second; just enough that the player can't sit in orbit forever
   dashStrikeMult: 2,
-  impactThreshold: 620,
-  impactDamagePerUnit: 0.09,
   invulnAfterHit: 0.5,
+  dryPulse: 0.1,           // seconds of thrust the empty tank still gives, once per dryPulseEvery
+  dryPulseEvery: 1,
+  pulseRadius: 95,         // the no-ammo pulse in space: bats shots and debris this far out
   swing: {
     windup: 0.13,
     active: 0.1,
@@ -82,6 +83,7 @@ export const GUN = {
 
 export const IMPACT = {
   enemyThreshold: 330,     // speed above which a planet impact hurts an enemy
+  regainSpeed: 200,        // a launched enemy slower than this (and unstunned) recovers and lands soft
   enemyDamagePerUnit: 0.16,
   enemyBounceSpeed: 420,   // above this a stunned enemy bounces instead of landing
   restitution: 0.42,
@@ -102,6 +104,15 @@ export const DEBRIS = {
   restitution: 0.6,
   minLandSpeed: 90,        // slower than this on impact and the chunk is gone
   maxCount: 90,
+};
+
+export const PICKUP = {
+  chance: 0.3,             // per non-void kill
+  ammo: 3,
+  radius: 9,
+  life: 25,
+  speed: 140,
+  bossCount: 3,
 };
 
 export const SCORE = {

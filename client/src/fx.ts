@@ -142,9 +142,17 @@ export function applyEvents(s: GameState, events: GameEvent[], particles: Partic
         cam.addTrauma(0.22);
         sfx("gunshot", ev.pos);
         break;
-      case "empty":
-        particles.float(ev.pos, "EMPTY", "#ff8fb0", 13);
-        sfx("empty", ev.pos, 0.8);
+      case "pulse":
+        particles.ring(ev.pos, PLAYER_COLOR, 95, 0.3);
+        particles.burst(ev.pos, 18, { color: PLAYER_COLOR, speed: 260, shape: "spark", size: 2.5, max: 0.3 });
+        cam.addTrauma(0.12);
+        sfx("deflect", ev.pos, 0.9);
+        break;
+      case "pickup":
+        particles.float(ev.pos, "+3 ROUNDS", "#ffd36a", 15);
+        particles.ring(ev.pos, "#ffd36a", 34, 0.3);
+        particles.burst(ev.pos, 10, { color: "#ffe07a", speed: 200, shape: "spark", size: 2.5, max: 0.3 });
+        sfx("upgrade", ev.pos, 0.5);
         break;
       case "ammo":
         sfx("ammo", ev.pos, 0.5);

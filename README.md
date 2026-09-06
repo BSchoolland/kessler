@@ -35,10 +35,15 @@ Keyboard only is the intended way to play. The mouse is optional.
   knockback. Invulnerable during the burst. A slight drag in space means you can't
   sit in orbit forever.
 - **Flying**: WASD in space steers you (visible, audible thrusters) but burns fuel. The
-  gauge sits beside the ship. Fuel refills on the ground.
+  gauge sits beside the ship. Fuel refills on the ground; an empty tank still gives a tenth
+  of a second of push every second, enough to crawl home.
+- Landings never hurt you. Enemies you launch take impact damage only if they hit a planet
+  before slowing down; one that drifts to a near-stop regains control and lands soft.
 - The **gun** auto-aims at the nearest enemy and fires a heavy homing slug that
-  launches whatever it hits. Every melee hit earns one round (6 max). Turn auto-aim off
-  in settings to aim with the mouse or right stick.
+  launches whatever it hits. Rounds (6 max) come from the gold drops some kills leave
+  behind, plus one every 5s while you stand on a planet. Dry gun in space: attack is a pulse
+  that bats shots and debris away. Turn auto-aim off in settings to aim with the mouse or
+  right stick.
 - Enemies hurt on touch. Only enemies *you* launched take impact damage.
 
 ## Architecture

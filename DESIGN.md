@@ -32,8 +32,8 @@ the gun is the weapon in space, and there is no swap. Standing still you face up
 sweep both sides; moving you face sideways and launch. Auto-aim always takes the
 nearest enemy. Shift dashes, space attacks, so the whole game is keyboard-only.
 
-Melee is the economy, the gun is the spend. Sword hits earn rounds (1 each,
-Scavenger makes it 2); the gun fires a fast slug that launches on hit with more
+The gun is fed by drops: 30% of kills leave a 3-round pickup where they died, and
+standing on a planet trickles one round per 5s. The gun fires a fast slug that launches on hit with more
 knockback than a normal swing, at range, with gravity drop. It exists for the two
 things the sword can't do: reach orbiters without leaving the ground, and line
 up a launch from the far side of a gap. Empty gun clicks and says so. Swapping is
@@ -48,7 +48,9 @@ instant and cancels a wind-up, not an active swing.
   curved ground free. Leaving the ground is a velocity with an outward component.
 - Player dash ignores gravity for its 0.15s, then keeps 42% of its speed: enough
   to clear a gap, not enough to escape a big planet by accident.
-- Enemy impacts above 330 u/s deal damage; above 420 u/s a stunned enemy bounces.
+- Enemy impacts above 330 u/s deal damage; above 420 u/s a stunned enemy bounces. A launched
+  enemy that slows under 200 u/s with its stun gone regains control and lands soft, so splats
+  come from direct hits into a planet. The player never takes landing damage.
   Enemy-enemy collisions above 260 u/s relative speed damage both.
 
 ## Enemies

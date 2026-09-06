@@ -1,4 +1,4 @@
-import { ARENA, PLAYER } from "../../shared/config";
+import { ARENA, PICKUP, PLAYER } from "../../shared/config";
 import { fuelMax } from "../../shared/sim";
 import { ENEMY_DEFS } from "../../shared/enemies";
 import { Rng } from "../../shared/rng";
@@ -78,6 +78,7 @@ export class Renderer {
     this.drawTelegraphs(s);
     this.drawShockwaves(s);
     this.drawDebris(s);
+    this.drawPickups(s);
     this.drawProjectiles(s);
     for (const e of s.entities) if (e.kind !== "player") this.drawEnemy(s, e);
     if (!s.over) this.drawPlayer(s, p);
@@ -428,6 +429,33 @@ export class Renderer {
     }
   }
 
+  private drawPickups(s: GameState): void {
+    const ctx = this.ctx;
+    for (const pk of s.pickups) {
+      const bob = Math.sin(this.t * 4 + pk.id) * 2;
+      const fade = Math.min(1, pk.life / 3);
+      ctx.save();
+      ctx.translate(pk.pos.x, pk.pos.y + (pk.planet === null ? 0 : bob));
+      ctx.rotate(this.t * 1.2);
+      ctx.globalCompositeOperation = "lighter";
+      const g = ctx.createRadialGradient(0, 0, 2, 0, 0, PICKUP.radius * 2.6);
+      g.addColorStop(0, `rgba(255,211,106,${0.45 * fade})`);
+      g.addColorStop(1, "rgba(255,211,106,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(0, 0, PICKUP.radius * 2.6, 0, 6.283); ctx.fill();
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = `rgba(40,30,8,${fade})`;
+      ctx.strokeStyle = `rgba(255,211,106,${fade})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.283; ctx.lineTo(Math.cos(a) * PICKUP.radius, Math.sin(a) * PICKUP.radius); }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = `rgba(255,224,122,${fade})`;
+      for (const x of [-3.5, 0, 3.5]) ctx.fillRect(x - 1, -3.5, 2, 7);
+      ctx.restore();
+    }
+  }
+
   private drawProjectiles(s: GameState): void {
     const ctx = this.ctx;
     ctx.globalCompositeOperation = "lighter";
@@ -489,7 +517,7 @@ export class Renderer {
       ctx.save();
       ctx.translate(p.pos.x, p.pos.y);
       if (sw.phase === "windup") {
-        const k = 1 - sw.t / (PLAYER.swing.windup / mods.swingSpeedMult);
+        const k = 1 - sw.t / PLAYER.swing.windup;
         ctx.strokeStyle = `rgba(77,243,255,${0.25 + k * 0.5})`;
         ctx.fillStyle = `rgba(77,243,255,${0.04 + k * 0.08})`;
         ctx.lineWidth = 1.5;
@@ -503,7 +531,7 @@ export class Renderer {
         ctx.setLineDash([]);
       } else {
         // a crescent shockwave pushed out from the hull to full reach, then fading
-        const total = (sw.phase === "active" ? PLAYER.swing.active : PLAYER.swing.recovery) / mods.swingSpeedMult;
+        const total = sw.phase === "active" ? PLAYER.swing.active : PLAYER.swing.recovery;
         const k = 1 - sw.t / total;
         const prog = sw.phase === "active" ? k : 1;
         const alpha = sw.phase === "active" ? 0.95 : 0.5 * (1 - k);
@@ -586,9 +614,10 @@ export class Renderer {
       ctx.stroke();
     }
     ctx.restore();
-    // thrusters: flame opposite to the steering input while airborne with fuel
+    // thrusters: flame opposite to the steering input while airborne with fuel (or during a dry-tank pulse)
     const th = this.thrust;
-    if (p.planet === null && s.fuel > 0 && Math.hypot(th.x, th.y) > 0.2) {
+    const burning = s.fuel > 0 || s.pulseT < PLAYER.dryPulse;
+    if (p.planet === null && burning && Math.hypot(th.x, th.y) > 0.2) {
       const a = Math.atan2(th.y, th.x) + Math.PI;
       const flick = 0.75 + 0.25 * Math.sin(this.t * 60);
       const L = (14 + 16 * Math.min(1, Math.hypot(th.x, th.y))) * flick;
@@ -617,6 +646,13 @@ export class Renderer {
     if (p.planet === null || ff < 0.999) {
       const gx = p.pos.x - r - 13, gy = p.pos.y;
       const H = 26, W = 4;
+      if (ff <= 0.001 && p.planet === null) {
+        // dry: the gauge blinks with the pulse clock so the next push is readable
+        const k = 1 - Math.min(1, s.pulseT / PLAYER.dryPulseEvery);
+        ctx.strokeStyle = `rgba(255,77,122,${0.25 + 0.6 * k})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(gx, gy, 8 + 6 * k, 0, 6.283); ctx.stroke();
+      }
       ctx.fillStyle = "rgba(0,0,0,0.55)";
       ctx.fillRect(gx - W / 2 - 1, gy - H / 2 - 1, W + 2, H + 2);
       ctx.strokeStyle = "rgba(255,211,106,0.35)";

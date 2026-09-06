@@ -111,6 +111,14 @@ export interface Projectile {
   seek: number;       // rad/s it can turn toward its target (player while hostile, enemies once batted back)
 }
 
+export interface Pickup {
+  id: number;
+  pos: Vec;
+  vel: Vec;
+  planet: number | null;   // resting on this planet, or still falling
+  life: number;
+}
+
 export interface Shockwave {
   id: number;
   planet: number;
@@ -160,7 +168,8 @@ export type GameEvent =
   | { type: "debrisHit"; pos: Vec; damage: number }
   | { type: "combo"; pos: Vec; idx: number }
   | { type: "gunshot"; pos: Vec; dir: Vec }
-  | { type: "empty"; pos: Vec }
+  | { type: "pulse"; pos: Vec }
+  | { type: "pickup"; pos: Vec; ammo: number }
   | { type: "ammo"; pos: Vec; ammo: number }
   | { type: "tutorial"; step: TutorialStep };
 
@@ -185,23 +194,18 @@ export interface TutorialState {
 
 export interface UpgradeMods {
   reachMult: number;
-  swingSpeedMult: number;
   damageMult: number;
   knockbackMult: number;
-  moveSpeedMult: number;
   dashSpeedMult: number;
   maxHpBonus: number;
-  impactMult: number;
   debrisExtra: number;
   debrisDamageMult: number;
   lifesteal: number;
   aftershock: boolean;
-  gravityBoots: boolean;
   airControlMult: number;
   voidBonusMult: number;
   berserk: boolean;
   ammoMaxBonus: number;
-  ammoPerHit: number;
   slugDamageMult: number;
   fuelMaxBonus: number;
   fuelEfficiency: number;
@@ -249,6 +253,7 @@ export interface GameState {
   planets: Planet[];
   entities: Entity[];
   debris: Debris[];
+  pickups: Pickup[];
   projectiles: Projectile[];
   shockwaves: Shockwave[];
   telegraphs: Telegraph[];
@@ -269,5 +274,6 @@ export interface GameState {
   fuelWarnT: number;
   sinceHurt: number;
   reloadT: number;
+  pulseT: number;          // dry-thruster clock: a short push every second when the tank is empty
   tutorial: TutorialState | null;
 }

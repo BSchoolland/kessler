@@ -187,7 +187,7 @@ function updateFlak(ctx: Ctx, e: Entity): void {
       if (ai.t <= 0) {
         const n = surfaceNormal(planet, e.pos);
         // a rocket: launched straight up, then gently bends toward the player
-        const pr: Projectile = { id: s.nextId++, pos: add(e.pos, scale(n, e.radius + 6)), vel: scale(n, 440), radius: 6, life: 4.5, damage: def.damage, hue: def.hue, friendly: false, knockback: 340, slug: false, seek: 1.3 };
+        const pr: Projectile = { id: s.nextId++, pos: add(e.pos, scale(n, e.radius + 6)), vel: scale(n, 440), radius: 6, life: 4.5, damage: def.damage, hue: def.hue, friendly: false, knockback: 340, slug: false, seek: 0.7 };
         s.projectiles.push(pr);
         emit(s, { type: "rocket", pos: pr.pos, dir: n });
         ai.state = "walk";

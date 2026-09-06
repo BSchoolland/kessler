@@ -42,6 +42,7 @@ function startSector(ctx: Ctx, sector: number): void {
   const { s, rng } = ctx;
   s.planets = generatePlanets(rng, sector);
   s.debris = [];
+  s.pickups = [];
   s.projectiles = [];
   s.shockwaves = [];
   s.telegraphs = [];

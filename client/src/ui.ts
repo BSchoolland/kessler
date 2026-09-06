@@ -172,7 +172,7 @@ const LESSONS: Record<TutorialStep, { n: number; title: string; body: string }> 
   debris: { n: 5, title: "DEBRIS", body: "Every kill shatters into debris. It obeys the same gravity as everything else, it hurts whatever it hits (you included), and a swing bats it. The better you're doing, the messier it gets. Hence the name." },
   wave: { n: 6, title: "MELEE: THE WAVE", body: "That one's landing down the surface. <b>Move toward it</b> and press <b>SPACE</b> while moving: the melee becomes a wave that runs along the ground ahead of you." },
   brawl: { n: 7, title: "THREE AT ONCE", body: "Sweep when they're on you, wave when they're coming. Hits <b>launch</b> enemies: into the planet, into each other, into the void." },
-  gun: { n: 8, title: "AN ORBITER", body: "It circles out of melee reach. <b>LAUNCH</b>, then <b>SPACE</b> in space fires the gun. It aims itself at the nearest enemy. Melee hits earn the rounds." },
+  gun: { n: 8, title: "AN ORBITER", body: "It circles out of melee reach. <b>LAUNCH</b>, then <b>SPACE</b> in space fires the gun. It aims itself at the nearest enemy. Kills sometimes drop gold rounds; standing on a planet reloads you slowly." },
   done: { n: 0, title: "", body: "" },
 };
 

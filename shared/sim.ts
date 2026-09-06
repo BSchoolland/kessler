@@ -1,7 +1,7 @@
-import { DT, FUEL, GUN, PLAYER, WAVES } from "./config";
+import { DT, FUEL, GUN, IMPACT, PLAYER, WAVES } from "./config";
 import { damagePlayer, emit, healPlayer, launch, makeEntity, placePlayer, player, playerMaxHp, resolveContactForEnemy, spawnEdgeWave, spawnShockwave, killEnemy, damageEnemy, type Ctx } from "./actions";
 import { updateEnemyAi } from "./ai";
-import { resolveContactDamage, resolveEnemyCollisions, updateDebris, updateProjectiles, updateShockwaves, updateTelegraphs } from "./hazards";
+import { resolveContactDamage, resolveEnemyCollisions, updateDebris, updatePickups, updateProjectiles, updateShockwaves, updateTelegraphs } from "./hazards";
 import { findContact, gravityAt, inVoid, nearestPlanet, snapToSurface, surfaceNormal, tangentOnly } from "./physics";
 import { Rng } from "./rng";
 import type { Entity, GameState, InputFrame, Planet, Projectile, SwingState } from "./types";
@@ -22,10 +22,10 @@ export function createGame(seed: number, daily = false): GameState {
 /** A world with no waves running; the planets and the player's spot are the caller's. */
 export function baseState(seed: number, planets: Planet[], daily = false): GameState {
   const s: GameState = {
-    tick: 0, time: 0, seed, rngState: seed >>> 0, freeze: 0, planets, entities: [], debris: [], projectiles: [], shockwaves: [],
+    tick: 0, time: 0, seed, rngState: seed >>> 0, freeze: 0, planets, entities: [], debris: [], pickups: [], projectiles: [], shockwaves: [],
     telegraphs: [], nextId: 1, wave: initialWave(), offers: null, mods: defaultMods(), taken: [], score: 0,
     stats: { kills: 0, voidKills: 0, impactKills: 0, debrisKills: 0, collisionKills: 0, bossKills: 0, damageDealt: 0, damageTaken: 0, swings: 0, dashes: 0, time: 0, bestCombo: 0 },
-    over: false, daily, events: [], weapon: "sword", ammo: GUN.ammoStart, gunCd: 0, fuel: FUEL.max, fuelWarnT: 0, sinceHurt: 99, reloadT: 0, tutorial: null,
+    over: false, daily, events: [], weapon: "sword", ammo: GUN.ammoStart, gunCd: 0, fuel: FUEL.max, fuelWarnT: 0, sinceHurt: 99, reloadT: 0, pulseT: 0, tutorial: null,
   };
   s.entities.push(makeEntity(s, "player", { x: 0, y: 0 }, PLAYER.radius, PLAYER.maxHp, 190));
   return s;
@@ -65,6 +65,7 @@ export function step(s: GameState, input: InputFrame): void {
   resolveEnemyCollisions(ctx);
   resolveContactDamage(ctx);
   updateDebris(ctx);
+  updatePickups(ctx);
   updateProjectiles(ctx);
   updateShockwaves(ctx);
   updateTelegraphs(ctx);
@@ -81,10 +82,7 @@ export function fuelMax(s: GameState): number {
   return FUEL.max + s.mods.fuelMaxBonus;
 }
 
-function swingDurations(s: GameState) {
-  const m = 1 / s.mods.swingSpeedMult;
-  return { windup: PLAYER.swing.windup * m, active: PLAYER.swing.active * m, recovery: PLAYER.swing.recovery * m };
-}
+const SWING = { windup: PLAYER.swing.windup, active: PLAYER.swing.active, recovery: PLAYER.swing.recovery };
 
 function updatePlayer(ctx: Ctx, input: InputFrame): void {
   const { s, dt } = ctx;
@@ -162,19 +160,26 @@ function updatePlayer(ctx: Ctx, input: InputFrame): void {
     const planet = s.planets[p.planet];
     const n = surfaceNormal(planet, p.pos);
     const t = perp(n);
-    const want = dot(input.move, t) * PLAYER.walkSpeed * mods.moveSpeedMult;
+    const want = dot(input.move, t) * PLAYER.walkSpeed;
     const cur = dot(p.vel, t);
     const accel = PLAYER.walkAccel * dt;
     const nv = cur + clamp(want - cur, -accel, accel);
     p.vel = scale(t, nv);
   } else if (moving) {
+    const steer = PLAYER.airAccel * mods.airControlMult;
     if (s.fuel > 0) {
-      const steer = PLAYER.airAccel * mods.airControlMult;
       p.vel = add(p.vel, scale(input.move, steer * dt));
       s.fuel -= (FUEL.drain / mods.fuelEfficiency) * Math.min(1, len(input.move)) * dt;
       if (s.fuel <= 0) { s.fuel = 0; warnFuel(); }
-    } else warnFuel();
+    } else {
+      // dry tank: a short push once a second, enough to crawl back to a planet
+      s.pulseT += dt;
+      if (s.pulseT >= PLAYER.dryPulseEvery) s.pulseT -= PLAYER.dryPulseEvery;
+      if (s.pulseT < PLAYER.dryPulse) p.vel = add(p.vel, scale(input.move, steer * dt));
+      else warnFuel();
+    }
   }
+  if (p.planet !== null || s.fuel > 0) s.pulseT = 0;
   if (p.planet !== null) s.fuel = Math.min(fuelMax(s), s.fuel + FUEL.regenGround * dt);
   // standing on a planet slowly reloads: one round every few seconds, up to the max
   if (p.planet !== null && s.ammo < ammoMax(s)) {
@@ -191,8 +196,10 @@ function updatePlayer(ctx: Ctx, input: InputFrame): void {
     if (s.gunCd > 0) {
       // keep the press buffered until the gun is ready
     } else if (s.ammo <= 0) {
+      // dry gun: a pulse that bats shots and debris away from the hull
       p.attackBuffer = 0;
-      emit(s, { type: "empty", pos: p.pos });
+      s.gunCd = GUN.cooldown * 1.5;
+      pulse(ctx, p);
     } else {
       p.attackBuffer = 0;
       s.ammo--;
@@ -208,7 +215,7 @@ function updatePlayer(ctx: Ctx, input: InputFrame): void {
   // edge: on a planet
   if (grounded && !p.swing && p.attackBuffer > 0 && p.dashT <= 0) {
     p.attackBuffer = 0;
-    const d = swingDurations(s);
+    const d = SWING;
     if (p.comboT > 0) p.comboIdx = (p.comboIdx + 1) % 2;
     else p.comboIdx = 0;
     const sw: SwingState = { phase: "windup", t: d.windup, angle: p.facing, dir: p.comboIdx === 0 ? 1 : -1, dashStrike: p.sinceDash < PLAYER.dashStrikeWindow, arc: facingUp ? PLAYER.swing.overheadArc : PLAYER.swing.arc, hit: [] };
@@ -218,7 +225,7 @@ function updatePlayer(ctx: Ctx, input: InputFrame): void {
   }
   if (p.swing) {
     const sw = p.swing;
-    const d = swingDurations(s);
+    const d = SWING;
     sw.t -= dt;
     if (sw.phase === "active") resolveSwingHits(ctx, p, sw);
     if (sw.t <= 0) {
@@ -241,6 +248,27 @@ function updatePlayer(ctx: Ctx, input: InputFrame): void {
       else { p.swing = null; p.comboT = PLAYER.swing.comboWindow; }
     }
   }
+}
+
+function pulse(ctx: Ctx, p: Entity): void {
+  const { s } = ctx;
+  const R = PLAYER.pulseRadius;
+  for (const pr of s.projectiles) {
+    if (pr.friendly || dist(pr.pos, p.pos) > R + pr.radius) continue;
+    const away = norm(sub(pr.pos, p.pos));
+    pr.friendly = true;
+    pr.vel = scale(away, len(pr.vel) * 1.2);
+    pr.life = 3;
+    pr.knockback = 380;
+    emit(s, { type: "hit", pos: pr.pos, dir: away, damage: 0, crit: false, target: "orbiter" });
+  }
+  for (const d of s.debris) {
+    if (dist(d.pos, p.pos) > R + d.radius) continue;
+    d.vel = scale(norm(sub(d.pos, p.pos)), 420);
+    d.hitCd = 0;
+    emit(s, { type: "debrisHit", pos: d.pos, damage: 0 });
+  }
+  emit(s, { type: "pulse", pos: p.pos });
 }
 
 function inArc(origin: Vec, angle: number, halfArc: number, reach: number, target: Vec, targetRadius: number): boolean {
@@ -273,10 +301,6 @@ function resolveSwingHits(ctx: Ctx, p: Entity, sw: SwingState): void {
     s.freeze = Math.max(s.freeze, sw.dashStrike ? 0.045 : 0.028);
     damageEnemy(ctx, e, dmg, "blade", hitPos, dir, sw.dashStrike);
     combo++;
-    if (s.ammo < ammoMax(s)) {
-      s.ammo = Math.min(ammoMax(s), s.ammo + mods.ammoPerHit);
-      emit(s, { type: "ammo", pos: p.pos, ammo: s.ammo });
-    }
   }
   for (const d of s.debris) {
     if (sw.hit.includes(d.id)) continue;
@@ -325,6 +349,8 @@ function integrateEntities(ctx: Ctx): void {
     }
     if (!(e.kind === "player" && e.dashT > 0)) e.vel = add(e.vel, scale(gravityAt(s.planets, e.pos), dt));
     if (e.kind === "player" && e.dashT <= 0) e.vel = scale(e.vel, Math.exp(-PLAYER.spaceDrag * dt));
+    // a launched enemy that has slowed down and shaken off the stun regains control: its landing is soft
+    if (e.launched && e.stun <= 0 && len(e.vel) < IMPACT.regainSpeed) e.launched = false;
     if (e.spawnT > 0) {
       e.airTime += dt;
       if (e.airTime > 4) {
@@ -352,9 +378,6 @@ function resolveContactForPlayer(ctx: Ctx, p: Entity): void {
     p.vel = scale(p.vel, 0.6);
   }
   emit(s, { type: "land", pos: p.pos, normal: c.normal, speed: c.speedIn, kind: "player" });
-  if (c.speedIn > PLAYER.impactThreshold && !s.mods.gravityBoots) {
-    damagePlayer(ctx, Math.round((c.speedIn - PLAYER.impactThreshold) * PLAYER.impactDamagePerUnit), "impact");
-  }
   if (s.mods.aftershock && c.speedIn > 380) {
     const a = Math.atan2(c.normal.y, c.normal.x);
     spawnShockwave(s, c.planet.id, a, 18 + c.speedIn * 0.03, true, 4.5, Math.PI * 0.6);
