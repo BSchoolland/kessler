@@ -348,9 +348,11 @@ function integrateEntities(ctx: Ctx): void {
     }
     if (!(e.kind === "player" && e.dashT > 0)) e.vel = add(e.vel, scale(gravityAt(s.planets, e.pos), dt));
     if (e.kind === "player" && e.dashT <= 0) e.vel = scale(e.vel, Math.exp(-PLAYER.spaceDrag * dt));
-    // once the hit-stun wears off (~0.85s) a launched enemy is back in control: its landing is soft.
-    // Splats are for hits that put them into a planet before that.
-    if (e.launched && e.stun <= 0) e.launched = false;
+    // the splat window runs out in flight: after it a launched enemy is back in control and lands soft
+    if (e.launched) {
+      e.splatT -= dt;
+      if (e.splatT <= 0) e.launched = false;
+    }
     if (e.spawnT > 0) {
       e.airTime += dt;
       if (e.airTime > 4) {

@@ -83,6 +83,7 @@ export const GUN = {
 
 export const IMPACT = {
   enemyThreshold: 330,     // speed above which a planet impact hurts an enemy
+  splatWindow: 2.5,        // seconds after a hit during which a launched enemy still splats; then it lands soft
   enemyDamagePerUnit: 0.16,
   enemyBounceSpeed: 420,   // above this a stunned enemy bounces instead of landing
   restitution: 0.42,

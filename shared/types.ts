@@ -59,6 +59,7 @@ export interface Entity {
   attackBuffer: number;
   dashBuffer: number;
   launched: boolean;         // knocked flying by the player (impacts hurt, bounces)
+  splatT: number;            // seconds left in which a planet hit still counts as a splat
   contactCd: number;
   airTime: number;
   hue: number;

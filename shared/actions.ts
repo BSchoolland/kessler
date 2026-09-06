@@ -22,7 +22,7 @@ export function makeEntity(s: GameState, kind: Entity["kind"], pos: Vec, radius:
     id: s.nextId++, kind, pos: { ...pos }, vel: { x: 0, y: 0 }, radius, hp, maxHp: hp, facing: 0, planet: null,
     stun: 0, invuln: 0, dead: false, swing: null, dashT: 0, sinceDash: 99, comboT: 0, comboIdx: 0,
     ai: { state: "idle", t: 0, target: null, cooldown: 0, phase: 1, rot: 0, wasAirborne: false, timer: 0 }, knockbackResist: 0, lastHitBy: "none",
-    elite: false, orbit: null, spawnT: 0, attackBuffer: 0, dashBuffer: 0, launched: false, contactCd: 0, airTime: 0, hue,
+    elite: false, orbit: null, spawnT: 0, attackBuffer: 0, dashBuffer: 0, launched: false, splatT: 0, contactCd: 0, airTime: 0, hue,
   };
 }
 
@@ -192,6 +192,7 @@ export function launch(e: Entity, dir: Vec, speed: number, stun: number): void {
   if (eff > 140) {
     e.planet = null;
     e.launched = true;
+    e.splatT = IMPACT.splatWindow;
   }
 }
 

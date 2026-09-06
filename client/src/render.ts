@@ -685,21 +685,10 @@ export class Renderer {
       ctx.stroke();
     }
 
-    // strobe while it can still splat (launched and still stunned); a grounded stun just pales it
-    const splattable = e.launched && e.planet === null && e.stun > 0;
-    const flash = splattable && Math.floor(this.t * 24) % 2 === 0;
+    // the usual white hit flash, for as long as a planet would still splat it
+    const flash = e.launched && e.planet === null && Math.floor(this.t * 40) % 2 === 0;
     const stroke = flash ? "#ffffff" : hsl(hue, 95, 65);
-    const fill = flash ? "rgba(255,240,190,0.9)" : e.stun > 0 ? hsl(hue, 45, 30) : hsl(hue, 60, 14);
-    if (splattable) {
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      const g = ctx.createRadialGradient(0, 0, r * 0.5, 0, 0, r * 2.4);
-      g.addColorStop(0, `rgba(255,224,122,${0.35 + 0.25 * (flash ? 1 : 0)})`);
-      g.addColorStop(1, "rgba(255,224,122,0)");
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(0, 0, r * 2.4, 0, 6.283); ctx.fill();
-      ctx.restore();
-    }
+    const fill = flash ? "rgba(255,255,255,0.7)" : hsl(hue, 60, 14);
     ctx.lineWidth = e.kind === "hammer" ? 3.5 : 2;
     ctx.strokeStyle = stroke;
     ctx.fillStyle = fill;

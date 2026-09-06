@@ -38,8 +38,8 @@ Keyboard only is the intended way to play. The mouse is optional.
   gauge sits beside the ship. Fuel refills on the ground; an empty tank still gives a tenth
   of a second of push every second, enough to crawl home.
 - Landings never hurt you. Enemies you launch take impact damage only if they hit a planet
-  while still stunned from the hit (under a second); after that they're back in control and
-  land soft.
+  within 2.5s of the hit (they flash white while that's true); after that they're back in
+  control and land soft.
 - The **gun** auto-aims at the nearest enemy and fires a heavy homing slug that
   launches whatever it hits. Rounds (6 max) come back one every 2s while you stand on a
   planet. Dry gun in space: attack is a pulse that bats shots and debris away. Turn auto-aim off in settings to aim with the mouse or
