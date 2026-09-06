@@ -1,5 +1,5 @@
 import { BLAST, DEBRIS, IMPACT, PLAYER, SCORE } from "./config";
-import { ENEMY_DEFS, isBoss, RAIDER_RING } from "./enemies";
+import { ENEMY_DEFS, isBoss, ORBIT_HEIGHT, RAIDER_RING } from "./enemies";
 import { findContact, snapToSurface } from "./physics";
 import type { Rng } from "./rng";
 import type { Debris, EnemyKind, Entity, GameEvent, GameState, HitSource, Shockwave } from "./types";
@@ -60,7 +60,8 @@ export function spawnEnemyPod(ctx: Ctx, kind: EnemyKind, targetPlanet: number, e
   e.spawnT = 1;
   e.vel = scale(norm(add(target.pos, scale(start, -1))), 380);
   e.ai.cooldown = kind === "orbiter" ? 1.2 : kind === "raider" ? 2 : 0.4;
-  if (kind === "orbiter") e.ai.timer = rng.range(6, 10);
+  if (ORBIT_HEIGHT[kind]) e.ai.timer = rng.range(6, 10);
+  if (kind === "aegis") e.ai.rot = Math.atan2(-start.y, -start.x);
   if (kind === "hammer" || kind === "belt") e.ai.timer = 4;
   if (kind === "warden") e.ai.timer = 6;
   if (kind === "raider") {
@@ -279,8 +280,9 @@ export function resolveContactForEnemy(ctx: Ctx, e: Entity): void {
     e.vel = add(e.vel, scale(c.normal, -vn));
     e.airTime = 0;
     e.launched = false;
-    if (e.kind === "orbiter") {
-      e.orbit = { planet: c.planet.id, radius: c.planet.r + 110, angle: Math.atan2(c.normal.y, c.normal.x), dir: ctx.rng.sign() as 1 | -1 };
+    const h = ORBIT_HEIGHT[e.kind as EnemyKind];
+    if (h) {
+      e.orbit = { planet: c.planet.id, radius: c.planet.r + h, angle: Math.atan2(c.normal.y, c.normal.x), dir: ctx.rng.sign() as 1 | -1 };
       e.planet = null;
     }
     emit(ctx.s, { type: "land", pos: e.pos, normal: c.normal, speed: c.speedIn, kind: e.kind });

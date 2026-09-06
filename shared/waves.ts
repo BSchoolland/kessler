@@ -28,6 +28,7 @@ function compose(ctx: Ctx, n: number, sector: number): WaveState["queue"] {
   const WEIGHT: Partial<Record<EnemyKind, (n: number) => number>> = {
     grunt: () => 3, hopper: () => 2.2, orbiter: (n) => 1.4 + n * 0.08, flak: (n) => 1.3 + n * 0.08, raider: (n) => 0.7 + n * 0.07,
     lancer: (n) => 1.2 + n * 0.06, mine: (n) => 1.1 + n * 0.05, splitter: (n) => 0.8 + n * 0.06, sweeper: (n) => 0.5 + n * 0.05,
+    aegis: (n) => 0.9 + n * 0.05, bomber: (n) => 0.6 + n * 0.05,
   };
   while (budget > 0.9 && guard++ < 60) {
     // cheap units stay likely; expensive ones ramp in with the wave number

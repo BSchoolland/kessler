@@ -66,6 +66,8 @@ instant and cancels a wind-up, not an active swing.
 | Mine (w7) | drifts in through space, blows at 62 units; hit it and it's a thrown bomb that detonates on anything it touches | the sweep and the gun as bomb-throwing tools |
 | Splitter (w9) | walker; dies into two launched hoppers | cleaning up; the debris economy |
 | Sweeper (w12) | lands on your planet, runs a 36-unit laser around the surface at 1.15 rad/s | hopping over the blade; knocking the turret off the ground kills the beam |
+| Aegis (w8) | walker behind a 140° shield that turns toward you at 2.2 rad/s; slugs and the wave break on its front | the overhead sweep up close; launching over it and hitting the back |
+| Bomber (w11) | orbits your planet at 170 units and drops a bomb every 3s that bursts into a short surface shockwave; hops planets like an orbiter | moving off the drop point; the gun |
 | The Hammer (boss, wave 5) | fast chaser that leaps at you (and hops every 5.5s even up close); every landing is a full-ring ground pound; heavy-debris shotgun only with line of sight; calls a pod every 6.5s (4.5s in phase 2, capped at 4 alive) | being airborne when it lands; fighting near the middle |
 | The Warden (boss, wave 10) | gunship in a 260-unit orbit around your planet; 5-shot fans (7 in phase 2), drops mines on a clock, dives onto your planet every 9.5s and sits there 2.6s after a small pound | the gun while it orbits, melee during the dive |
 | The Twins (boss, wave 15) | two pounders, 620 HP each; when one dies the other enrages and starts calling pods | splitting attention; killing one fast |

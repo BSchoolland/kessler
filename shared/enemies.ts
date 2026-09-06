@@ -60,6 +60,14 @@ export const ENEMY_DEFS: Record<EnemyKind, EnemyDef> = {
     name: "Sweeper", hp: 110, radius: 15, speed: 0, damage: 14, reach: 0, windup: 1.2, attack: 0,
     recover: 0, knockbackResist: 0.3, leapSpeed: 0, leapDelay: 0, cost: 3.5, minWave: 12, score: 28, hue: 265,
   },
+  aegis: {
+    name: "Aegis", hp: 80, radius: 15, speed: 110, damage: 14, reach: 50, windup: 0.5, attack: 0.16,
+    recover: 0.6, knockbackResist: 0.35, leapSpeed: 430, leapDelay: 1.8, cost: 2.5, minWave: 8, score: 22, hue: 210,
+  },
+  bomber: {
+    name: "Bomber", hp: 70, radius: 14, speed: 0, damage: 20, reach: 700, windup: 0.6, attack: 0.1,
+    recover: 3, knockbackResist: 0, leapSpeed: 0, leapDelay: 0, cost: 3, minWave: 11, score: 26, hue: 300,
+  },
   hammer: {
     name: "The Hammer", hp: 1150, radius: 30, speed: 165, damage: 26, reach: 84, windup: 0.6, attack: 0.25,
     recover: 0.6, knockbackResist: 0.9, leapSpeed: 540, leapDelay: 1.1, cost: 0, minWave: 5, score: 400, hue: 330,
@@ -85,7 +93,18 @@ export const bossForWave = (n: number, every: number): EnemyKind => BOSSES[(n / 
 /** Space units arrive without a pod: they never land. */
 export const FLIES = (k: EnemyKind): boolean => k === "raider" || k === "mine" || k === "warden";
 
-export const SPAWNABLE: EnemyKind[] = ["grunt", "hopper", "orbiter", "bulwark", "flak", "raider", "lancer", "mine", "splitter", "sweeper"];
+export const SPAWNABLE: EnemyKind[] = ["grunt", "hopper", "orbiter", "bulwark", "flak", "raider", "lancer", "mine", "splitter", "sweeper", "aegis", "bomber"];
+
+/** The Aegis blocks slugs and the wave across this half-angle of its shield facing. */
+export const AEGIS_ARC = 1.2;
+export const shieldFacing = (facing: number, from: number): boolean => {
+  let d = (from - facing) % (Math.PI * 2);
+  if (d > Math.PI) d -= Math.PI * 2;
+  if (d <= -Math.PI) d += Math.PI * 2;
+  return Math.abs(d) < AEGIS_ARC;
+};
+/** Units that take up orbit around the planet they land on, and how high. */
+export const ORBIT_HEIGHT: Partial<Record<EnemyKind, number>> = { orbiter: 110, bomber: 170 };
 
 /** Radius of the raiders' patrol ring around the arena; outside every planet, inside the void. */
 export const RAIDER_RING = 1180;

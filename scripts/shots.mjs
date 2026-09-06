@@ -10,7 +10,7 @@ const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
 for (const w of waves) {
-  await page.goto(`${url}?bot=1&wave=${w}&seed=${40 + w}`, { waitUntil: "networkidle" });
+  await page.goto(`${url}?bot=1&wave=${w}&seed=${40 + w}${process.env.EXTRA ?? ""}`, { waitUntil: "networkidle" });
   await page.waitForTimeout(600);
   await page.click("#btn-play");
   for (const t of [7, 14, 22]) {

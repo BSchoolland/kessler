@@ -1,6 +1,6 @@
 import { ARENA, PLAYER } from "../../shared/config";
 import { fuelMax } from "../../shared/sim";
-import { ENEMY_DEFS, isBoss } from "../../shared/enemies";
+import { AEGIS_ARC, ENEMY_DEFS, isBoss } from "../../shared/enemies";
 import { Rng } from "../../shared/rng";
 import type { Entity, EnemyKind, GameState, Planet } from "../../shared/types";
 import { angleOf, fromAngle, len, sub, type Vec } from "../../shared/vec";
@@ -500,6 +500,21 @@ export class Renderer {
     const ctx = this.ctx;
     ctx.globalCompositeOperation = "lighter";
     for (const pr of s.projectiles) {
+      if (pr.bomb) {
+        // a falling bomb: dark body, a fuse light that quickens as it drops
+        ctx.save();
+        ctx.translate(pr.pos.x, pr.pos.y);
+        ctx.globalCompositeOperation = "source-over";
+        ctx.fillStyle = "#1a0b1f";
+        ctx.strokeStyle = hsl(pr.hue, 100, 70);
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, pr.radius, 0, 6.283); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = Math.floor(this.t * 12) % 2 === 0 ? "#fff" : hsl(pr.hue, 100, 60);
+        ctx.beginPath(); ctx.arc(0, 0, 2.2, 0, 6.283); ctx.fill();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.restore();
+        continue;
+      }
       if (pr.seek > 0) {
         // rocket: a short body with an exhaust flame
         const a = angleOf(pr.vel);
@@ -820,6 +835,37 @@ export class Renderer {
         ctx.fillStyle = hsl(hue, 100, 80, k);
         ctx.beginPath(); ctx.arc(r * 1.6, 0, 3 + k * 4, 0, 6.283); ctx.fill();
       }
+    } else if (e.kind === "aegis") {
+      // a squat walker; the shield is a thick arc that lags behind where you are
+      ctx.save();
+      ctx.rotate(facing);
+      ctx.beginPath();
+      ctx.moveTo(r * 0.9, 0); ctx.lineTo(0, r * 0.9); ctx.lineTo(-r * 0.9, 0); ctx.lineTo(0, -r * 0.9);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      const up = e.stun <= 0 && e.planet !== null;
+      ctx.save();
+      ctx.rotate(e.ai.rot);
+      ctx.strokeStyle = up ? "#dff3ff" : "rgba(160,190,220,0.35)";
+      ctx.lineWidth = up ? 5 : 2;
+      ctx.beginPath(); ctx.arc(0, 0, r * 1.5, -AEGIS_ARC, AEGIS_ARC); ctx.stroke();
+      if (up) {
+        ctx.globalCompositeOperation = "lighter";
+        ctx.strokeStyle = hsl(hue, 100, 70, 0.35);
+        ctx.lineWidth = 12;
+        ctx.beginPath(); ctx.arc(0, 0, r * 1.5, -AEGIS_ARC, AEGIS_ARC); ctx.stroke();
+        ctx.globalCompositeOperation = "source-over";
+      }
+      ctx.restore();
+    } else if (e.kind === "bomber") {
+      // a fat orbital pod with a bomb bay underneath (toward the planet)
+      ctx.rotate(facing);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, r * 1.25, r * 0.85, 0, 0, 6.283); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = hsl(hue, 100, 65, e.ai.state === "aim" ? 0.9 : 0.4);
+      ctx.beginPath(); ctx.arc(0, r * 0.45, r * 0.3, 0, 6.283); ctx.fill();
+      ctx.beginPath(); ctx.arc(-r * 0.6, 0, r * 0.22, 0, 6.283); ctx.fill();
+      ctx.beginPath(); ctx.arc(r * 0.6, 0, r * 0.22, 0, 6.283); ctx.fill();
     } else if (e.kind === "lancer") {
       // a needle: long nose, swept fins; glows along the shaft while charging
       ctx.rotate(e.ai.state === "attack" || e.ai.state === "windup" ? Math.atan2(e.vel.y, e.vel.x) || facing : facing);

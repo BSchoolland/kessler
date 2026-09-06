@@ -16,7 +16,7 @@ export interface Planet {
 }
 
 export type EnemyKind =
-  | "grunt" | "hopper" | "orbiter" | "bulwark" | "flak" | "raider" | "lancer" | "mine" | "splitter" | "sweeper"
+  | "grunt" | "hopper" | "orbiter" | "bulwark" | "flak" | "raider" | "lancer" | "mine" | "splitter" | "sweeper" | "aegis" | "bomber"
   | "hammer" | "warden" | "twin" | "belt";
 
 export type EntityKind = "player" | EnemyKind;
@@ -123,6 +123,7 @@ export interface Projectile {
   knockback: number;
   slug: boolean;
   seek: number;       // rad/s it can turn toward its target (player while hostile, enemies once batted back)
+  bomb: boolean;      // falls under full gravity and bursts into a short surface shockwave where it lands
 }
 
 export interface Shockwave {

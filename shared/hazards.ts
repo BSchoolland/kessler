@@ -1,9 +1,9 @@
 import { DEBRIS, GRAVITY, GUN, IMPACT, PLAYER } from "./config";
-import { damageEnemy, damagePlayer, emit, launch, player, type Ctx } from "./actions";
+import { damageEnemy, damagePlayer, emit, launch, player, spawnShockwave, type Ctx } from "./actions";
 import { findContact, gravityAt, inVoid, snapToSurface, surfaceNormal } from "./physics";
 import { add, angleDelta, angleOf, clamp, dist, dot, fromAngle, len, norm, scale, sub } from "./vec";
 import type { Entity, EnemyKind, GameState, Projectile } from "./types";
-import { ENEMY_DEFS, isBoss } from "./enemies";
+import { ENEMY_DEFS, isBoss, shieldFacing } from "./enemies";
 
 export function updateDebris(ctx: Ctx): void {
   const { s, dt } = ctx;
@@ -73,7 +73,7 @@ export function updateProjectiles(ctx: Ctx): void {
   for (const pr of s.projectiles) {
     pr.life -= dt;
     // rockets fly under power: little gravity, and a gentle turn toward the player
-    pr.vel = add(pr.vel, scale(gravityAt(s.planets, pr.pos, pr.slug ? GUN.gravityScale : pr.seek > 0 ? 0.15 : GRAVITY.projectileScale), dt));
+    pr.vel = add(pr.vel, scale(gravityAt(s.planets, pr.pos, pr.bomb ? 1 : pr.slug ? GUN.gravityScale : pr.seek > 0 ? 0.15 : GRAVITY.projectileScale), dt));
     if (pr.friendly) homeProjectile(s, pr, dt);
     else if (pr.seek > 0 && !s.over) {
       const speed = len(pr.vel);
@@ -85,13 +85,27 @@ export function updateProjectiles(ctx: Ctx): void {
     pr.pos = add(pr.pos, scale(pr.vel, dt));
     if (pr.life <= 0 || inVoid(pr.pos)) continue;
     const c = findContact(s.planets, pr.pos, pr.vel, pr.radius);
-    if (c) { emit(s, { type: "impact", pos: pr.pos, normal: c.normal, speed: c.speedIn, kind: "debris" }); continue; }
+    if (c) {
+      if (pr.bomb) {
+        // a bomb bursts where it lands: a short hard shockwave both ways along the surface
+        spawnShockwave(s, c.planet.id, Math.atan2(c.normal.y, c.normal.x), pr.damage, pr.friendly, 4.2, 0.55);
+        continue;
+      }
+      emit(s, { type: "impact", pos: pr.pos, normal: c.normal, speed: c.speedIn, kind: "debris" });
+      continue;
+    }
     if (pr.friendly) {
       let hit = false;
       for (const e of s.entities) {
         if (e.id === p.id || e.dead || e.spawnT > 0) continue;
         if (dist(e.pos, pr.pos) < e.radius + pr.radius) {
           const dir = scale(pr.vel, 1 / (len(pr.vel) || 1));
+          if (e.kind === "aegis" && e.planet !== null && e.stun <= 0 && shieldFacing(e.ai.rot, angleOf(sub(pr.pos, e.pos)))) {
+            // broke on the shield
+            emit(s, { type: "hit", pos: pr.pos, dir: scale(dir, -1), damage: 0, crit: false, target: "aegis" });
+            hit = true;
+            break;
+          }
           launch(e, dir, pr.knockback, pr.slug ? GUN.stun : 0.4);
           s.freeze = Math.max(s.freeze, pr.slug ? 0.035 : 0.02);
           damageEnemy(ctx, e, pr.slug ? pr.damage * s.mods.slugDamageMult : pr.damage * 1.5, "projectile", pr.pos, dir, pr.slug);
@@ -179,6 +193,11 @@ export function updateShockwaves(ctx: Ctx): void {
         if (band(e)) {
           w.hit.push(e.id);
           const n = surfaceNormal(planet, e.pos);
+          if (w.edge && e.kind === "aegis" && e.planet !== null && e.stun <= 0 && shieldFacing(e.ai.rot, angleOf(sub(p.pos, e.pos)))) {
+            // the wave breaks on the shield's front
+            emit(s, { type: "hit", pos: e.pos, dir: n, damage: 0, crit: false, target: "aegis" });
+            continue;
+          }
           if (w.edge) {
             // shove along the wave's travel with a bit of lift, like a hit from the edge itself
             const t = { x: -n.y * w.dir, y: n.x * w.dir };

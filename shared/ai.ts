@@ -1,5 +1,5 @@
 import { BLAST } from "./config";
-import { ENEMY_DEFS, isBoss, RAIDER_RING } from "./enemies";
+import { ENEMY_DEFS, isBoss, ORBIT_HEIGHT, RAIDER_RING } from "./enemies";
 import { damagePlayer, emit, explode, player, spawnDebris, spawnEnemyPod, spawnShockwave, type Ctx } from "./actions";
 import { dominantPlanet, nearestPlanet, orbitSpeed, surfaceNormal } from "./physics";
 import type { EnemyDef } from "./enemies";
@@ -56,7 +56,9 @@ export function updateEnemyAi(ctx: Ctx, e: Entity): void {
     return;
   }
   switch (e.kind) {
-    case "orbiter": return updateOrbiter(ctx, e);
+    case "orbiter":
+    case "bomber": return updateOrbital(ctx, e);
+    case "aegis": return updateAegis(ctx, e);
     case "raider": return updateRaider(ctx, e);
     case "flak": return updateFlak(ctx, e);
     case "lancer": return updateLancer(ctx, e);
@@ -387,7 +389,7 @@ function updateWarden(ctx: Ctx, e: Entity): void {
           const base = angleOf(sub(add(p.pos, scale(p.vel, 0.4)), e.pos));
           for (let i = 0; i < n; i++) {
             const dir = fromAngle(base + (i - (n - 1) / 2) * 0.13);
-            s.projectiles.push({ id: s.nextId++, pos: add(e.pos, scale(dir, e.radius + 6)), vel: scale(dir, speed), radius: 5, life: 3, damage: def.damage, hue: def.hue, friendly: false, knockback: 320, slug: false, seek: 0 });
+            s.projectiles.push({ id: s.nextId++, pos: add(e.pos, scale(dir, e.radius + 6)), vel: scale(dir, speed), radius: 5, life: 3, damage: def.damage, hue: def.hue, friendly: false, knockback: 320, slug: false, seek: 0, bomb: false });
           }
           emit(s, { type: "shot", pos: e.pos, dir: fromAngle(base) });
           ai.state = "idle";
@@ -665,7 +667,7 @@ function updateFlak(ctx: Ctx, e: Entity): void {
       if (ai.t <= 0) {
         const n = surfaceNormal(planet, e.pos);
         // a rocket: launched straight up, then gently bends toward the player
-        const pr: Projectile = { id: s.nextId++, pos: add(e.pos, scale(n, e.radius + 6)), vel: scale(n, 440), radius: 6, life: 4.5, damage: def.damage, hue: def.hue, friendly: false, knockback: 340, slug: false, seek: 0.7 };
+        const pr: Projectile = { id: s.nextId++, pos: add(e.pos, scale(n, e.radius + 6)), vel: scale(n, 440), radius: 6, life: 4.5, damage: def.damage, hue: def.hue, friendly: false, knockback: 340, slug: false, seek: 0.7, bomb: false };
         s.projectiles.push(pr);
         emit(s, { type: "rocket", pos: pr.pos, dir: n });
         ai.state = "walk";
@@ -678,10 +680,15 @@ function updateFlak(ctx: Ctx, e: Entity): void {
   }
 }
 
-function updateOrbiter(ctx: Ctx, e: Entity): void {
+/**
+ * Orbital units (Orbiter, Bomber): kinematic circling of a planet, hops to the player's planet
+ * every so often, and an attack on a cooldown: the orbiter's aimed shot or the bomber's bomb.
+ */
+function updateOrbital(ctx: Ctx, e: Entity): void {
   const { s, dt, rng } = ctx;
   const p = player(s);
-  const def = ENEMY_DEFS.orbiter;
+  const def = ENEMY_DEFS[e.kind as EnemyKind];
+  const height = ORBIT_HEIGHT[e.kind as EnemyKind]!;
   const ai = e.ai;
 
   if (!e.orbit) {
@@ -690,8 +697,8 @@ function updateOrbiter(ctx: Ctx, e: Entity): void {
       // hopping to the player's planet: fly at it and take up orbit on arrival
       const target = s.planets.find((pl) => pl.pos.x === ai.target!.x && pl.pos.y === ai.target!.y)!;
       e.vel = scale(norm(sub(target.pos, e.pos)), 420);
-      if (dist(e.pos, target.pos) < target.r + 125) {
-        e.orbit = { planet: target.id, radius: target.r + 110, angle: angleOf(sub(e.pos, target.pos)), dir: rng.sign() as 1 | -1 };
+      if (dist(e.pos, target.pos) < target.r + height + 15) {
+        e.orbit = { planet: target.id, radius: target.r + height, angle: angleOf(sub(e.pos, target.pos)), dir: rng.sign() as 1 | -1 };
         ai.state = "idle";
         ai.target = null;
         ai.cooldown = Math.max(ai.cooldown, 0.8);
@@ -711,7 +718,7 @@ function updateOrbiter(ctx: Ctx, e: Entity): void {
   }
   const o = e.orbit;
   const planet = s.planets[o.planet];
-  // every so often, an orbiter circling a planet you're not on comes over to yours
+  // every so often, one circling a planet you're not on comes over to yours
   ai.timer -= dt;
   if (ai.timer <= 0) {
     ai.timer = rng.range(7, 12);
@@ -737,24 +744,34 @@ function updateOrbiter(ctx: Ctx, e: Entity): void {
   e.pos = np;
 
   switch (ai.state) {
-    case "idle":
-      if (ai.cooldown <= 0 && dist(p.pos, e.pos) < def.reach) {
+    case "idle": {
+      const ready = e.kind === "bomber" ? (p.planet === planet.id || dominantPlanet(s.planets, p.pos).id === planet.id) : dist(p.pos, e.pos) < def.reach;
+      if (ai.cooldown <= 0 && ready) {
         ai.state = "aim";
         ai.t = def.windup;
         s.telegraphs.push({ id: s.nextId++, kind: "shot", pos: e.pos, radius: 0, t: def.windup, total: def.windup, owner: e.id });
         emit(s, { type: "telegraph", kind: "shot", pos: e.pos });
       }
       break;
+    }
     case "aim": {
       ai.t -= dt;
       if (ai.t <= 0) {
-        const speed = 400;
-        const tof = clamp(dist(p.pos, e.pos) / speed, 0, 1.2);
-        const target = add(p.pos, scale(p.vel, tof * 0.6));
-        const dir = norm(sub(target, e.pos));
-        const pr: Projectile = { id: s.nextId++, pos: add(e.pos, scale(dir, e.radius + 4)), vel: scale(dir, speed), radius: 5, life: 3.2, damage: def.damage, hue: def.hue, friendly: false, knockback: 320, slug: false, seek: 0 };
-        s.projectiles.push(pr);
-        emit(s, { type: "shot", pos: pr.pos, dir });
+        if (e.kind === "bomber") {
+          // a bomb, let go straight down: gravity does the aiming, the burst does the rest
+          const down = norm(sub(planet.pos, e.pos));
+          const pr: Projectile = { id: s.nextId++, pos: add(e.pos, scale(down, e.radius + 6)), vel: add(scale(down, 60), scale(e.vel, 0.5)), radius: 7, life: 5, damage: def.damage, hue: def.hue, friendly: false, knockback: 380, slug: false, seek: 0, bomb: true };
+          s.projectiles.push(pr);
+          emit(s, { type: "shot", pos: pr.pos, dir: down });
+        } else {
+          const speed = 400;
+          const tof = clamp(dist(p.pos, e.pos) / speed, 0, 1.2);
+          const target = add(p.pos, scale(p.vel, tof * 0.6));
+          const dir = norm(sub(target, e.pos));
+          const pr: Projectile = { id: s.nextId++, pos: add(e.pos, scale(dir, e.radius + 4)), vel: scale(dir, speed), radius: 5, life: 3.2, damage: def.damage, hue: def.hue, friendly: false, knockback: 320, slug: false, seek: 0, bomb: false };
+          s.projectiles.push(pr);
+          emit(s, { type: "shot", pos: pr.pos, dir });
+        }
         ai.state = "idle";
         ai.cooldown = def.recover * (e.elite ? 0.7 : 1);
       }
@@ -763,6 +780,20 @@ function updateOrbiter(ctx: Ctx, e: Entity): void {
     default:
       ai.state = "idle";
   }
+}
+
+/**
+ * Aegis: a walker behind a shield that turns toward you, but slowly. Slugs and the wave break
+ * on the shield's front; the overhead sweep, anything from behind, and debris all get through.
+ */
+function updateAegis(ctx: Ctx, e: Entity): void {
+  const { s, dt } = ctx;
+  const p = player(s);
+  const def = ENEMY_DEFS.aegis;
+  const want = angleOf(sub(p.pos, e.pos));
+  const turn = clamp(angleDelta(e.ai.rot, want), -2.2 * dt, 2.2 * dt);
+  e.ai.rot += turn;
+  updateWalker(ctx, e, def.speed * (e.elite ? 1.2 : 1), def.leapSpeed, def.leapDelay, Infinity);
 }
 
 /**
@@ -811,7 +842,7 @@ function updateRaider(ctx: Ctx, e: Entity): void {
         const base = angleOf(sub(add(p.pos, scale(p.vel, tof * 0.5)), e.pos));
         for (const spread of [-0.11, 0, 0.11]) {
           const dir = fromAngle(base + spread);
-          const pr: Projectile = { id: s.nextId++, pos: add(e.pos, scale(dir, e.radius + 6)), vel: scale(dir, speed), radius: 5, life: 3, damage: def.damage, hue: def.hue, friendly: false, knockback: 320, slug: false, seek: 0 };
+          const pr: Projectile = { id: s.nextId++, pos: add(e.pos, scale(dir, e.radius + 6)), vel: scale(dir, speed), radius: 5, life: 3, damage: def.damage, hue: def.hue, friendly: false, knockback: 320, slug: false, seek: 0, bomb: false };
           s.projectiles.push(pr);
         }
         emit(s, { type: "shot", pos: e.pos, dir: fromAngle(base) });
