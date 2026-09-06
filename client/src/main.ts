@@ -366,13 +366,26 @@ function layout(): void {
 }
 const STANDALONE = window.matchMedia("(display-mode: standalone)").matches || window.matchMedia("(display-mode: fullscreen)").matches;
 if (IOS && !STANDALONE) document.documentElement.classList.add("ios-browser");
-/** The old Safari trick: scroll the (slightly taller) document by a pixel so the toolbar collapses to its compact state. */
-function collapseBar(): void {
-  if (!(IOS && !STANDALONE)) return;
-  window.setTimeout(() => window.scrollTo(0, 1), 60);
-  window.setTimeout(() => window.scrollTo(0, 1), 400);
+/**
+ * iPhone Safari in landscape keeps its address bar (and tab bar) over a quarter of the screen until the
+ * page is scrolled by a finger. The page is taller than the viewport for exactly that; this overlay asks
+ * for the swipe and goes away once the viewport has grown to the full screen height.
+ */
+let swipeSkipped = false;
+function updateSwipeHint(): void {
+  const el = document.getElementById("swipe")!;
+  const landscape = window.innerWidth > window.innerHeight;
+  const full = Math.min(screen.width, screen.height);
+  const barsVisible = window.innerHeight < full - 6;
+  const show = IOS && !STANDALONE && landscape && barsVisible && !swipeSkipped;
+  el.classList.toggle("hidden", !show);
 }
-window.addEventListener("resize", layout);
+function collapseBar(): void {
+  updateSwipeHint();
+}
+window.addEventListener("resize", () => { layout(); updateSwipeHint(); });
+window.addEventListener("scroll", updateSwipeHint, { passive: true });
+document.getElementById("swipe-skip")!.addEventListener("click", () => { swipeSkipped = true; updateSwipeHint(); });
 window.addEventListener("orientationchange", () => { window.setTimeout(layout, 50); collapseBar(); });
 window.addEventListener("touchstart", () => window.setTimeout(layout, 0), { passive: true, once: true });
 document.addEventListener("gesturestart", (e) => e.preventDefault());
