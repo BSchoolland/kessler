@@ -168,7 +168,7 @@ export class UI {
 const LESSONS: Record<TutorialStep, { n: number; title: string; body: string }> = {
   walk: { n: 1, title: "WALK TO THE BEACON", body: "<b>W A S D</b> walk you along the surface, whichever way you push. It's round, so keep steering; the beacon is over the top." },
   launch: { n: 2, title: "LAUNCH", body: "<b>SHIFT</b> (or K, or right click) leaves the planet the way you're moving. Standing still, that's straight up. The beacon is straight up, a long way up." },
-  fly: { n: 3, title: "STEER", body: "In space <b>W A S D</b> fire the thrusters: W to hurry, S to brake, A / D to drift. They burn fuel, and fuel only refills on the ground. Come in too fast and the landing hurts." },
+  fly: { n: 3, title: "STEER", body: "In space <b>W A S D</b> fire the thrusters. You won't coast all the way: <b>hold W</b> to climb until the small planet's gravity takes over, A / D to drift, S to brake. Thrusters burn fuel, and fuel only refills on the ground." },
   sweep: { n: 4, title: "MELEE: THE SWEEP", body: "Something's dropping right on top of you. <b>Stand still</b> and press <b>SPACE</b> (or J, or click): the melee sweeps over your head, both sides." },
   debris: { n: 5, title: "DEBRIS", body: "Every kill shatters into debris. It obeys the same gravity as everything else, it hurts whatever it hits (you included), and a swing bats it. The better you're doing, the messier it gets. Hence the name." },
   wave: { n: 6, title: "MELEE: THE WAVE", body: "That one's landing down the surface. <b>Move toward it</b> and press <b>SPACE</b> while moving: the melee becomes a wave that runs along the ground ahead of you." },
