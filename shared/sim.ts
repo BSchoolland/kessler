@@ -332,7 +332,7 @@ function integrateEntities(ctx: Ctx): void {
   const { s, dt } = ctx;
   for (const e of s.entities) {
     if (e.dead) continue;
-    if (e.kind === "orbiter" && e.orbit) continue; // kinematic
+    if (e.orbit) continue; // kinematic: orbiters around a planet, raiders around the arena
     if (e.planet !== null) {
       const planet = s.planets[e.planet];
       if (e.stun > 0 && e.kind !== "player") {

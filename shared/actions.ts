@@ -1,5 +1,5 @@
 import { DEBRIS, IMPACT, PICKUP, PLAYER, SCORE } from "./config";
-import { ENEMY_DEFS } from "./enemies";
+import { ENEMY_DEFS, RAIDER_RING } from "./enemies";
 import { findContact, snapToSurface } from "./physics";
 import type { Rng } from "./rng";
 import type { Debris, EnemyKind, Entity, GameEvent, GameState, HitSource, Pickup, Shockwave } from "./types";
@@ -21,7 +21,7 @@ export function makeEntity(s: GameState, kind: Entity["kind"], pos: Vec, radius:
   return {
     id: s.nextId++, kind, pos: { ...pos }, vel: { x: 0, y: 0 }, radius, hp, maxHp: hp, facing: 0, planet: null,
     stun: 0, invuln: 0, dead: false, swing: null, dashT: 0, sinceDash: 99, comboT: 0, comboIdx: 0,
-    ai: { state: "idle", t: 0, target: null, cooldown: 0, phase: 1, rot: 0, secondRing: false, escorted: false }, knockbackResist: 0, lastHitBy: "none",
+    ai: { state: "idle", t: 0, target: null, cooldown: 0, phase: 1, rot: 0, secondRing: false, escorted: false, hop: 0 }, knockbackResist: 0, lastHitBy: "none",
     elite: false, orbit: null, spawnT: 0, attackBuffer: 0, dashBuffer: 0, launched: false, contactCd: 0, airTime: 0, hue,
   };
 }
@@ -59,7 +59,14 @@ export function spawnEnemyPod(ctx: Ctx, kind: EnemyKind, targetPlanet: number, e
   e.elite = elite;
   e.spawnT = 1;
   e.vel = scale(norm(add(target.pos, scale(start, -1))), 380);
-  e.ai.cooldown = kind === "orbiter" ? 1.2 : 0.4;
+  e.ai.cooldown = kind === "orbiter" ? 1.2 : kind === "raider" ? 2 : 0.4;
+  if (kind === "orbiter") e.ai.hop = rng.range(6, 10);
+  if (kind === "raider") {
+    // no pod: it arrives on the outer ring and starts patrolling at once
+    e.spawnT = 0;
+    e.vel = { x: 0, y: 0 };
+    e.orbit = { planet: -1, radius: RAIDER_RING, angle: Math.atan2(start.y, start.x), dir: rng.sign() as 1 | -1 };
+  }
   s.entities.push(e);
   s.wave.alive++;
   emit(s, { type: "pod", pos: e.pos, kind });

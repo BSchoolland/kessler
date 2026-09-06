@@ -780,6 +780,21 @@ export class Renderer {
         ctx.fillStyle = hsl(hue, 100, 80, k);
         ctx.beginPath(); ctx.arc(r * 1.6, 0, 3 + k * 4, 0, 6.283); ctx.fill();
       }
+    } else if (e.kind === "raider") {
+      // a wide gunship: swept wings, a bright engine slot at the back
+      ctx.rotate(facing);
+      ctx.beginPath();
+      ctx.moveTo(r * 1.5, 0); ctx.lineTo(-r * 0.2, r * 1.15); ctx.lineTo(-r * 0.8, r * 0.7); ctx.lineTo(-r * 0.45, 0); ctx.lineTo(-r * 0.8, -r * 0.7); ctx.lineTo(-r * 0.2, -r * 1.15);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.fillStyle = hsl(hue, 100, 70, 0.5 + 0.3 * Math.sin(this.t * 14));
+      ctx.fillRect(-r * 0.95, -r * 0.35, r * 0.3, r * 0.7);
+      ctx.globalCompositeOperation = "source-over";
+      if (e.ai.state === "aim") {
+        const k = 1 - e.ai.t / def.windup;
+        ctx.fillStyle = hsl(hue, 100, 85, k);
+        ctx.beginPath(); ctx.arc(r * 1.2, 0, 3 + k * 5, 0, 6.283); ctx.fill();
+      }
     } else if (e.kind === "bulwark") {
       ctx.rotate(facing);
       ctx.beginPath();

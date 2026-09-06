@@ -15,7 +15,7 @@ export interface Planet {
   seed: number;
 }
 
-export type EnemyKind = "grunt" | "hopper" | "orbiter" | "bulwark" | "flak" | "accretor";
+export type EnemyKind = "grunt" | "hopper" | "orbiter" | "bulwark" | "flak" | "raider" | "accretor";
 
 export type EntityKind = "player" | EnemyKind;
 
@@ -67,7 +67,7 @@ export interface Entity {
 export type HitSource = "blade" | "impact" | "debris" | "collision" | "void" | "shockwave" | "projectile" | "contact" | "none";
 
 export interface OrbitState {
-  planet: number;
+  planet: number;            // -1 = the arena itself (raiders patrol the outer ring)
   radius: number;
   angle: number;
   dir: 1 | -1;
@@ -82,6 +82,7 @@ export interface AiState {
   rot: number;
   secondRing: boolean;
   escorted: boolean;
+  hop: number;               // orbiters: seconds until they consider hopping to the player's planet
 }
 
 export interface Debris {

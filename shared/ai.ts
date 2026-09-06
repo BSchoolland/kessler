@@ -1,4 +1,4 @@
-import { ENEMY_DEFS } from "./enemies";
+import { ENEMY_DEFS, RAIDER_RING } from "./enemies";
 import { damagePlayer, emit, player, spawnDebris, spawnEnemyPod, spawnShockwave, type Ctx } from "./actions";
 import { dominantPlanet, nearestPlanet, orbitSpeed, surfaceNormal } from "./physics";
 import type { Entity, EnemyKind, Planet, Projectile } from "./types";
@@ -54,6 +54,7 @@ export function updateEnemyAi(ctx: Ctx, e: Entity): void {
     return;
   }
   if (e.kind === "orbiter") return updateOrbiter(ctx, e);
+  if (e.kind === "raider") return updateRaider(ctx, e);
   if (e.kind === "flak") return updateFlak(ctx, e);
   if (e.kind === "accretor") return updateBoss(ctx, e);
   updateWalker(ctx, e, def.speed * (e.elite ? 1.2 : 1), def.leapSpeed, def.leapDelay);
@@ -201,14 +202,26 @@ function updateFlak(ctx: Ctx, e: Entity): void {
 }
 
 function updateOrbiter(ctx: Ctx, e: Entity): void {
-  const { s, dt } = ctx;
+  const { s, dt, rng } = ctx;
   const p = player(s);
   const def = ENEMY_DEFS.orbiter;
   const ai = e.ai;
 
   if (!e.orbit) {
-    // knocked loose: recapture once we're slow enough
     e.airTime += dt;
+    if (ai.state === "leaping" && ai.target) {
+      // hopping to the player's planet: fly at it and take up orbit on arrival
+      const target = s.planets.find((pl) => pl.pos.x === ai.target!.x && pl.pos.y === ai.target!.y)!;
+      e.vel = scale(norm(sub(target.pos, e.pos)), 420);
+      if (dist(e.pos, target.pos) < target.r + 125) {
+        e.orbit = { planet: target.id, radius: target.r + 110, angle: angleOf(sub(e.pos, target.pos)), dir: rng.sign() as 1 | -1 };
+        ai.state = "idle";
+        ai.target = null;
+        ai.cooldown = Math.max(ai.cooldown, 0.8);
+      }
+      return;
+    }
+    // knocked loose: recapture once we're slow enough
     if (len(e.vel) < 320 || e.airTime > 2.5) {
       const { planet } = nearestPlanet(s.planets, e.pos);
       const R = clamp(dist(e.pos, planet.pos), planet.r + 90, planet.r + 240);
@@ -221,6 +234,21 @@ function updateOrbiter(ctx: Ctx, e: Entity): void {
   }
   const o = e.orbit;
   const planet = s.planets[o.planet];
+  // every so often, an orbiter circling a planet you're not on comes over to yours
+  ai.hop -= dt;
+  if (ai.hop <= 0) {
+    ai.hop = rng.range(7, 12);
+    const pd = p.planet ?? dominantPlanet(s.planets, p.pos).id;
+    if (pd !== o.planet && ai.state === "idle") {
+      const target = s.planets[pd];
+      e.orbit = null;
+      ai.state = "leaping";
+      ai.target = { ...target.pos };
+      e.vel = scale(norm(sub(target.pos, e.pos)), 420);
+      e.airTime = 0;
+      return;
+    }
+  }
   // ease radius to the target and advance along the orbit (kinematic, a bit slower than physical for readability)
   const rel = sub(e.pos, planet.pos);
   const curR = len(rel);
@@ -250,6 +278,66 @@ function updateOrbiter(ctx: Ctx, e: Entity): void {
         const pr: Projectile = { id: s.nextId++, pos: add(e.pos, scale(dir, e.radius + 4)), vel: scale(dir, speed), radius: 5, life: 3.2, damage: def.damage, hue: def.hue, friendly: false, knockback: 320, slug: false, seek: 0 };
         s.projectiles.push(pr);
         emit(s, { type: "shot", pos: pr.pos, dir });
+        ai.state = "idle";
+        ai.cooldown = def.recover * (e.elite ? 0.7 : 1);
+      }
+      break;
+    }
+    default:
+      ai.state = "idle";
+  }
+}
+
+/**
+ * Raider: a gunship that patrols the outer ring, sliding around toward the player's bearing
+ * and firing spreads inward. Being on the outside of an outer planet puts you in its lane.
+ */
+function updateRaider(ctx: Ctx, e: Entity): void {
+  const { s, dt } = ctx;
+  const p = player(s);
+  const def = ENEMY_DEFS.raider;
+  const ai = e.ai;
+
+  if (!e.orbit) {
+    // knocked off the ring: drift under gravity until slow, then climb back onto it
+    e.airTime += dt;
+    if (len(e.vel) < 300 || e.airTime > 2) {
+      e.orbit = { planet: -1, radius: RAIDER_RING, angle: angleOf(e.pos), dir: 1 };
+      e.planet = null;
+      e.launched = false;
+    }
+    return;
+  }
+  const o = e.orbit;
+  const curR = len(e.pos);
+  const R = curR + clamp(o.radius - curR, -160 * dt, 160 * dt);
+  const da = angleDelta(o.angle, angleOf(p.pos));
+  if (Math.abs(da) > 0.2) o.angle += Math.sign(da) * (def.speed / o.radius) * dt;
+  const np = fromAngle(o.angle, R);
+  e.vel = scale(sub(np, e.pos), 1 / dt);
+  e.pos = np;
+
+  switch (ai.state) {
+    case "idle":
+      if (ai.cooldown <= 0 && dist(p.pos, e.pos) < def.reach) {
+        ai.state = "aim";
+        ai.t = def.windup;
+        s.telegraphs.push({ id: s.nextId++, kind: "shot", pos: e.pos, radius: 0, t: def.windup, total: def.windup, owner: e.id });
+        emit(s, { type: "telegraph", kind: "shot", pos: e.pos });
+      }
+      break;
+    case "aim": {
+      ai.t -= dt;
+      if (ai.t <= 0) {
+        const speed = 520;
+        const tof = clamp(dist(p.pos, e.pos) / speed, 0, 1.5);
+        const base = angleOf(sub(add(p.pos, scale(p.vel, tof * 0.5)), e.pos));
+        for (const spread of [-0.11, 0, 0.11]) {
+          const dir = fromAngle(base + spread);
+          const pr: Projectile = { id: s.nextId++, pos: add(e.pos, scale(dir, e.radius + 6)), vel: scale(dir, speed), radius: 5, life: 3, damage: def.damage, hue: def.hue, friendly: false, knockback: 320, slug: false, seek: 0 };
+          s.projectiles.push(pr);
+        }
+        emit(s, { type: "shot", pos: e.pos, dir: fromAngle(base) });
         ai.state = "idle";
         ai.cooldown = def.recover * (e.elite ? 0.7 : 1);
       }
