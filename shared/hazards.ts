@@ -206,7 +206,7 @@ export function updateShockwaves(ctx: Ctx): void {
             damageEnemy(ctx, e, w.damage, "blade", e.pos, t);
           } else {
             e.vel = add(e.vel, scale(n, w.knockback * (1 - e.knockbackResist)));
-            if (e.knockbackResist < 0.5) { e.planet = null; e.launched = true; }
+            if (e.knockbackResist < 0.5) { e.planet = null; e.launched = true; e.orbit = null; }
             e.stun = Math.max(e.stun, 0.5);
             damageEnemy(ctx, e, w.damage, "shockwave", e.pos, n);
           }

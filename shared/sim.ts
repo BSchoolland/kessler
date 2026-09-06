@@ -331,7 +331,7 @@ function integrateEntities(ctx: Ctx): void {
   const { s, dt } = ctx;
   for (const e of s.entities) {
     if (e.dead) continue;
-    if (e.orbit || (e.kind === "mine" && !e.launched)) continue; // kinematic: orbiters, ring patrols, drifting mines
+    if (e.orbit || (e.kind === "mine" && !e.launched)) { e.stun = Math.max(0, e.stun - dt); continue; } // kinematic: orbiters, ring patrols, drifting mines
     if (e.planet !== null) {
       const planet = s.planets[e.planet];
       if (e.stun > 0 && e.kind !== "player") {
