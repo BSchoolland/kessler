@@ -32,7 +32,6 @@ h2 { letter-spacing: 0.2em; font-weight: 700; color: var(--cyan); margin: 0 0 18
 .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; z-index: 10; }
 #menu { background: radial-gradient(ellipse at center, rgba(6,9,20,0.35), rgba(4,5,10,0.8)); }
 .title-block { text-align: center; }
-.tag { margin: 6px 0 0; color: #9fb1d8; letter-spacing: 0.08em; font-size: 18px; }
 .menu-buttons { display: flex; flex-direction: column; gap: 10px; min-width: 300px; }
 .menu-buttons.row-buttons { flex-direction: row; }
 .menu-foot { display: flex; gap: 26px; align-items: center; color: #9fb1d8; letter-spacing: 0.1em; }
@@ -197,7 +196,6 @@ ol li span:nth-child(3) { text-align: right; font-weight: 700; } ol li span:nth-
 #stage.short #menu { flex-direction: row; justify-content: center; align-items: center; gap: 34px; padding: 0 24px; }
 #stage.short .title-block { text-align: left; }
 #stage.short h1 { font-size: 46px; letter-spacing: 0.2em; }
-#stage.short .tag { font-size: 12px; margin-top: 2px; max-width: 340px; }
 #stage.short .menu-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; min-width: 0; width: 320px; }
 #stage.short .menu-buttons #btn-play { grid-column: 1 / -1; font-size: 18px; padding: 12px; }
 #stage.short .menu-buttons button { font-size: 12px; padding: 9px 8px; letter-spacing: 0.1em; }
