@@ -27,8 +27,12 @@ export class Renderer {
   }
 
   resize(): void {
+    this.sizeTo(window.innerWidth, window.innerHeight);
+  }
+
+  /** Fixed-size backing store; the bestiary tiles use this instead of the window. */
+  sizeTo(w: number, h: number): void {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = window.innerWidth, h = window.innerHeight;
     this.canvas.width = Math.floor(w * dpr);
     this.canvas.height = Math.floor(h * dpr);
     this.canvas.style.width = `${w}px`;

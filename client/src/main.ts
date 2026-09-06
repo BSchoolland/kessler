@@ -14,6 +14,7 @@ import { Particles } from "./particles";
 import { Renderer } from "./render";
 import { audioContext, play, setIntensity, setMusicVolume, setSfxVolume, setThrust, startMusic } from "./sound";
 import { UI } from "./ui";
+import { Bestiary } from "./bestiary";
 import { botInput } from "../../shared/bot";
 import { Rng } from "../../shared/rng";
 
@@ -35,6 +36,7 @@ const particles = new Particles();
 const renderer = new Renderer(canvas, cam, particles);
 const input = new Input(canvas);
 const ui = new UI();
+const bestiary = new Bestiary(document.getElementById("bestiary")!);
 
 let mode: Mode = "menu";
 let state: GameState | null = null;
@@ -327,10 +329,10 @@ function bindMenu(): void {
   document.getElementById("btn-tutorial")!.addEventListener("click", startTutorial);
   document.getElementById("btn-tut-play")!.addEventListener("click", startRun);
   document.getElementById("btn-tut-menu")!.addEventListener("click", () => { state = null; showMenu(); });
-  document.getElementById("btn-howto")!.addEventListener("click", () => { ui.show("menu", false); ui.show("howto"); });
+  document.getElementById("btn-howto")!.addEventListener("click", () => { ui.show("menu", false); ui.show("howto"); bestiary.start(); });
   document.getElementById("btn-settings")!.addEventListener("click", () => { ui.show("menu", false); ui.show("settings"); });
   document.getElementById("btn-leaderboard")!.addEventListener("click", () => { ui.show("menu", false); ui.show("leaderboard"); void ui.loadLeaderboard(document.getElementById("lb-list")!, profile.name); });
-  document.querySelectorAll(".modal .close").forEach((b) => b.addEventListener("click", () => { ui.hideAllScreens(); ui.show("menu"); }));
+  document.querySelectorAll(".modal .close").forEach((b) => b.addEventListener("click", () => { ui.hideAllScreens(); ui.show("menu"); bestiary.stop(); }));
   document.getElementById("btn-resume")!.addEventListener("click", resume);
   document.getElementById("btn-won-go")!.addEventListener("click", () => { ui.show("won", false); resume(); });
   document.getElementById("btn-won-menu")!.addEventListener("click", () => { state = null; showMenu(); });
@@ -342,7 +344,7 @@ function bindMenu(): void {
   window.addEventListener("keydown", (e) => {
     if (mode !== "menu") return;
     if (e.code === "Enter" && document.activeElement !== nameEl && !document.getElementById("menu")!.classList.contains("hidden")) startRun();
-    if (e.code === "Escape") { ui.hideAllScreens(); ui.show("menu"); }
+    if (e.code === "Escape") { ui.hideAllScreens(); ui.show("menu"); bestiary.stop(); }
   });
 }
 
