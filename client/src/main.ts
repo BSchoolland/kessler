@@ -364,8 +364,16 @@ function layout(): void {
   stage.classList.toggle("short", sh <= 560);
   renderer.sizeTo(rot ? h : w, rot ? w : h);
 }
+const STANDALONE = window.matchMedia("(display-mode: standalone)").matches || window.matchMedia("(display-mode: fullscreen)").matches;
+if (IOS && !STANDALONE) document.documentElement.classList.add("ios-browser");
+/** The old Safari trick: scroll the (slightly taller) document by a pixel so the toolbar collapses to its compact state. */
+function collapseBar(): void {
+  if (!(IOS && !STANDALONE)) return;
+  window.setTimeout(() => window.scrollTo(0, 1), 60);
+  window.setTimeout(() => window.scrollTo(0, 1), 400);
+}
 window.addEventListener("resize", layout);
-window.addEventListener("orientationchange", () => window.setTimeout(layout, 50));
+window.addEventListener("orientationchange", () => { window.setTimeout(layout, 50); collapseBar(); });
 window.addEventListener("touchstart", () => window.setTimeout(layout, 0), { passive: true, once: true });
 document.addEventListener("gesturestart", (e) => e.preventDefault());
 document.addEventListener("dblclick", (e) => e.preventDefault());
@@ -375,7 +383,8 @@ function enterFullscreen(): void {
   if (!input.usingTouch) return;
   const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> };
   const req = el.requestFullscreen?.bind(el) ?? el.webkitRequestFullscreen?.bind(el);
-  const standalone = window.matchMedia("(display-mode: standalone)").matches || window.matchMedia("(display-mode: fullscreen)").matches;
+  const standalone = STANDALONE;
+  collapseBar();
   if (req && !document.fullscreenElement) {
     req().then(() => {
       const so = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> };
