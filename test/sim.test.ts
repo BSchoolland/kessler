@@ -52,8 +52,9 @@ describe("sim", () => {
       }
       waves += s.wave.n;
     }
-    // the bot doesn't dodge and the game is tuned for humans now; it just has to make progress
-    expect(waves / 3).toBeGreaterThan(1);
+    // the bot doesn't dodge and the game is tuned for humans now; it just has to make progress.
+    // Soft landings (launched enemies that slow down recover) cut its splat kills roughly in half.
+    expect(waves / 3).toBeGreaterThanOrEqual(1);
   });
 
   it("gun is the weapon in space and spends ammo", () => {
