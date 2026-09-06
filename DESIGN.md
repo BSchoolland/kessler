@@ -32,8 +32,7 @@ the gun is the weapon in space, and there is no swap. Standing still you face up
 sweep both sides; moving you face sideways and launch. Auto-aim always takes the
 nearest enemy. Shift dashes, space attacks, so the whole game is keyboard-only.
 
-The gun is fed by drops: 30% of kills leave a 3-round pickup where they died, and
-standing on a planet trickles one round per 5s. The gun fires a fast slug that launches on hit with more
+The gun is fed by the ground: standing on a planet gives one round back every 2s. The gun fires a fast slug that launches on hit with more
 knockback than a normal swing, at range, with gravity drop. It exists for the two
 things the sword can't do: reach orbiters without leaving the ground, and line
 up a launch from the far side of a gap. Empty gun clicks and says so. Swapping is

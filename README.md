@@ -40,9 +40,8 @@ Keyboard only is the intended way to play. The mouse is optional.
 - Landings never hurt you. Enemies you launch take impact damage only if they hit a planet
   before slowing down; one that drifts to a near-stop regains control and lands soft.
 - The **gun** auto-aims at the nearest enemy and fires a heavy homing slug that
-  launches whatever it hits. Rounds (6 max) come from the gold drops some kills leave
-  behind, plus one every 5s while you stand on a planet. Dry gun in space: attack is a pulse
-  that bats shots and debris away. Turn auto-aim off in settings to aim with the mouse or
+  launches whatever it hits. Rounds (6 max) come back one every 2s while you stand on a
+  planet. Dry gun in space: attack is a pulse that bats shots and debris away. Turn auto-aim off in settings to aim with the mouse or
   right stick.
 - Enemies hurt on touch. Only enemies *you* launched take impact damage.
 

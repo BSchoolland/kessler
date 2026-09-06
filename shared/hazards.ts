@@ -1,4 +1,4 @@
-import { DEBRIS, GRAVITY, GUN, IMPACT, PICKUP, PLAYER } from "./config";
+import { DEBRIS, GRAVITY, GUN, IMPACT, PLAYER } from "./config";
 import { damageEnemy, damagePlayer, emit, launch, player, type Ctx } from "./actions";
 import { findContact, gravityAt, inVoid, snapToSurface, surfaceNormal } from "./physics";
 import { add, angleDelta, angleOf, clamp, dist, dot, fromAngle, len, norm, scale, sub } from "./vec";
@@ -64,36 +64,6 @@ export function updateDebris(ctx: Ctx): void {
     keep.push(d);
   }
   s.debris = keep;
-}
-
-/** Ammo drops: fall like debris, come to rest on the first planet they touch, and are picked up on touch. */
-export function updatePickups(ctx: Ctx): void {
-  const { s, dt } = ctx;
-  const p = player(s);
-  const max = GUN.ammoMax + s.mods.ammoMaxBonus;
-  const keep = [];
-  for (const pk of s.pickups) {
-    pk.life -= dt;
-    if (pk.life <= 0) continue;
-    if (pk.planet === null) {
-      pk.vel = add(pk.vel, scale(gravityAt(s.planets, pk.pos), dt));
-      pk.pos = add(pk.pos, scale(pk.vel, dt));
-      if (inVoid(pk.pos)) continue;
-      const c = findContact(s.planets, pk.pos, pk.vel, PICKUP.radius);
-      if (c) {
-        pk.pos = snapToSurface(c.planet, pk.pos, PICKUP.radius);
-        pk.vel = { x: 0, y: 0 };
-        pk.planet = c.planet.id;
-      }
-    }
-    if (!s.over && dist(p.pos, pk.pos) < p.radius + PICKUP.radius + 4) {
-      s.ammo = Math.min(max, s.ammo + PICKUP.ammo);
-      emit(s, { type: "pickup", pos: pk.pos, ammo: s.ammo });
-      continue;
-    }
-    keep.push(pk);
-  }
-  s.pickups = keep;
 }
 
 export function updateProjectiles(ctx: Ctx): void {

@@ -134,19 +134,6 @@ describe("sim", () => {
 });
 
 describe("ammo and fuel", () => {
-  it("ammo drops rest on a planet and are picked up on touch", () => {
-    const s = createGame(5);
-    for (let i = 0; i < 30; i++) step(s, idle);
-    const p = player(s);
-    s.ammo = 0;
-    const planet = s.planets[0];
-    const n = { x: (p.pos.x - planet.pos.x) / (planet.r + p.radius), y: (p.pos.y - planet.pos.y) / (planet.r + p.radius) };
-    s.pickups.push({ id: 777, pos: { x: p.pos.x + n.x * 60, y: p.pos.y + n.y * 60 }, vel: { x: 0, y: 0 }, planet: null, life: 25 });
-    for (let i = 0; i < 60 && s.pickups.length; i++) step(s, idle);
-    expect(s.pickups.length).toBe(0);
-    expect(s.ammo).toBe(3);
-  });
-
   it("melee hits no longer give rounds; a dry gun in space pulses instead of clicking", () => {
     const s = createGame(5);
     for (let i = 0; i < 30; i++) step(s, idle);

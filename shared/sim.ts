@@ -1,7 +1,7 @@
 import { DT, FUEL, GUN, IMPACT, PLAYER, WAVES } from "./config";
 import { damagePlayer, emit, healPlayer, launch, makeEntity, placePlayer, player, playerMaxHp, resolveContactForEnemy, spawnEdgeWave, spawnShockwave, killEnemy, damageEnemy, type Ctx } from "./actions";
 import { updateEnemyAi } from "./ai";
-import { resolveContactDamage, resolveEnemyCollisions, updateDebris, updatePickups, updateProjectiles, updateShockwaves, updateTelegraphs } from "./hazards";
+import { resolveContactDamage, resolveEnemyCollisions, updateDebris, updateProjectiles, updateShockwaves, updateTelegraphs } from "./hazards";
 import { findContact, gravityAt, inVoid, nearestPlanet, snapToSurface, surfaceNormal, tangentOnly } from "./physics";
 import { Rng } from "./rng";
 import type { Entity, GameState, InputFrame, Planet, Projectile, SwingState } from "./types";
@@ -22,7 +22,7 @@ export function createGame(seed: number, daily = false): GameState {
 /** A world with no waves running; the planets and the player's spot are the caller's. */
 export function baseState(seed: number, planets: Planet[], daily = false): GameState {
   const s: GameState = {
-    tick: 0, time: 0, seed, rngState: seed >>> 0, freeze: 0, planets, entities: [], debris: [], pickups: [], projectiles: [], shockwaves: [],
+    tick: 0, time: 0, seed, rngState: seed >>> 0, freeze: 0, planets, entities: [], debris: [], projectiles: [], shockwaves: [],
     telegraphs: [], nextId: 1, wave: initialWave(), offers: null, mods: defaultMods(), taken: [], score: 0,
     stats: { kills: 0, voidKills: 0, impactKills: 0, debrisKills: 0, collisionKills: 0, bossKills: 0, damageDealt: 0, damageTaken: 0, swings: 0, dashes: 0, time: 0, bestCombo: 0 },
     over: false, daily, events: [], weapon: "sword", ammo: GUN.ammoStart, gunCd: 0, fuel: FUEL.max, fuelWarnT: 0, sinceHurt: 99, reloadT: 0, pulseT: 0, tutorial: null,
@@ -65,7 +65,6 @@ export function step(s: GameState, input: InputFrame): void {
   resolveEnemyCollisions(ctx);
   resolveContactDamage(ctx);
   updateDebris(ctx);
-  updatePickups(ctx);
   updateProjectiles(ctx);
   updateShockwaves(ctx);
   updateTelegraphs(ctx);

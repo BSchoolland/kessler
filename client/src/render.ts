@@ -1,4 +1,4 @@
-import { ARENA, PICKUP, PLAYER } from "../../shared/config";
+import { ARENA, PLAYER } from "../../shared/config";
 import { fuelMax } from "../../shared/sim";
 import { ENEMY_DEFS } from "../../shared/enemies";
 import { Rng } from "../../shared/rng";
@@ -78,7 +78,6 @@ export class Renderer {
     this.drawTelegraphs(s);
     this.drawShockwaves(s);
     this.drawDebris(s);
-    this.drawPickups(s);
     this.drawProjectiles(s);
     for (const e of s.entities) if (e.kind !== "player") this.drawEnemy(s, e);
     if (!s.over) this.drawPlayer(s, p);
@@ -415,33 +414,6 @@ export class Renderer {
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
-      ctx.restore();
-    }
-  }
-
-  private drawPickups(s: GameState): void {
-    const ctx = this.ctx;
-    for (const pk of s.pickups) {
-      const bob = Math.sin(this.t * 4 + pk.id) * 2;
-      const fade = Math.min(1, pk.life / 3);
-      ctx.save();
-      ctx.translate(pk.pos.x, pk.pos.y + (pk.planet === null ? 0 : bob));
-      ctx.rotate(this.t * 1.2);
-      ctx.globalCompositeOperation = "lighter";
-      const g = ctx.createRadialGradient(0, 0, 2, 0, 0, PICKUP.radius * 2.6);
-      g.addColorStop(0, `rgba(255,211,106,${0.45 * fade})`);
-      g.addColorStop(1, "rgba(255,211,106,0)");
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(0, 0, PICKUP.radius * 2.6, 0, 6.283); ctx.fill();
-      ctx.globalCompositeOperation = "source-over";
-      ctx.fillStyle = `rgba(40,30,8,${fade})`;
-      ctx.strokeStyle = `rgba(255,211,106,${fade})`;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.283; ctx.lineTo(Math.cos(a) * PICKUP.radius, Math.sin(a) * PICKUP.radius); }
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = `rgba(255,224,122,${fade})`;
-      for (const x of [-3.5, 0, 3.5]) ctx.fillRect(x - 1, -3.5, 2, 7);
       ctx.restore();
     }
   }

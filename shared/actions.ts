@@ -1,8 +1,8 @@
-import { DEBRIS, IMPACT, PICKUP, PLAYER, SCORE } from "./config";
+import { DEBRIS, IMPACT, PLAYER, SCORE } from "./config";
 import { ENEMY_DEFS, RAIDER_RING } from "./enemies";
 import { findContact, snapToSurface } from "./physics";
 import type { Rng } from "./rng";
-import type { Debris, EnemyKind, Entity, GameEvent, GameState, HitSource, Pickup, Shockwave } from "./types";
+import type { Debris, EnemyKind, Entity, GameEvent, GameState, HitSource, Shockwave } from "./types";
 import { add, fromAngle, len, norm, scale, type Vec } from "./vec";
 
 export interface Ctx {
@@ -96,13 +96,6 @@ export function spawnDebris(ctx: Ctx, pos: Vec, inherit: Vec, count: number, hue
   while (s.debris.length > DEBRIS.maxCount) s.debris.shift();
 }
 
-export function spawnPickup(ctx: Ctx, pos: Vec, inherit: Vec): void {
-  const { s, rng } = ctx;
-  const dir = fromAngle(rng.range(0, Math.PI * 2));
-  const pk: Pickup = { id: s.nextId++, pos: { ...pos }, vel: add(scale(inherit, 0.4), scale(dir, PICKUP.speed * rng.range(0.6, 1.2))), planet: null, life: PICKUP.life };
-  s.pickups.push(pk);
-}
-
 export function spawnShockwave(s: GameState, planet: number, angle: number, damage: number, friendly: boolean, speed = 3.2, maxSpread = Math.PI): Shockwave {
   const w: Shockwave = { id: s.nextId++, planet, angle, spread: 0, maxSpread, speed, damage, hit: [], friendly, dir: 0, edge: false, knockback: 380 };
   s.shockwaves.push(w);
@@ -142,8 +135,6 @@ export function killEnemy(ctx: Ctx, e: Entity, source: HitSource): void {
   if (source !== "void") {
     const count = (boss ? 12 : DEBRIS.count) + s.mods.debrisExtra;
     spawnDebris(ctx, e.pos, e.vel, count, e.hue, boss);
-    const drops = boss ? PICKUP.bossCount : ctx.rng.chance(PICKUP.chance) ? 1 : 0;
-    for (let i = 0; i < drops; i++) spawnPickup(ctx, e.pos, e.vel);
   }
   s.freeze = Math.max(s.freeze, boss ? 0.4 : 0.075);
   emit(s, { type: "kill", pos: e.pos, kind: e.kind, source, vel: e.vel });

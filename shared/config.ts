@@ -65,7 +65,7 @@ export const FUEL = {
 export const GUN = {
   ammoStart: 3,
   ammoMax: 6,
-  dryReload: 5,            // seconds on a planet per round regained
+  dryReload: 2,            // seconds on a planet per round regained
   speed: 980,
   damage: 34,
   knockback: 760,
@@ -104,15 +104,6 @@ export const DEBRIS = {
   restitution: 0.6,
   minLandSpeed: 90,        // slower than this on impact and the chunk is gone
   maxCount: 90,
-};
-
-export const PICKUP = {
-  chance: 0.3,             // per non-void kill
-  ammo: 3,
-  radius: 9,
-  life: 25,
-  speed: 140,
-  bossCount: 3,
 };
 
 export const SCORE = {

@@ -111,14 +111,6 @@ export interface Projectile {
   seek: number;       // rad/s it can turn toward its target (player while hostile, enemies once batted back)
 }
 
-export interface Pickup {
-  id: number;
-  pos: Vec;
-  vel: Vec;
-  planet: number | null;   // resting on this planet, or still falling
-  life: number;
-}
-
 export interface Shockwave {
   id: number;
   planet: number;
@@ -169,7 +161,6 @@ export type GameEvent =
   | { type: "combo"; pos: Vec; idx: number }
   | { type: "gunshot"; pos: Vec; dir: Vec }
   | { type: "pulse"; pos: Vec }
-  | { type: "pickup"; pos: Vec; ammo: number }
   | { type: "ammo"; pos: Vec; ammo: number }
   | { type: "tutorial"; step: TutorialStep };
 
@@ -253,7 +244,6 @@ export interface GameState {
   planets: Planet[];
   entities: Entity[];
   debris: Debris[];
-  pickups: Pickup[];
   projectiles: Projectile[];
   shockwaves: Shockwave[];
   telegraphs: Telegraph[];

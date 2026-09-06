@@ -1,4 +1,5 @@
 import type { GameState, TutorialStep, UpgradeOffer } from "../../shared/types";
+import { GUN } from "../../shared/config";
 import { ammoMax } from "../../shared/sim";
 import { fetchLeaderboard, type ScoreEntry } from "./api";
 import type { Profile } from "./meta";
@@ -66,7 +67,7 @@ export class UI {
     this.dashText.textContent = p.planet === null ? "IN FLIGHT" : s.fuel > 0 ? "LAUNCH READY" : "NO FUEL";
     this.wpnSword.classList.toggle("active", s.weapon === "sword");
     this.wpnGun.classList.toggle("active", s.weapon === "gun");
-    const reload = s.reloadT > 0 ? Math.floor((s.reloadT / 5) * 10) : 0;
+    const reload = s.reloadT > 0 ? Math.floor((s.reloadT / GUN.dryReload) * 10) : 0;
     const ammoKey = `${s.ammo}/${ammoMax(s)}/${reload}`;
     if (ammoKey !== this.lastAmmoKey) {
       this.lastAmmoKey = ammoKey;
@@ -172,7 +173,7 @@ const LESSONS: Record<TutorialStep, { n: number; title: string; body: string }> 
   debris: { n: 5, title: "DEBRIS", body: "Every kill shatters into debris. It obeys the same gravity as everything else, it hurts whatever it hits (you included), and a swing bats it. The better you're doing, the messier it gets. Hence the name." },
   wave: { n: 6, title: "MELEE: THE WAVE", body: "That one's landing down the surface. <b>Move toward it</b> and press <b>SPACE</b> while moving: the melee becomes a wave that runs along the ground ahead of you." },
   brawl: { n: 7, title: "THREE AT ONCE", body: "Sweep when they're on you, wave when they're coming. Hits <b>launch</b> enemies: into the planet, into each other, into the void." },
-  gun: { n: 8, title: "AN ORBITER", body: "It circles out of melee reach. <b>LAUNCH</b>, then <b>SPACE</b> in space fires the gun. It aims itself at the nearest enemy. Kills sometimes drop gold rounds; standing on a planet reloads you slowly." },
+  gun: { n: 8, title: "AN ORBITER", body: "It circles out of melee reach. <b>LAUNCH</b>, then <b>SPACE</b> in space fires the gun. It aims itself at the nearest enemy. Standing on a planet reloads one round every 2s." },
   done: { n: 0, title: "", body: "" },
 };
 
