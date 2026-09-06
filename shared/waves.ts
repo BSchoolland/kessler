@@ -38,6 +38,8 @@ function compose(ctx: Ctx, n: number, sector: number): WaveState["queue"] {
     for (let i = 0; i < pool.length; i++) { r -= weights[i]; if (r <= 0) { kind = pool[i]; break; } }
     const cost = ENEMY_DEFS[kind].cost;
     if (cost > budget + 0.5) continue;
+    // ring gunships are a pressure, not a wall: two per wave at most
+    if (kind === "raider" && queue.filter((q) => q.kind === "raider").length >= 2) continue;
     budget -= cost;
     queue.push({ at: rng.range(0, WAVES.spawnSpread), kind, elite: rng.chance(eliteChance) });
   }

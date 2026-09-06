@@ -61,7 +61,7 @@ instant and cancels a wind-up, not an active swing.
 | Orbiter | circles a planet, shoots gravity-curved shots; every 7-12s one on another planet may hop to yours | leaving the ground / deflecting |
 | Bulwark | slow, heavy, 78% knockback resist | launch-strikes, debris, impacts |
 | Flak | goes to a planet you're not on, lines up under you, fires straight up | moving; punishes camping one spot |
-| Raider | never lands; patrols the outer ring toward your bearing, fires 3-shot spreads inward; alone for 6s it dives at you and sits exposed for ~2s | staying off the outside of outer planets; the gun (a slug can knock it into the void) |
+| Raider | never lands; patrols the outer ring toward your bearing, fires 3-shot spreads inward; once only raiders are left each dives at you in turn and sits exposed ~2s; two per wave max | staying off the outside of outer planets; the gun (a slug can knock it into the void) |
 | Lancer (w6) | telegraphs, then charges 620 u/s along the surface; contact hurts more mid-charge | leaving the ground on the cue, or swinging it away |
 | Mine (w7) | drifts in through space, blows at 62 units; hit it and it's a thrown bomb that detonates on anything it touches | the sweep and the gun as bomb-throwing tools |
 | Splitter (w9) | walker; dies into two launched hoppers | cleaning up; the debris economy |

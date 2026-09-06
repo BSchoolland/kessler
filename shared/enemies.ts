@@ -41,7 +41,7 @@ export const ENEMY_DEFS: Record<EnemyKind, EnemyDef> = {
     recover: 2.4, knockbackResist: 0, leapSpeed: 500, leapDelay: 0.6, cost: 2, minWave: 3, score: 16, hue: 52,
   },
   raider: {
-    name: "Raider", hp: 120, radius: 20, speed: 150, damage: 12, reach: 1000, windup: 0.55, attack: 0.1,
+    name: "Raider", hp: 95, radius: 20, speed: 150, damage: 12, reach: 1000, windup: 0.55, attack: 0.1,
     recover: 2.4, knockbackResist: 0.55, leapSpeed: 0, leapDelay: 0, cost: 4, minWave: 4, score: 30, hue: 15,
   },
   lancer: {

@@ -840,10 +840,10 @@ function updateRaider(ctx: Ctx, e: Entity): void {
     return;
   }
   const o = e.orbit;
-  // the last one standing doesn't get to snipe forever: after a few seconds alone it dives at you
-  const alone = !s.entities.some((x) => x !== e && x.kind !== "player" && !x.dead);
+  // once nothing but raiders is left they don't get to snipe forever: each dives at you in turn
+  const alone = !s.entities.some((x) => x.kind !== "player" && x.kind !== "raider" && !x.dead);
   ai.timer = alone ? ai.timer + dt : 0;
-  if (ai.timer > 6 && ai.state === "idle") {
+  if (ai.timer > 5 + (e.id % 3) * 2.5 && ai.state === "idle") {
     e.orbit = null;
     ai.state = "leaping";
     ai.timer = 0;
