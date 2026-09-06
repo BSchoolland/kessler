@@ -39,8 +39,8 @@
   <div id="zone-l"><span class="zone-hint">MOVE</span></div>
   <div id="zone-r"></div>
   <div id="stick-l" class="stick hidden"><div class="knob"></div></div>
-  <div id="t-dash" class="tbtn"><svg viewBox="0 0 24 24"><path d="M12 3 L18.5 11 H14.5 V21 H9.5 V11 H5.5 Z"/></svg><span>LAUNCH</span></div>
-  <div id="t-attack" class="tbtn big"><svg viewBox="0 0 24 24"><path d="M4 19 A11.5 11.5 0 0 1 19 4" fill="none" stroke-width="2.8"/><path d="M8 21 A14 14 0 0 1 21 8" fill="none" stroke-width="1.6" opacity="0.55"/></svg><span>ATTACK</span></div>
+  <div id="t-dash" class="tbtn"><canvas id="ic-launch" width="132" height="132"></canvas><span>LAUNCH</span></div>
+  <div id="t-attack" class="tbtn big"><canvas id="ic-attack" width="184" height="184"></canvas><span>SWEEP</span></div>
   <div id="t-pause" class="tbtn small">II</div>
 </div>
 
@@ -75,7 +75,7 @@
     <button id="btn-settings">SETTINGS</button>
   </div>
   <div class="menu-foot">
-    <label>PILOT <input id="name" maxlength="16" placeholder="anonymous" autocomplete="off" /></label>
+    <label>PILOT <input id="name" maxlength="16" placeholder="anonymous" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done" /></label>
     <div id="menu-best"></div>
   </div>
 </div>
@@ -122,7 +122,7 @@
 <div id="offers" class="screen modal hidden">
   <h2>CHOOSE AN UPGRADE</h2>
   <div id="offer-cards"></div>
-  <p class="hint">1 / 2 / 3 or click · gamepad X / Y / RB</p>
+  <p class="hint" id="offer-hint">1 / 2 / 3 or click · gamepad X / Y / RB</p>
 </div>
 
 <div id="won" class="screen modal hidden">
@@ -157,9 +157,8 @@
 <div id="ios-hint" class="hidden">for a real fullscreen app: Share → Add to Home Screen, then open it from there</div>
 <div id="swipe" class="hidden">
   <div class="chev"><svg viewBox="0 0 24 24"><path d="M5 15 L12 8 L19 15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-  <div class="swipe-text">swipe up to hide Safari's bars</div>
-  <div class="swipe-sub">the game stays fullscreen after that</div>
-  <button id="swipe-skip">skip</button>
+  <div class="swipe-text">swipe up to play</div>
+  <div class="swipe-sub">this tucks Safari's bars away; the game stays fullscreen after</div>
 </div>
 <script type="module" src="./src/main.ts"></script>
 </body>

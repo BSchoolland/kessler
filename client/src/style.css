@@ -13,7 +13,7 @@ html.ios-browser #stage { touch-action: none; }
 @keyframes swipeup { 0% { transform: translateY(14px); opacity: 0.3; } 50% { transform: translateY(-6px); opacity: 1; } 100% { transform: translateY(-14px); opacity: 0; } }
 .swipe-text { font-size: 20px; font-weight: 700; letter-spacing: 0.18em; color: #fff; }
 .swipe-sub { font-size: 13px; letter-spacing: 0.1em; color: #9fb1d8; }
-#swipe-skip { margin-top: 18px; font-size: 12px; padding: 6px 16px; opacity: 0.7; }
+
 #stage.rot { transform-origin: 0 0; transform: rotate(90deg) translateY(-100%); }
 canvas#game { position: fixed; inset: 0; display: block; cursor: none; }
 #ios-hint { position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%); padding: 6px 12px; font-size: 12px; letter-spacing: 0.08em; color: #9fb1d8; background: rgba(6,9,20,0.8); border: 1px solid rgba(77,243,255,0.25); border-radius: 4px; z-index: 30; pointer-events: none; }
@@ -36,7 +36,8 @@ h2 { letter-spacing: 0.2em; font-weight: 700; color: var(--cyan); margin: 0 0 18
 .howto-grid { display: grid; gap: 10px; max-width: 640px; font-size: 18px; }
 .howto-grid b { color: var(--cyan); letter-spacing: 0.06em; }
 .howto-grid div > b:first-child { display: inline-block; width: 130px; letter-spacing: 0.1em; }
-.modal.scroll { justify-content: flex-start; padding: 28px 0 40px; overflow-y: auto; gap: 14px; }
+.modal.scroll { justify-content: flex-start; padding: 28px 0 40px; overflow-y: auto; gap: 14px; touch-action: pan-y; overscroll-behavior: contain; }
+ol { touch-action: pan-y; overscroll-behavior: contain; }
 .howto-sub { margin: 6px 0 0; color: var(--gold); letter-spacing: 0.3em; font-size: 15px; font-weight: 700; }
 #bestiary { display: grid; grid-template-columns: repeat(4, 150px); gap: 10px 14px; }
 #bestiary div { display: flex; flex-direction: column; align-items: center; text-align: center; font-size: 12px; color: #9fb1d8; line-height: 1.3; }
@@ -127,11 +128,14 @@ ol li span:nth-child(3) { text-align: right; font-weight: 700; } ol li span:nth-
 .stick .knob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(77,243,255,0.35); border: 2px solid var(--cyan); }
 .tbtn { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 50%; border: 2px solid rgba(77,243,255,0.6); background: rgba(10,20,30,0.55); color: var(--cyan); font-weight: 700; letter-spacing: 0.15em; font-size: 15px; touch-action: none; }
 .tbtn:active, .tbtn.down { background: rgba(77,243,255,0.35); }
-.tbtn svg { width: 46%; height: 46%; fill: currentColor; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
-.tbtn span { font-size: 9px; letter-spacing: 0.25em; opacity: 0.75; }
-#t-attack { right: 22px; bottom: 24px; width: 92px; height: 92px; color: #ffe9a8; border-color: rgba(255,211,106,0.7); background: rgba(40,30,8,0.5); }
-#t-attack:active, #t-attack.down { background: rgba(255,211,106,0.4); }
-#t-dash { right: 120px; bottom: 74px; width: 66px; height: 66px; }
+.tbtn canvas { width: 100%; height: 100%; position: absolute; inset: 0; border-radius: 50%; }
+.tbtn span { position: absolute; bottom: 9px; left: 0; right: 0; text-align: center; font-size: 9px; letter-spacing: 0.25em; opacity: 0.8; pointer-events: none; }
+.tbtn.dim { opacity: 0.45; }
+#t-attack { right: 22px; bottom: 24px; width: 92px; height: 92px; color: #ffe9a8; border-color: rgba(255,211,106,0.7); background: rgba(24,20,10,0.6); }
+#t-attack:active, #t-attack.down { background: rgba(255,211,106,0.35); }
+#t-attack.melee { color: var(--cyan); border-color: rgba(77,243,255,0.7); background: rgba(8,20,30,0.6); }
+#t-attack.melee:active, #t-attack.melee.down { background: rgba(77,243,255,0.35); }
+#t-dash { right: 120px; bottom: 74px; width: 66px; height: 66px; background: rgba(8,20,30,0.6); }
 #t-pause { left: 10px; top: 8px; width: 34px; height: 34px; border-radius: 8px; font-size: 13px; }
 #stage.narrow #tut { bottom: 130px; } #stage.narrow .hp-wrap { width: 180px; left: 14px; bottom: 14px; } #stage.narrow #wave-label { font-size: 22px; } #stage.narrow #score { font-size: 26px; } #stage.narrow .modal .row { width: 300px; } #stage.narrow ol { width: 320px; } #stage.narrow h2 { font-size: 24px; }
 #stage.short .screen {justify-content: flex-start; padding: 12px 0 24px; gap: 10px; overflow-y: auto; }
@@ -183,3 +187,29 @@ ol li span:nth-child(3) { text-align: right; font-weight: 700; } ol li span:nth-
 #stage.short #tut-keys span { font-size: 9px; }
 #stage.short .zone-hint { top: auto; bottom: 14px; left: 22%; transform: none; font-size: 10px; }
 #stage.short #fps { top: auto; bottom: 6px; left: 8px; }
+
+/* phone landscape menu: title on the left, actions on the right, nothing centered in a tall column */
+#stage.short #menu { flex-direction: row; justify-content: center; align-items: center; gap: 34px; padding: 0 24px; }
+#stage.short .title-block { text-align: left; }
+#stage.short h1 { font-size: 46px; letter-spacing: 0.2em; }
+#stage.short .tag { font-size: 12px; margin-top: 2px; max-width: 340px; }
+#stage.short .menu-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; min-width: 0; width: 320px; }
+#stage.short .menu-buttons #btn-play { grid-column: 1 / -1; font-size: 18px; padding: 12px; }
+#stage.short .menu-buttons button { font-size: 12px; padding: 9px 8px; letter-spacing: 0.1em; }
+#stage.short .menu-foot { position: absolute; left: 24px; bottom: 14px; gap: 14px; font-size: 12px; }
+#stage.short .menu-foot input { width: 130px; font-size: 14px; padding: 4px 8px; }
+#stage.short #menu-best { font-size: 11px; }
+#stage.short #offers { gap: 10px; }
+#stage.short #offers h2 { margin-bottom: 4px; }
+#stage.short #offer-cards { gap: 12px; }
+#stage.short .card { width: 200px; min-height: 0; padding: 12px 12px 10px; gap: 4px; }
+#stage.short .card .name { font-size: 20px; }
+#stage.short .card .desc { font-size: 14px; }
+#stage.short .card .key { display: none; }
+#stage.short .hint { font-size: 11px; }
+#stage.short #gameover, #stage.short #won, #stage.short #pause, #stage.short #tutdone { gap: 8px; }
+#stage.short #go-title { font-size: 30px; }
+#stage.short #gameover .stats, #stage.short #won .stats { grid-template-columns: repeat(4, 96px); gap: 4px 12px; }
+#stage.short .stats div b { font-size: 20px; }
+#stage.short #go-list { display: none; }
+#stage.short .row-buttons button { font-size: 13px; padding: 9px 18px; }

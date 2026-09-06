@@ -15,6 +15,7 @@ import { Renderer } from "./render";
 import { audioContext, play, setIntensity, setMusicVolume, setSfxVolume, setThrust, startMusic } from "./sound";
 import { UI } from "./ui";
 import { Bestiary } from "./bestiary";
+import { TouchIcons } from "./touchicons";
 import { botInput } from "../../shared/bot";
 import { Rng } from "../../shared/rng";
 
@@ -37,6 +38,7 @@ const renderer = new Renderer(canvas, cam, particles);
 const input = new Input(canvas);
 const ui = new UI();
 const bestiary = new Bestiary(document.getElementById("bestiary")!);
+const touchIcons = new TouchIcons(document.getElementById("t-attack")!, document.getElementById("t-dash")!);
 
 let mode: Mode = "menu";
 let state: GameState | null = null;
@@ -277,7 +279,9 @@ function frame(now: number): void {
     renderer.draw(s, showCursor ? snap.aimScreen : null, rawDt, { paused: mode !== "playing" });
     ui.updateHud(s, profile.bestScore, profile.settings.showFps ? fpsAvg : null);
     ui.updateTutorial(s, input.usingTouch);
-    ui.show("touch", mode === "playing" && input.usingTouch);
+    const touchOn = mode === "playing" && input.usingTouch;
+    ui.show("touch", touchOn);
+    if (touchOn) touchIcons.update(s, snap.frame.move, rawDt);
   } else {
     // menu backdrop: an idle demo world
     if (!demo) { demo = createGame(7); cam.snap({ x: 0, y: 0 }); }
@@ -325,7 +329,10 @@ function bindMenu(): void {
   const nameEl = document.getElementById("name") as HTMLInputElement;
   nameEl.value = profile.name;
   nameEl.addEventListener("input", () => { profile.name = nameEl.value.replace(/[^\w \-.!?]/g, "").slice(0, 16); saveProfile(profile); });
-  nameEl.addEventListener("keydown", (e) => e.stopPropagation());
+  nameEl.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") nameEl.blur(); });
+  nameEl.addEventListener("focus", updateSwipeHint);
+  nameEl.addEventListener("blur", () => { window.setTimeout(updateSwipeHint, 250); window.scrollTo(0, document.documentElement.scrollHeight); });
+  if (input.usingTouch || "ontouchstart" in window) document.getElementById("offer-hint")!.textContent = "tap a card";
   document.getElementById("btn-play")!.addEventListener("click", startRun);
   document.getElementById("btn-tutorial")!.addEventListener("click", startTutorial);
   document.getElementById("btn-tut-play")!.addEventListener("click", startRun);
@@ -371,13 +378,14 @@ if (IOS && !STANDALONE) document.documentElement.classList.add("ios-browser");
  * page is scrolled by a finger. The page is taller than the viewport for exactly that; this overlay asks
  * for the swipe and goes away once the viewport has grown to the full screen height.
  */
-let swipeSkipped = false;
 function updateSwipeHint(): void {
   const el = document.getElementById("swipe")!;
   const landscape = window.innerWidth > window.innerHeight;
   const full = Math.min(screen.width, screen.height);
   const barsVisible = window.innerHeight < full - 6;
-  const show = IOS && !STANDALONE && landscape && barsVisible && !swipeSkipped;
+  // the on-screen keyboard also shrinks the viewport; that's not Safari's bars
+  const typing = document.activeElement instanceof HTMLInputElement;
+  const show = IOS && !STANDALONE && landscape && barsVisible && !typing;
   el.classList.toggle("hidden", !show);
 }
 function collapseBar(): void {
@@ -385,7 +393,7 @@ function collapseBar(): void {
 }
 window.addEventListener("resize", () => { layout(); updateSwipeHint(); });
 window.addEventListener("scroll", updateSwipeHint, { passive: true });
-document.getElementById("swipe-skip")!.addEventListener("click", () => { swipeSkipped = true; updateSwipeHint(); });
+window.visualViewport?.addEventListener("resize", updateSwipeHint);
 window.addEventListener("orientationchange", () => { window.setTimeout(layout, 50); collapseBar(); });
 window.addEventListener("touchstart", () => window.setTimeout(layout, 0), { passive: true, once: true });
 document.addEventListener("gesturestart", (e) => e.preventDefault());
