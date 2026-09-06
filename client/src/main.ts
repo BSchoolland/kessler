@@ -367,6 +367,7 @@ function layout(): void {
   const w = window.innerWidth, h = window.innerHeight;
   const rot = input.usingTouch && h > w;
   stage.classList.toggle("rot", rot);
+  document.getElementById("swipe")!.classList.toggle("rot", rot);
   const sw = rot ? h : w, sh = rot ? w : h;
   stage.style.width = `${sw}px`;
   stage.style.height = `${sh}px`;
