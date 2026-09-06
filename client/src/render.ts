@@ -520,9 +520,18 @@ export class Renderer {
         continue;
       }
       if (pr.seek > 0) {
-        // rocket: a short body with an exhaust flame
+        // rocket: a smoke trail behind it, then a short body with an exhaust flame
         const a = angleOf(pr.vel);
         const c = pr.friendly ? PLAYER_COLOR : hsl(pr.hue, 100, 70);
+        const back = { x: -Math.cos(a), y: -Math.sin(a) };
+        const g0 = ctx.createLinearGradient(pr.pos.x, pr.pos.y, pr.pos.x + back.x * 120, pr.pos.y + back.y * 120);
+        g0.addColorStop(0, pr.friendly ? "rgba(77,243,255,0.45)" : "rgba(255,190,120,0.5)");
+        g0.addColorStop(1, "rgba(255,190,120,0)");
+        ctx.strokeStyle = g0;
+        ctx.lineWidth = 6;
+        ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(pr.pos.x, pr.pos.y); ctx.lineTo(pr.pos.x + back.x * 120, pr.pos.y + back.y * 120); ctx.stroke();
+        if (Math.random() < 0.85) this.particles.burst({ x: pr.pos.x + back.x * 10, y: pr.pos.y + back.y * 10 }, 1, { color: pr.friendly ? "#9fe9ff" : "#d9c2b0", speed: 40, dir: back, spread: 0.8, shape: "dot", size: 3.2, max: 0.7, drag: 2, additive: false });
         ctx.save();
         ctx.translate(pr.pos.x, pr.pos.y);
         ctx.rotate(a);
