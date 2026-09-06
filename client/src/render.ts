@@ -949,6 +949,25 @@ export class Renderer {
         ctx.fillStyle = hsl(hue, 100, 85, k);
         ctx.beginPath(); ctx.arc(r * 1.1, 0, 3 + k * 6, 0, 6.283); ctx.fill();
       }
+    } else if (e.kind === "hive") {
+      // a lumpy hulk: a hexagon with pod bays that glow when it's about to launch
+      ctx.rotate(this.t * 0.25);
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.283; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * 6.283 + 0.52;
+        const busy = e.ai.rot < 1;
+        ctx.fillStyle = hsl(hue, 100, busy ? 80 : 45, busy ? 0.95 : 0.55);
+        ctx.beginPath(); ctx.arc(Math.cos(a) * r * 0.62, Math.sin(a) * r * 0.62, r * 0.14, 0, 6.283); ctx.fill();
+      }
+      ctx.globalCompositeOperation = "lighter";
+      const cg = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.5);
+      cg.addColorStop(0, hsl(hue, 100, e.ai.phase === 2 ? 85 : 65, 0.9));
+      cg.addColorStop(1, hsl(hue, 100, 60, 0));
+      ctx.fillStyle = cg;
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.5, 0, 6.283); ctx.fill();
+      ctx.globalCompositeOperation = "source-over";
     } else if (e.kind === "belt") {
       // a ringed giant: heavy octagon body, a slow counter-rotating outer ring, a furnace core
       ctx.save();

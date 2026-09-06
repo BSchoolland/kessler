@@ -20,6 +20,7 @@ const BOSS_LINE: Record<string, string> = {
   warden: "it circles. it dives. that's your window.",
   twin: "two of them. one gets angry.",
   belt: "the belt itself. break it.",
+  hive: "it brings friends. keep them from landing.",
 };
 
 export function applyEvents(s: GameState, events: GameEvent[], particles: Particles, cam: Camera, hooks: FxHooks): void {

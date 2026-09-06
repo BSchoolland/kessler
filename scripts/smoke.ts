@@ -38,7 +38,7 @@ for (const kind of SPAWNABLE) {
   console.log(`${kind.padEnd(9)} kills=${s.stats.kills} hurt=${hurt} left=[${left.join(",")}] over=${s.over} ev=${JSON.stringify(Object.fromEntries(Object.entries(evs).filter(([k]) => ["charge","explode","beam","shot","rocket","telegraph","kill"].includes(k))))}`);
 }
 
-for (const n of [5, 10, 15, 20]) {
+for (const n of [5, 10, 15, 20, 25]) {
   const s = createGame(7 + n);
   s.wave.n = n - 1;
   const r = new Rng(n);

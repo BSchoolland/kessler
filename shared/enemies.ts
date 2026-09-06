@@ -80,18 +80,22 @@ export const ENEMY_DEFS: Record<EnemyKind, EnemyDef> = {
     name: "The Twins", hp: 620, radius: 24, speed: 175, damage: 20, reach: 70, windup: 0.5, attack: 0.2,
     recover: 0.5, knockbackResist: 0.85, leapSpeed: 560, leapDelay: 1.6, cost: 0, minWave: 15, score: 300, hue: 330,
   },
+  hive: {
+    name: "The Hive", hp: 1800, radius: 38, speed: 140, damage: 20, reach: 800, windup: 0.7, attack: 0.1,
+    recover: 5, knockbackResist: 0.8, leapSpeed: 520, leapDelay: 0, cost: 0, minWave: 25, score: 700, hue: 95,
+  },
   belt: {
     name: "The Belt", hp: 2300, radius: 40, speed: 80, damage: 28, reach: 90, windup: 0.6, attack: 0.25,
     recover: 0.8, knockbackResist: 0.96, leapSpeed: 700, leapDelay: 2.5, cost: 0, minWave: 20, score: 900, hue: 22,
   },
 };
 
-export const BOSSES: EnemyKind[] = ["hammer", "warden", "twin", "belt"];
+export const BOSSES: EnemyKind[] = ["hammer", "warden", "twin", "belt", "hive"];
 export const isBoss = (k: EnemyKind): boolean => BOSSES.includes(k);
 /** Which boss a boss wave brings: the four in order, then around again. */
 export const bossForWave = (n: number, every: number): EnemyKind => BOSSES[(n / every - 1) % BOSSES.length];
 /** Space units arrive without a pod: they never land. */
-export const FLIES = (k: EnemyKind): boolean => k === "raider" || k === "mine" || k === "warden";
+export const FLIES = (k: EnemyKind): boolean => k === "raider" || k === "mine" || k === "warden" || k === "hive";
 
 export const SPAWNABLE: EnemyKind[] = ["grunt", "hopper", "orbiter", "bulwark", "flak", "raider", "lancer", "mine", "splitter", "sweeper", "aegis", "bomber"];
 

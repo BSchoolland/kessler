@@ -17,7 +17,7 @@ export interface Planet {
 
 export type EnemyKind =
   | "grunt" | "hopper" | "orbiter" | "bulwark" | "flak" | "raider" | "lancer" | "mine" | "splitter" | "sweeper" | "aegis" | "bomber"
-  | "hammer" | "warden" | "twin" | "belt";
+  | "hammer" | "warden" | "twin" | "belt" | "hive";
 
 export type EntityKind = "player" | EnemyKind;
 

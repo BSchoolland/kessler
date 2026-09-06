@@ -66,7 +66,8 @@ export function updateEnemyAi(ctx: Ctx, e: Entity): void {
     case "sweeper": return updateSweeper(ctx, e);
     case "hammer": return updatePounder(ctx, e, ENEMY_DEFS.hammer, { throws: true, pods: true });
     case "twin": return updateTwin(ctx, e);
-    case "warden": return updateWarden(ctx, e);
+    case "warden": return updateGunship(ctx, e, ENEMY_DEFS.warden, { fan: true, mines: 2, bombs: 0, pods: false, dive: 9.5 });
+    case "hive": return updateGunship(ctx, e, ENEMY_DEFS.hive, { fan: false, mines: 0, bombs: 2, pods: true, dive: 12 });
     case "belt": return updateBelt(ctx, e);
     default: updateWalker(ctx, e, def.speed * (e.elite ? 1.2 : 1), def.leapSpeed, def.leapDelay, e.kind === "hopper" ? 300 : Infinity);
   }
@@ -326,14 +327,14 @@ function updateTwin(ctx: Ctx, e: Entity): void {
 }
 
 /**
- * The Warden: a gunship in a wide orbit around whatever planet you're on. Fans of shots from
- * orbit, mines dropped on a clock, and a dive onto your planet every so often: it lands with
- * a small pound and sits there for a couple of seconds, which is when melee gets its turn.
+ * Orbiting bosses (the Warden, the Hive): a hulk in a wide orbit around whatever planet you're
+ * on, with a dive onto your planet every so often: it lands with a small pound and sits there
+ * for a couple of seconds, which is when melee gets its turn. Options pick the rest: fans of
+ * shots, mines, gravity bombs, pods launched at your planet.
  */
-function updateWarden(ctx: Ctx, e: Entity): void {
+function updateGunship(ctx: Ctx, e: Entity, def: EnemyDef, opts: { fan: boolean; mines: number; bombs: number; pods: boolean; dive: number }): void {
   const { s, dt, rng } = ctx;
   const p = player(s);
-  const def = ENEMY_DEFS.warden;
   const ai = e.ai;
   const phase2 = ai.phase === 2;
 
@@ -356,15 +357,27 @@ function updateWarden(ctx: Ctx, e: Entity): void {
     ai.rot -= dt;
     if (ai.rot <= 0) {
       ai.rot = phase2 ? 6 : 8;
-      for (let i = 0; i < (phase2 ? 3 : 2); i++) {
+      for (let i = 0; i < opts.mines * (phase2 ? 1.5 : 1); i++) {
         const m = spawnEnemyPod(ctx, "mine", planet.id, false, add(e.pos, fromAngle(rng.range(0, 6.283), 30)));
         m.vel = fromAngle(rng.range(0, 6.283), 60);
       }
+      if (opts.pods) {
+        // pods flung at your planet from the hulk itself
+        const others = s.entities.filter((x) => x.kind !== "player" && !isBoss(x.kind as EnemyKind) && !x.dead).length;
+        const cap = phase2 ? 8 : 6;
+        for (let i = 0; i < (phase2 ? 3 : 2) && others + i < cap; i++) {
+          const kind = rng.pick(["hopper", "lancer", "splitter", "grunt"] as const);
+          const pod = spawnEnemyPod(ctx, kind, planet.id, rng.chance(0.15), add(e.pos, fromAngle(rng.range(0, 6.283), 20)));
+          pod.vel = scale(norm(sub(planet.pos, e.pos)), 380);
+        }
+        emit(s, { type: "pod", pos: e.pos, kind: "hopper" });
+      }
+      if (opts.pods) ai.rot = phase2 ? 2.8 : 4;
     }
     ai.timer -= dt;
     if (ai.timer <= 0 && ai.state === "idle") {
       // dive at where you're standing
-      ai.timer = phase2 ? 6.5 : 9.5;
+      ai.timer = phase2 ? opts.dive * 0.7 : opts.dive;
       e.orbit = null;
       ai.state = "leaping";
       e.vel = scale(norm(sub(add(p.pos, scale(p.vel, 0.3)), e.pos)), def.leapSpeed);
@@ -374,7 +387,7 @@ function updateWarden(ctx: Ctx, e: Entity): void {
     }
     switch (ai.state) {
       case "idle":
-        if (ai.cooldown <= 0 && dist(p.pos, e.pos) < def.reach) {
+        if (ai.cooldown <= 0 && (opts.fan ? dist(p.pos, e.pos) < def.reach : opts.bombs > 0)) {
           ai.state = "aim";
           ai.t = def.windup;
           s.telegraphs.push({ id: s.nextId++, kind: "shot", pos: e.pos, radius: 0, t: def.windup, total: def.windup, owner: e.id });
@@ -384,14 +397,25 @@ function updateWarden(ctx: Ctx, e: Entity): void {
       case "aim": {
         ai.t -= dt;
         if (ai.t <= 0) {
-          const n = phase2 ? 7 : 5;
-          const speed = 480;
-          const base = angleOf(sub(add(p.pos, scale(p.vel, 0.4)), e.pos));
-          for (let i = 0; i < n; i++) {
-            const dir = fromAngle(base + (i - (n - 1) / 2) * 0.13);
-            s.projectiles.push({ id: s.nextId++, pos: add(e.pos, scale(dir, e.radius + 6)), vel: scale(dir, speed), radius: 5, life: 3, damage: def.damage, hue: def.hue, friendly: false, knockback: 320, slug: false, seek: 0, bomb: false });
+          if (opts.fan) {
+            const n = phase2 ? 7 : 5;
+            const speed = 480;
+            const base = angleOf(sub(add(p.pos, scale(p.vel, 0.4)), e.pos));
+            for (let i = 0; i < n; i++) {
+              const dir = fromAngle(base + (i - (n - 1) / 2) * 0.13);
+              s.projectiles.push({ id: s.nextId++, pos: add(e.pos, scale(dir, e.radius + 6)), vel: scale(dir, speed), radius: 5, life: 3, damage: def.damage, hue: def.hue, friendly: false, knockback: 320, slug: false, seek: 0, bomb: false });
+            }
+            emit(s, { type: "shot", pos: e.pos, dir: fromAngle(base) });
+          } else {
+            // bombs let go toward the planet, spread a little so they land as a cluster
+            const down = norm(sub(planet.pos, e.pos));
+            const n = opts.bombs + (phase2 ? 1 : 0);
+            for (let i = 0; i < n; i++) {
+              const dir = fromAngle(angleOf(down) + (i - (n - 1) / 2) * 0.16);
+              s.projectiles.push({ id: s.nextId++, pos: add(e.pos, scale(dir, e.radius + 6)), vel: add(scale(dir, 80), scale(e.vel, 0.5)), radius: 7, life: 5, damage: def.damage, hue: def.hue, friendly: false, knockback: 380, slug: false, seek: 0, bomb: true });
+            }
+            emit(s, { type: "shot", pos: e.pos, dir: down });
           }
-          emit(s, { type: "shot", pos: e.pos, dir: fromAngle(base) });
           ai.state = "idle";
           ai.cooldown = def.recover * (phase2 ? 0.75 : 1);
         }

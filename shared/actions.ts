@@ -63,7 +63,7 @@ export function spawnEnemyPod(ctx: Ctx, kind: EnemyKind, targetPlanet: number, e
   if (ORBIT_HEIGHT[kind]) e.ai.timer = rng.range(6, 10);
   if (kind === "aegis") e.ai.rot = Math.atan2(-start.y, -start.x);
   if (kind === "hammer" || kind === "belt") e.ai.timer = 4;
-  if (kind === "warden") e.ai.timer = 6;
+  if (kind === "warden" || kind === "hive") e.ai.timer = 6;
   if (kind === "raider") {
     // no pod: it arrives on the outer ring and starts patrolling at once
     e.spawnT = 0;
@@ -75,7 +75,7 @@ export function spawnEnemyPod(ctx: Ctx, kind: EnemyKind, targetPlanet: number, e
     e.spawnT = 0;
     e.vel = scale(norm(sub(player(s).pos, start)), def.speed);
   }
-  if (kind === "warden") {
+  if (kind === "warden" || kind === "hive") {
     // no pod: it takes up a wide orbit around whatever planet you're on
     e.spawnT = 0;
     const p = player(s);

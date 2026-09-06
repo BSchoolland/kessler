@@ -71,6 +71,7 @@ instant and cancels a wind-up, not an active swing.
 | The Hammer (boss, wave 5) | fast chaser that leaps at you (and hops every 5.5s even up close); every landing is a full-ring ground pound; heavy-debris shotgun only with line of sight; calls a pod every 6.5s (4.5s in phase 2, capped at 4 alive) | being airborne when it lands; fighting near the middle |
 | The Warden (boss, wave 10) | gunship in a 260-unit orbit around your planet; 5-shot fans (7 in phase 2), drops mines on a clock, dives onto your planet every 9.5s and sits there 2.6s after a small pound | the gun while it orbits, melee during the dive |
 | The Twins (boss, wave 15) | two pounders, 620 HP each; when one dies the other enrages and starts calling pods | splitting attention; killing one fast |
+| The Hive (boss, wave 25 and on the cycle) | orbiting hulk like the Warden; launches pods (hopper/lancer/splitter/grunt) at your planet every 4s (cap 6, phase 2: 8 and every 2.8s), drops bomb clusters, dives every 12s | killing the pods as they land; the dive window |
 | The Belt (boss, wave 20) | slow giant on the main planet: 5s sweeping laser (two blades in phase 2), a straight-up leap that lands as a pound, a ring of 8 heavy rocks thrown into orbit; pods every 5.5s | the whole kit; winning here ends the arc and rolls into endless |
 
 Elites (from wave 4): 1.6× HP, 1.2× speed, gold ring, double score.
