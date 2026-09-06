@@ -1,7 +1,9 @@
 import { DT } from "../../shared/config";
 import { chooseUpgrade, createGame, step } from "../../shared/sim";
+import { damageEnemy, placePlayer } from "../../shared/actions";
+import { isBoss } from "../../shared/enemies";
 import { createTutorial } from "../../shared/tutorial";
-import type { GameState } from "../../shared/types";
+import type { EnemyKind, GameState } from "../../shared/types";
 import { add, dist, fromAngle, len, norm, scale, sub, type Vec } from "../../shared/vec";
 import { submitScore } from "./api";
 import { Camera } from "./camera";
@@ -15,9 +17,13 @@ import { UI } from "./ui";
 import { botInput } from "../../shared/bot";
 import { Rng } from "../../shared/rng";
 
-// debug/playtest params: ?bot=1 drives the player with the balance bot, ?seed=N fixes the seed, ?wave=N starts there
+// debug/playtest params: ?bot=1 drives the player with the balance bot, ?seed=N fixes the seed, ?wave=N starts there,
+// ?god=1 keeps the player alive, ?smite=1 chips bosses down so a boss wave can be watched end to end
 const params = new URLSearchParams(location.search);
 const BOT = params.get("bot") === "1";
+const GOD = params.get("god") === "1";
+const SMITE = params.get("smite") === "1";
+const debugRng = new Rng(4);
 const botRng = new Rng(99);
 
 type Mode = "menu" | "playing" | "paused" | "offers" | "over" | "won";
@@ -225,6 +231,8 @@ function frame(now: number): void {
           let frameInput = { ...snap.frame, attack: pending.attack && !frozen, dash: pending.dash && !frozen };
           if (BOT) { frameInput = botInput(s, () => botRng.next()); renderer.thrust = frameInput.move; }
           step(s, frameInput);
+          if (GOD) { p.hp = p.maxHp; if (len(p.pos) > 1350) placePlayer(s, 0, -Math.PI / 2); }
+          if (SMITE) for (const e of s.entities) if (isBoss(e.kind as EnemyKind) && !e.dead && e.spawnT <= 0 && s.tick % 6 === 0) damageEnemy({ s, rng: debugRng, dt: DT }, e, e.maxHp / 400, "blade");
           if (!frozen) pending = { attack: false, dash: false };
           applyEvents(s, s.events, particles, cam, { banner: (t, sub, k) => ui.banner(t, sub, k), hurtFlash: () => (renderer.hurtFlash = 1) });
           for (const ev of s.events) {
