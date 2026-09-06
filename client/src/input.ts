@@ -12,6 +12,9 @@ export interface InputSnapshot {
   numberKey: number; // 1..3 or 0
 }
 
+/** Screen → stage coordinates. When the stage is rotated for a portrait phone, pointer events still arrive in screen space. */
+export const toStage = (x: number, y: number): Vec => (document.getElementById("stage")!.classList.contains("rot") ? { x: y, y: window.innerWidth - x } : { x, y });
+
 export class Input {
   private keys = new Set<string>();
   private pressed = new Set<string>();
@@ -22,7 +25,7 @@ export class Input {
   usingGamepad = false;
   usingTouch = false;
   lastGamepadAim: Vec = { x: 1, y: 0 };
-  private touch = { move: { x: 0, y: 0 } as Vec, aim: { x: 0, y: 0 } as Vec, attack: false, dash: false, pause: false, lastAim: { x: 1, y: 0 } as Vec };
+  private touch = { move: { x: 0, y: 0 } as Vec, attack: false, dash: false, pause: false };
   lastMouseMove = 0;
   thrust: Vec = { x: 0, y: 0 };
 
@@ -36,7 +39,7 @@ export class Input {
     });
     window.addEventListener("keyup", (e) => this.keys.delete(e.code));
     window.addEventListener("blur", () => { this.keys.clear(); this.mouseDown.clear(); });
-    canvas.addEventListener("mousemove", (e) => { this.mouse = { x: e.clientX, y: e.clientY }; this.usingGamepad = false; this.lastMouseMove = performance.now(); });
+    canvas.addEventListener("mousemove", (e) => { this.mouse = toStage(e.clientX, e.clientY); this.usingGamepad = false; this.lastMouseMove = performance.now(); });
     canvas.addEventListener("mousedown", (e) => { this.mouseDown.add(e.button); this.mousePressed.add(e.button); this.usingGamepad = false; e.preventDefault(); });
     window.addEventListener("mouseup", (e) => this.mouseDown.delete(e.button));
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
@@ -56,7 +59,7 @@ export class Input {
       zone.addEventListener("pointerdown", (e) => {
         if (id !== null) return;
         id = e.pointerId;
-        origin = { x: e.clientX, y: e.clientY };
+        origin = toStage(e.clientX, e.clientY);
         stick.style.left = `${origin.x}px`;
         stick.style.top = `${origin.y}px`;
         stick.classList.remove("hidden");
@@ -67,7 +70,8 @@ export class Input {
       });
       zone.addEventListener("pointermove", (e) => {
         if (e.pointerId !== id) return;
-        let d = { x: e.clientX - origin.x, y: e.clientY - origin.y };
+        const at = toStage(e.clientX, e.clientY);
+        let d = { x: at.x - origin.x, y: at.y - origin.y };
         const l = Math.hypot(d.x, d.y);
         if (l > R) d = { x: (d.x / l) * R, y: (d.y / l) * R };
         knob.style.transform = `translate(${d.x}px, ${d.y}px)`;
@@ -83,7 +87,9 @@ export class Input {
       zone.addEventListener("pointercancel", end);
     };
     bindStick("zone-l", "stick-l", (v) => (this.touch.move = v));
-    bindStick("zone-r", "stick-r", (v) => { this.touch.aim = v; if (Math.hypot(v.x, v.y) > 0.3) this.touch.lastAim = norm(v); });
+    // the right half is one big attack button: melee on the ground, the gun in the air, like the keyboard
+    const zr = document.getElementById("zone-r")!;
+    zr.addEventListener("pointerdown", (e) => { e.preventDefault(); this.usingTouch = true; this.touch.attack = true; });
     const bindBtn = (btnId: string, fn: () => void) => {
       const b = document.getElementById(btnId)!;
       b.addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); b.classList.add("down"); this.usingTouch = true; fn(); });
@@ -91,7 +97,6 @@ export class Input {
       b.addEventListener("pointerup", up);
       b.addEventListener("pointercancel", up);
     };
-    bindBtn("t-attack", () => (this.touch.attack = true));
     bindBtn("t-dash", () => (this.touch.dash = true));
     bindBtn("t-pause", () => (this.touch.pause = true));
     window.addEventListener("touchstart", () => { this.usingTouch = true; }, { passive: true, once: true });
@@ -147,9 +152,7 @@ export class Input {
     }
     if (this.usingTouch) {
       move = this.touch.move;
-      const stickAim = this.touch.aim;
-      aim = Math.hypot(stickAim.x, stickAim.y) > 0.3 ? norm(stickAim) : aimAssist ?? this.touch.lastAim;
-      this.touch.lastAim = aim;
+      aim = aimAssist ?? aim;
       aimScreen = null;
       attack = this.touch.attack;
       dash = this.touch.dash;

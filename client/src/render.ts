@@ -26,11 +26,7 @@ export class Renderer {
     for (let i = 0; i < 420; i++) this.stars.push({ x: r.range(-2600, 2600), y: r.range(-2600, 2600), z: r.pick([0.15, 0.3, 0.5]), s: r.range(0.6, 2.2), tw: r.range(0, 6.28) });
   }
 
-  resize(): void {
-    this.sizeTo(window.innerWidth, window.innerHeight);
-  }
-
-  /** Fixed-size backing store; the bestiary tiles use this instead of the window. */
+  /** Backing store at a given CSS size: the stage's for the game, a tile's for the bestiary. */
   sizeTo(w: number, h: number): void {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     this.canvas.width = Math.floor(w * dpr);

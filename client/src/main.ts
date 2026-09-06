@@ -101,6 +101,7 @@ function startTutorial(): void {
 function enter(s: GameState): void {
   audioContext();
   startMusic();
+  enterFullscreen();
   state = s;
   particles.list = [];
   particles.floaters = [];
@@ -348,8 +349,47 @@ function bindMenu(): void {
   });
 }
 
-window.addEventListener("resize", () => renderer.resize());
-renderer.resize();
+// the stage fills the window; on a touch device held portrait it is rotated so the game stays landscape
+const stage = document.getElementById("stage")!;
+const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && !("MSStream" in window);
+function layout(): void {
+  const w = window.innerWidth, h = window.innerHeight;
+  const rot = input.usingTouch && h > w;
+  stage.classList.toggle("rot", rot);
+  const sw = rot ? h : w, sh = rot ? w : h;
+  stage.style.width = `${sw}px`;
+  stage.style.height = `${sh}px`;
+  // compact layouts key off the stage, not the window, so a rotated phone gets them too
+  stage.classList.toggle("narrow", sw <= 760);
+  stage.classList.toggle("short", sh <= 560);
+  renderer.sizeTo(rot ? h : w, rot ? w : h);
+}
+window.addEventListener("resize", layout);
+window.addEventListener("orientationchange", () => window.setTimeout(layout, 50));
+window.addEventListener("touchstart", () => window.setTimeout(layout, 0), { passive: true, once: true });
+document.addEventListener("gesturestart", (e) => e.preventDefault());
+document.addEventListener("dblclick", (e) => e.preventDefault());
+
+/** Phones: go fullscreen and lock landscape where the browser allows it; iPhone Safari allows neither, so it gets a hint instead. */
+function enterFullscreen(): void {
+  if (!input.usingTouch) return;
+  const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> };
+  const req = el.requestFullscreen?.bind(el) ?? el.webkitRequestFullscreen?.bind(el);
+  const standalone = window.matchMedia("(display-mode: standalone)").matches || window.matchMedia("(display-mode: fullscreen)").matches;
+  if (req && !document.fullscreenElement) {
+    req().then(() => {
+      const so = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> };
+      return so.lock?.("landscape");
+    }).catch((err: unknown) => console.info("fullscreen/orientation not available:", err));
+  } else if (IOS && !standalone && !profile.iosHintShown) {
+    profile.iosHintShown = true;
+    saveProfile(profile);
+    const hint = document.getElementById("ios-hint")!;
+    hint.classList.remove("hidden");
+    window.setTimeout(() => hint.classList.add("hidden"), 7000);
+  }
+}
+layout();
 applySettings();
 bindSettings();
 bindMenu();

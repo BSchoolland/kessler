@@ -2,13 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#04050a" />
+<link rel="manifest" href="./manifest.webmanifest" />
 <title>KESSLER</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="./src/style.css" />
 </head>
 <body>
+<div id="stage">
 <canvas id="game"></canvas>
 
 <div id="hud" class="hidden">
@@ -30,12 +36,10 @@
 </div>
 
 <div id="touch" class="hidden">
-  <div id="zone-l"></div>
-  <div id="zone-r"></div>
+  <div id="zone-l"><span class="zone-hint">MOVE</span></div>
+  <div id="zone-r"><span class="zone-hint">TAP · ATTACK</span></div>
   <div id="stick-l" class="stick hidden"><div class="knob"></div></div>
-  <div id="stick-r" class="stick hidden"><div class="knob"></div></div>
-  <div id="t-dash" class="tbtn">LAUNCH</div>
-  <div id="t-attack" class="tbtn big">SWING</div>
+  <div id="t-dash" class="tbtn big">LAUNCH</div>
   <div id="t-pause" class="tbtn small">II</div>
 </div>
 
@@ -148,6 +152,8 @@
   </div>
 </div>
 
+</div>
+<div id="ios-hint" class="hidden">for fullscreen on iPhone: Share → Add to Home Screen, then open it from there</div>
 <script type="module" src="./src/main.ts"></script>
 </body>
 </html>

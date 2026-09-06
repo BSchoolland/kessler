@@ -1,7 +1,11 @@
 :root { --cyan: #4df3ff; --gold: #ffd36a; --red: #ff4d7a; --ink: rgba(6, 9, 20, 0.86); --font: "Rajdhani", "Segoe UI", sans-serif; }
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; background: #04050a; color: #e6ecff; font-family: var(--font); overflow: hidden; user-select: none; }
+html, body { margin: 0; height: 100%; background: #04050a; color: #e6ecff; font-family: var(--font); overflow: hidden; user-select: none; -webkit-user-select: none; touch-action: none; -webkit-touch-callout: none; overscroll-behavior: none; }
+/* everything lives in the stage; on a portrait phone the stage is rotated so the game is always landscape */
+#stage { position: fixed; left: 0; top: 0; width: 100%; height: 100%; }
+#stage.rot { transform-origin: 0 0; transform: rotate(90deg) translateY(-100%); }
 canvas#game { position: fixed; inset: 0; display: block; cursor: none; }
+#ios-hint { position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%); padding: 6px 12px; font-size: 12px; letter-spacing: 0.08em; color: #9fb1d8; background: rgba(6,9,20,0.8); border: 1px solid rgba(77,243,255,0.25); border-radius: 4px; z-index: 30; pointer-events: none; }
 .hidden { display: none !important; }
 button { font-family: var(--font); font-weight: 700; letter-spacing: 0.12em; font-size: 18px; padding: 12px 26px; background: transparent; color: var(--cyan); border: 2px solid rgba(77,243,255,0.55); border-radius: 4px; cursor: pointer; transition: 0.12s; text-transform: uppercase; }
 button:hover, button.focus { background: rgba(77,243,255,0.14); border-color: var(--cyan); transform: translateY(-1px); box-shadow: 0 0 22px rgba(77,243,255,0.25); }
@@ -27,7 +31,7 @@ h2 { letter-spacing: 0.2em; font-weight: 700; color: var(--cyan); margin: 0 0 18
 #bestiary div { display: flex; flex-direction: column; align-items: center; text-align: center; font-size: 12px; color: #9fb1d8; line-height: 1.3; }
 #bestiary canvas { width: 72px; height: 72px; border-radius: 6px; border: 1px solid rgba(77,243,255,0.15); background: #070a16; margin-bottom: 4px; }
 #bestiary b { color: #e6ecff; letter-spacing: 0.12em; font-size: 13px; }
-@media (max-width: 760px) { #bestiary { grid-template-columns: repeat(2, 150px); } }
+#stage.narrow #bestiary {grid-template-columns: repeat(2, 150px); }
 .howto-notes { max-width: 640px; color: #c3cdea; font-size: 17px; line-height: 1.45; }
 .howto-notes b { color: #fff; }
 #hud { position: fixed; inset: 0; pointer-events: none; z-index: 5; font-weight: 600; letter-spacing: 0.08em; }
@@ -97,35 +101,40 @@ ol li span:nth-child(3) { text-align: right; font-weight: 700; } ol li span:nth-
 #go-title { font-size: 64px; color: var(--red); text-shadow: 0 0 30px rgba(255,77,122,0.6); margin: 0; }
 #go-sub { margin: -10px 0 0; color: #9fb1d8; letter-spacing: 0.15em; }
 #go-rank { color: var(--gold); letter-spacing: 0.2em; font-weight: 700; min-height: 22px; }
-@media (max-width: 760px) { .stats { grid-template-columns: repeat(2, 130px); } #offer-cards { flex-direction: column; } .card { width: 300px; min-height: 0; } }
+#stage.narrow .stats {grid-template-columns: repeat(2, 130px); }
+#stage.narrow #offer-cards {flex-direction: column; }
+#stage.narrow .card {width: 300px; min-height: 0; }
 
 /* touch controls */
 #touch { position: fixed; inset: 0; z-index: 7; touch-action: none; }
 #zone-l, #zone-r { position: absolute; top: 0; bottom: 0; }
 #zone-l { left: 0; width: 45%; }
 #zone-r { right: 0; width: 55%; }
+.zone-hint { position: absolute; top: 58%; left: 50%; transform: translate(-50%, -50%); font-size: 11px; letter-spacing: 0.3em; color: rgba(159,177,216,0.4); pointer-events: none; }
+#zone-r .zone-hint { left: 42%; }
 .stick { position: absolute; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; border: 2px solid rgba(77,243,255,0.35); background: rgba(77,243,255,0.06); pointer-events: none; }
 .stick .knob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(77,243,255,0.35); border: 2px solid var(--cyan); }
 .tbtn { position: absolute; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 2px solid rgba(77,243,255,0.6); background: rgba(10,20,30,0.55); color: var(--cyan); font-weight: 700; letter-spacing: 0.15em; font-size: 15px; touch-action: none; }
 .tbtn:active, .tbtn.down { background: rgba(77,243,255,0.35); }
-#t-attack { right: 26px; bottom: 34px; width: 96px; height: 96px; font-size: 17px; }
-#t-dash { right: 138px; bottom: 60px; width: 74px; height: 74px; }
+#t-dash { right: 26px; bottom: 34px; width: 96px; height: 96px; font-size: 16px; }
 #t-pause { left: 14px; top: 10px; width: 40px; height: 40px; border-radius: 8px; font-size: 14px; }
-@media (max-width: 760px) { #tut { bottom: 130px; } .hp-wrap { width: 180px; left: 14px; bottom: 14px; } #wave-label { font-size: 22px; } #score { font-size: 26px; } .modal .row { width: 300px; } ol { width: 320px; } h2 { font-size: 24px; } }
-@media (max-height: 560px) {
-  .screen { justify-content: flex-start; padding: 12px 0 24px; gap: 10px; overflow-y: auto; }
-  h1 { font-size: 44px; letter-spacing: 0.18em; }
-  .tag { font-size: 14px; margin: 0; }
-  .menu-buttons { flex-direction: row; flex-wrap: wrap; justify-content: center; min-width: 0; max-width: 90vw; }
-  button { font-size: 14px; padding: 8px 14px; }
-  h2 { font-size: 20px; margin-bottom: 8px; }
-  .howto-grid, .howto-notes { font-size: 13px; max-width: 90vw; }
-  .howto-grid b { width: 90px; }
-  .stats { grid-template-columns: repeat(4, 90px); }
-  .stats div b { font-size: 22px; }
-  #go-title { font-size: 36px; }
-  ol { max-height: 22vh; }
-  .card { min-height: 0; padding: 10px 12px; gap: 4px; width: 200px; } .card .name { font-size: 18px; } .card .desc { font-size: 13px; }
-  #banner { top: 22%; }
-  #tut { bottom: 8px; padding: 8px 12px; } #tut-title { font-size: 18px; } #tut-body { font-size: 13px; }
-}
+#stage.narrow #tut { bottom: 130px; } #stage.narrow .hp-wrap { width: 180px; left: 14px; bottom: 14px; } #stage.narrow #wave-label { font-size: 22px; } #stage.narrow #score { font-size: 26px; } #stage.narrow .modal .row { width: 300px; } #stage.narrow ol { width: 320px; } #stage.narrow h2 { font-size: 24px; }
+#stage.short .screen {justify-content: flex-start; padding: 12px 0 24px; gap: 10px; overflow-y: auto; }
+#stage.short h1 {font-size: 44px; letter-spacing: 0.18em; }
+#stage.short .tag {font-size: 14px; margin: 0; }
+#stage.short .menu-buttons {flex-direction: row; flex-wrap: wrap; justify-content: center; min-width: 0; max-width: 90vw; }
+#stage.short button {font-size: 14px; padding: 8px 14px; }
+#stage.short h2 {font-size: 20px; margin-bottom: 8px; }
+#stage.short .howto-grid, #stage.short .howto-notes {font-size: 13px; max-width: 90vw; }
+#stage.short .howto-grid b {width: 90px; }
+#stage.short .stats {grid-template-columns: repeat(4, 90px); }
+#stage.short .stats div b {font-size: 22px; }
+#stage.short #go-title {font-size: 36px; }
+#stage.short ol {max-height: 22vh; }
+#stage.short .card {min-height: 0; padding: 10px 12px; gap: 4px; width: 200px; }
+#stage.short .card .name {font-size: 18px; }
+#stage.short .card .desc {font-size: 13px; }
+#stage.short #banner {top: 22%; }
+#stage.short #tut {bottom: 8px; padding: 8px 12px; }
+#stage.short #tut-title {font-size: 18px; }
+#stage.short #tut-body {font-size: 13px; }

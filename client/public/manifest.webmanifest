@@ -1,0 +1,11 @@
+{
+  "name": "KESSLER",
+  "short_name": "KESSLER",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#04050a",
+  "theme_color": "#04050a",
+  "icons": [{ "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
