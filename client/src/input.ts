@@ -98,6 +98,7 @@ export class Input {
       b.addEventListener("pointercancel", up);
     };
     bindBtn("t-dash", () => (this.touch.dash = true));
+    bindBtn("t-attack", () => (this.touch.attack = true));
     bindBtn("t-pause", () => (this.touch.pause = true));
     window.addEventListener("touchstart", () => { this.usingTouch = true; }, { passive: true, once: true });
   }

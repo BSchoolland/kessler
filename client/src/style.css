@@ -118,10 +118,14 @@ ol li span:nth-child(3) { text-align: right; font-weight: 700; } ol li span:nth-
 #zone-r .zone-hint { left: 42%; }
 .stick { position: absolute; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; border: 2px solid rgba(77,243,255,0.35); background: rgba(77,243,255,0.06); pointer-events: none; }
 .stick .knob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(77,243,255,0.35); border: 2px solid var(--cyan); }
-.tbtn { position: absolute; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 2px solid rgba(77,243,255,0.6); background: rgba(10,20,30,0.55); color: var(--cyan); font-weight: 700; letter-spacing: 0.15em; font-size: 15px; touch-action: none; }
+.tbtn { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 50%; border: 2px solid rgba(77,243,255,0.6); background: rgba(10,20,30,0.55); color: var(--cyan); font-weight: 700; letter-spacing: 0.15em; font-size: 15px; touch-action: none; }
 .tbtn:active, .tbtn.down { background: rgba(77,243,255,0.35); }
-#t-dash { right: 26px; bottom: 34px; width: 96px; height: 96px; font-size: 16px; }
-#t-pause { left: 14px; top: 10px; width: 40px; height: 40px; border-radius: 8px; font-size: 14px; }
+.tbtn svg { width: 46%; height: 46%; fill: currentColor; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
+.tbtn span { font-size: 9px; letter-spacing: 0.25em; opacity: 0.75; }
+#t-attack { right: 22px; bottom: 24px; width: 92px; height: 92px; color: #ffe9a8; border-color: rgba(255,211,106,0.7); background: rgba(40,30,8,0.5); }
+#t-attack:active, #t-attack.down { background: rgba(255,211,106,0.4); }
+#t-dash { right: 120px; bottom: 74px; width: 66px; height: 66px; }
+#t-pause { left: 10px; top: 8px; width: 34px; height: 34px; border-radius: 8px; font-size: 13px; }
 #stage.narrow #tut { bottom: 130px; } #stage.narrow .hp-wrap { width: 180px; left: 14px; bottom: 14px; } #stage.narrow #wave-label { font-size: 22px; } #stage.narrow #score { font-size: 26px; } #stage.narrow .modal .row { width: 300px; } #stage.narrow ol { width: 320px; } #stage.narrow h2 { font-size: 24px; }
 #stage.short .screen {justify-content: flex-start; padding: 12px 0 24px; gap: 10px; overflow-y: auto; }
 #stage.short h1 {font-size: 44px; letter-spacing: 0.18em; }
@@ -142,3 +146,33 @@ ol li span:nth-child(3) { text-align: right; font-weight: 700; } ol li span:nth-
 #stage.short #tut {bottom: 8px; padding: 8px 12px; }
 #stage.short #tut-title {font-size: 18px; }
 #stage.short #tut-body {font-size: 13px; }
+
+/* phone-height layout (stage ≤ 560 tall): HUD hugs the top edge, the bottom stays clear for thumbs */
+#stage.short #t-pause { left: 8px; top: 8px; }
+#stage.short .hp-wrap { left: 50px; top: 8px; bottom: auto; width: 150px; }
+#stage.short .hp-bar { height: 8px; border-width: 1.5px; }
+#stage.short .hp-row { font-size: 11px; margin-top: 2px; }
+#stage.short .weapon-row { font-size: 9px; gap: 6px; margin-top: 3px; letter-spacing: 0.15em; }
+#stage.short .wpn { padding: 1px 5px; }
+#stage.short #ammo-pips i { width: 5px; height: 9px; }
+#stage.short .top-center { top: 6px; }
+#stage.short #wave-label { font-size: 17px; letter-spacing: 0.25em; }
+#stage.short #sector-label { font-size: 9px; letter-spacing: 0.3em; }
+#stage.short .score-wrap { top: 6px; right: 10px; }
+#stage.short #score { font-size: 19px; }
+#stage.short #best { font-size: 9px; letter-spacing: 0.2em; }
+#stage.short #boss-bar { top: 46px; bottom: auto; width: 42vw; }
+#stage.short .boss-name { font-size: 10px; letter-spacing: 0.3em; margin-bottom: 2px; }
+#stage.short .boss-track { height: 6px; border-width: 1.5px; }
+#stage.short #banner { top: 26%; }
+#stage.short #banner-title { font-size: 34px; }
+#stage.short #banner-sub { font-size: 12px; }
+#stage.short #tut { bottom: 8px; width: min(360px, 42%); padding: 5px 10px 7px; }
+#stage.short #tut-step { font-size: 9px; }
+#stage.short #tut-title { font-size: 13px; letter-spacing: 0.14em; margin-top: 0; }
+#stage.short #tut-body { font-size: 10.5px; line-height: 1.3; margin-top: 2px; }
+#stage.short #tut-keys { margin-top: 5px; gap: 5px; }
+#stage.short #tut-keys i { width: 22px; height: 22px; line-height: 20px; font-size: 12px; }
+#stage.short #tut-keys span { font-size: 9px; }
+#stage.short .zone-hint { top: auto; bottom: 14px; left: 22%; transform: none; font-size: 10px; }
+#stage.short #fps { top: auto; bottom: 6px; left: 8px; }

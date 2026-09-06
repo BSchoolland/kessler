@@ -97,18 +97,19 @@ export class UI {
   }
 
   /** The persistent lesson card; rebuilt only when the step or the pressed-keys set changes. */
-  updateTutorial(s: GameState): void {
+  updateTutorial(s: GameState, touch: boolean): void {
     const tut = s.tutorial;
     this.tutEl.classList.toggle("hidden", !tut || tut.step === "done");
     if (!tut) { this.lastTutKey = ""; return; }
-    const key = `${tut.step}:${tut.keys}`;
+    const key = `${tut.step}:${tut.keys}:${touch}`;
     if (key === this.lastTutKey) return;
     this.lastTutKey = key;
     const lesson = LESSONS[tut.step];
     this.tutEl.dataset.step = tut.step;
     $("#tut-step").textContent = lesson.n ? `${lesson.n} / 8` : "";
     $("#tut-title").textContent = lesson.title;
-    $("#tut-body").innerHTML = lesson.body;
+    $("#tut-body").innerHTML = touch ? lesson.touch : lesson.body;
+    this.tutKeys.querySelector("span")!.textContent = touch ? "push the stick two ways to resume" : "press two to resume";
     this.tutKeys.classList.toggle("hidden", tut.step !== "fly");
     this.tutKeys.querySelectorAll<HTMLElement>("i").forEach((k) => k.classList.toggle("hit", (tut.keys & Number(k.dataset.key)) !== 0));
   }
@@ -170,16 +171,31 @@ export class UI {
   }
 }
 
-const LESSONS: Record<TutorialStep, { n: number; title: string; body: string }> = {
-  walk: { n: 1, title: "WALK TO THE BEACON", body: "<b>W A S D</b> walk you along the surface, whichever way you push. It's round, so keep steering; the beacon is over the top." },
-  launch: { n: 2, title: "LAUNCH", body: "<b>SHIFT</b> (or K, or right click) leaves the planet the way you're moving. Standing still, that's straight up. The beacon is straight up, a long way up." },
-  fly: { n: 3, title: "STEER", body: "In space <b>W A S D</b> fire the thrusters. You won't coast all the way: <b>hold W</b> to climb until the small planet's gravity takes over, A / D to drift, S to brake. Thrusters burn fuel, and fuel only refills on the ground." },
-  sweep: { n: 4, title: "MELEE: THE SWEEP", body: "Something's dropping right on top of you. <b>Stand still</b> and press <b>SPACE</b> (or J, or click): the melee sweeps over your head, both sides." },
-  debris: { n: 5, title: "DEBRIS", body: "Every kill shatters into debris. It obeys the same gravity as everything else, it hurts whatever it hits (you included), and a swing bats it. The better you're doing, the messier it gets. Hence the name." },
-  wave: { n: 6, title: "MELEE: THE WAVE", body: "That one's landing down the surface. <b>Move toward it</b> and press <b>SPACE</b> while moving: the melee becomes a wave that runs along the ground ahead of you." },
-  brawl: { n: 7, title: "THREE AT ONCE", body: "Sweep when they're on you, wave when they're coming. Hits <b>launch</b> enemies: into the planet, into each other, into the void." },
-  gun: { n: 8, title: "AN ORBITER", body: "It circles out of melee reach. <b>LAUNCH</b>, then <b>SPACE</b> in space fires the gun. It aims itself at the nearest enemy. Standing on a planet reloads one round every 2s." },
-  done: { n: 0, title: "", body: "" },
+const DEBRIS_LESSON = "Every kill shatters into debris. It obeys the same gravity as everything else, it hurts whatever it hits (you included), and a swing bats it. The better you're doing, the messier it gets. Hence the name.";
+const BRAWL_LESSON = "Sweep when they're on you, wave when they're coming. Hits <b>launch</b> enemies: into the planet, into each other, into the void.";
+/** Lesson copy: `body` for keyboard, `touch` for the on-screen stick and buttons. */
+const LESSONS: Record<TutorialStep, { n: number; title: string; body: string; touch: string }> = {
+  walk: { n: 1, title: "WALK TO THE BEACON",
+    body: "<b>W A S D</b> walk you along the surface, whichever way you push. It's round, so keep steering; the beacon is over the top.",
+    touch: "Drag the <b>left stick</b> to walk along the surface, whichever way you push. It's round, so keep steering; the beacon is over the top." },
+  launch: { n: 2, title: "LAUNCH",
+    body: "<b>SHIFT</b> (or K, or right click) leaves the planet the way you're moving. Standing still, that's straight up. The beacon is straight up, a long way up.",
+    touch: "<b>LAUNCH</b> leaves the planet the way you're moving. Standing still, that's straight up. The beacon is straight up, a long way up." },
+  fly: { n: 3, title: "STEER",
+    body: "In space <b>W A S D</b> fire the thrusters. You won't coast all the way: <b>hold W</b> to climb until the small planet's gravity takes over, A / D to drift, S to brake. Thrusters burn fuel, and fuel only refills on the ground.",
+    touch: "In space the <b>left stick</b> fires the thrusters. You won't coast all the way: <b>push up</b> to climb until the small planet's gravity takes over. Thrusters burn fuel, and fuel only refills on the ground." },
+  sweep: { n: 4, title: "MELEE: THE SWEEP",
+    body: "Something's dropping right on top of you. <b>Stand still</b> and press <b>SPACE</b> (or J, or click): the melee sweeps over your head, both sides.",
+    touch: "Something's dropping right on top of you. <b>Let go of the stick</b> and press <b>ATTACK</b>: the melee sweeps over your head, both sides." },
+  debris: { n: 5, title: "DEBRIS", body: DEBRIS_LESSON, touch: DEBRIS_LESSON },
+  wave: { n: 6, title: "MELEE: THE WAVE",
+    body: "That one's landing down the surface. <b>Move toward it</b> and press <b>SPACE</b> while moving: the melee becomes a wave that runs along the ground ahead of you.",
+    touch: "That one's landing down the surface. <b>Walk toward it</b> and press <b>ATTACK</b> while moving: the melee becomes a wave that runs along the ground ahead of you." },
+  brawl: { n: 7, title: "THREE AT ONCE", body: BRAWL_LESSON, touch: BRAWL_LESSON },
+  gun: { n: 8, title: "AN ORBITER",
+    body: "It circles out of melee reach. <b>LAUNCH</b>, then <b>SPACE</b> in space fires the gun. It aims itself at the nearest enemy. Standing on a planet reloads one round every 2s.",
+    touch: "It circles out of melee reach. <b>LAUNCH</b>, then <b>ATTACK</b> in space fires the gun. It aims itself at the nearest enemy. Standing on a planet reloads one round every 2s." },
+  done: { n: 0, title: "", body: "", touch: "" },
 };
 
 export function escapeHtml(s: string): string {

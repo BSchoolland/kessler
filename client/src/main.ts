@@ -117,7 +117,7 @@ function enter(s: GameState): void {
   ui.showHud(true);
   canvas.style.cursor = "none";
   acc = 0;
-  ui.updateTutorial(state);
+  ui.updateTutorial(state, input.usingTouch);
 }
 
 function showWon(s: GameState): void {
@@ -276,7 +276,7 @@ function frame(now: number): void {
     const showCursor = mode === "playing" && !BOT && s.weapon === "gun" && !profile.settings.autoAim;
     renderer.draw(s, showCursor ? snap.aimScreen : null, rawDt, { paused: mode !== "playing" });
     ui.updateHud(s, profile.bestScore, profile.settings.showFps ? fpsAvg : null);
-    ui.updateTutorial(s);
+    ui.updateTutorial(s, input.usingTouch);
     ui.show("touch", mode === "playing" && input.usingTouch);
   } else {
     // menu backdrop: an idle demo world
