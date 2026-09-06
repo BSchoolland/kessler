@@ -49,10 +49,12 @@ describe("tutorial", () => {
     step(s, frame({ dash: true }));
     expect(tut().step).toBe("fly");
     expect(player(s).planet).toBeNull();
-    expect(tut().timeScale).toBeLessThan(0.1);
+    expect(tut().timeScale).toBe(1);
 
-    // 3. the flight lesson stays near-frozen until two directions are tried, then eases back to full speed
-    for (let i = 0; i < 30; i++) step(s, frame());
+    // 3. half a second of real launch, then the lesson stays near-frozen until two directions are tried, then eases back
+    for (let i = 0; i < 20; i++) step(s, frame());
+    expect(tut().timeScale).toBe(1);
+    for (let i = 0; i < 20; i++) step(s, frame());
     expect(tut().timeScale).toBeLessThan(0.1);
     for (let i = 0; i < 4; i++) step(s, frame({ move: { x: 0, y: -1 } }));
     expect(tut().timeScale).toBeLessThan(0.1);

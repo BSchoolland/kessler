@@ -22,6 +22,7 @@ const REACHED = 0.22;               // radians of surface either side of the bea
 const POD_SPEED = 380;
 const HEAD_ROOM = 22;               // gap between the player's hull and the grunt held over it
 const FLY_SLOWMO = 0.03;
+const FLY_SLOWMO_AFTER = 0.5;      // seconds of full-speed flight first, so the launch itself is seen
 const SWEEP_SLOWMO = 0.08;
 const DEBRIS_SLOWMO = 0.3;
 const WAVE_SLOWMO = 0.35;
@@ -73,7 +74,7 @@ function advance(s: GameState, step: TutorialStep): void {
   tut.guided = [];
   tut.hover = null;
   tut.waved = false;
-  tut.timeScale = step === "fly" && popcount(tut.keys) < 2 ? FLY_SLOWMO : step === "debris" ? DEBRIS_SLOWMO : 1;
+  tut.timeScale = step === "debris" ? DEBRIS_SLOWMO : 1;
   tut.goal = step === "launch" || step === "fly" ? { planet: 1, angle: LANDING } : null;
   tut.queue = podsFor(s, step);
   emit(s, { type: "tutorial", step });
@@ -128,8 +129,8 @@ export function updateTutorial(ctx: Ctx, input: InputFrame): void {
       if (m.x < -0.5) tut.keys |= KEY_A;
       if (m.y > 0.5) tut.keys |= KEY_S;
       if (m.x > 0.5) tut.keys |= KEY_D;
-      // near-frozen until two steering directions have been tried, then ease back to full speed (real time)
-      if (popcount(tut.keys) < 2) tut.timeScale = FLY_SLOWMO;
+      // half a second of real launch, then near-frozen until two steering directions have been tried, then ease back
+      if (popcount(tut.keys) < 2) tut.timeScale = tut.t < FLY_SLOWMO_AFTER ? 1 : FLY_SLOWMO;
       else easeToFull(tut);
       if (p.planet === 1) advance(s, "sweep");
       else if (p.planet === 0) advance(s, "launch");
