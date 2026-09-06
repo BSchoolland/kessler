@@ -957,7 +957,7 @@ export class Renderer {
       ctx.closePath(); ctx.fill(); ctx.stroke();
       for (let i = 0; i < 6; i++) {
         const a = (i / 6) * 6.283 + 0.52;
-        const busy = e.ai.rot < 1;
+        const busy = e.ai.podT < 1;
         ctx.fillStyle = hsl(hue, 100, busy ? 80 : 45, busy ? 0.95 : 0.55);
         ctx.beginPath(); ctx.arc(Math.cos(a) * r * 0.62, Math.sin(a) * r * 0.62, r * 0.14, 0, 6.283); ctx.fill();
       }

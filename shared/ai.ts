@@ -64,10 +64,10 @@ export function updateEnemyAi(ctx: Ctx, e: Entity): void {
     case "lancer": return updateLancer(ctx, e);
     case "mine": return updateMine(ctx, e);
     case "sweeper": return updateSweeper(ctx, e);
-    case "hammer": return updatePounder(ctx, e, ENEMY_DEFS.hammer, { throws: true, pods: true });
+    case "hammer": return updatePounder(ctx, e, ENEMY_DEFS.hammer, { throws: true });
     case "twin": return updateTwin(ctx, e);
-    case "warden": return updateGunship(ctx, e, ENEMY_DEFS.warden, { fan: true, mines: 2, bombs: 0, pods: false, dive: 9.5 });
-    case "hive": return updateGunship(ctx, e, ENEMY_DEFS.hive, { fan: false, mines: 0, bombs: 2, pods: true, dive: 12 });
+    case "warden": return updateGunship(ctx, e, ENEMY_DEFS.warden, { fan: true, mines: 2, bombs: 0, hive: false, dive: 9.5 });
+    case "hive": return updateGunship(ctx, e, ENEMY_DEFS.hive, { fan: false, mines: 0, bombs: 2, hive: true, dive: 12 });
     case "belt": return updateBelt(ctx, e);
     default: updateWalker(ctx, e, def.speed * (e.elite ? 1.2 : 1), def.leapSpeed, def.leapDelay, e.kind === "hopper" ? 300 : Infinity);
   }
@@ -79,6 +79,25 @@ function playerPlanetId(ctx: Ctx): number {
   const p = player(s);
   if (p.planet !== null) return p.planet;
   return dominantPlanet(s.planets, p.pos).id;
+}
+
+/**
+ * Every boss keeps calling reinforcements for the whole fight: one pod at the player's planet
+ * each `every` seconds while fewer than `cap` non-boss enemies are alive. `from` launches the
+ * pod from the boss itself instead of the arena's edge; `burst` sends several at once.
+ */
+function summon(ctx: Ctx, e: Entity, every: number, cap: number, kinds: readonly EnemyKind[], from?: Vec, burst = 1): void {
+  const { s, dt, rng } = ctx;
+  e.ai.podT -= dt;
+  if (e.ai.podT > 0) return;
+  e.ai.podT = every;
+  const others = s.entities.filter((x) => x.kind !== "player" && !isBoss(x.kind as EnemyKind) && !x.dead).length;
+  const home = playerPlanetId(ctx);
+  for (let i = 0; i < burst && others + i < cap; i++) {
+    const pod = spawnEnemyPod(ctx, rng.pick(kinds), home, rng.chance(0.1), from ? add(from, fromAngle(rng.range(0, 6.283), 20)) : undefined);
+    if (from) pod.vel = scale(norm(sub(s.planets[home].pos, pod.pos)), 380);
+  }
+  emit(s, { type: "pod", pos: from ?? e.pos, kind: "grunt" });
 }
 
 /** Advance an owner's beam and hit the player if they're in its path on that planet. */
@@ -228,7 +247,7 @@ function updateSweeper(ctx: Ctx, e: Entity): void {
  * landing with a ring around the planet. Options add the rock shotgun (line of sight only)
  * and pod calls.
  */
-function updatePounder(ctx: Ctx, e: Entity, def: EnemyDef, opts: { throws: boolean; pods: boolean }): void {
+function updatePounder(ctx: Ctx, e: Entity, def: EnemyDef, opts: { throws: boolean }): void {
   const { s, dt, rng } = ctx;
   const p = player(s);
   const ai = e.ai;
@@ -249,14 +268,7 @@ function updatePounder(ctx: Ctx, e: Entity, def: EnemyDef, opts: { throws: boole
   }
   ai.wasAirborne = airborne;
 
-  if (opts.pods) {
-    ai.timer -= dt;
-    if (ai.timer <= 0) {
-      ai.timer = phase2 ? 4.5 : 6.5;
-      const others = s.entities.filter((x) => x.kind !== "player" && !isBoss(x.kind as EnemyKind) && !x.dead).length;
-      if (others < 4) spawnEnemyPod(ctx, rng.chance(0.6) ? "grunt" : "hopper", playerPlanetId(ctx), false);
-    }
-  }
+  summon(ctx, e, phase2 ? 4.5 : 6.5, e.kind === "twin" ? 5 : 4, ["grunt", "grunt", "hopper"]);
 
   if (airborne) {
     e.airTime += dt;
@@ -323,7 +335,7 @@ function updateTwin(ctx: Ctx, e: Entity): void {
   const { s } = ctx;
   const other = s.entities.find((x) => x !== e && x.kind === "twin" && !x.dead);
   if (!other && e.ai.phase === 1) { e.ai.phase = 2; emit(s, { type: "bossPhase", pos: e.pos }); }
-  updatePounder(ctx, e, ENEMY_DEFS.twin, { throws: false, pods: e.ai.phase === 2 });
+  updatePounder(ctx, e, ENEMY_DEFS.twin, { throws: false });
 }
 
 /**
@@ -332,11 +344,13 @@ function updateTwin(ctx: Ctx, e: Entity): void {
  * for a couple of seconds, which is when melee gets its turn. Options pick the rest: fans of
  * shots, mines, gravity bombs, pods launched at your planet.
  */
-function updateGunship(ctx: Ctx, e: Entity, def: EnemyDef, opts: { fan: boolean; mines: number; bombs: number; pods: boolean; dive: number }): void {
+function updateGunship(ctx: Ctx, e: Entity, def: EnemyDef, opts: { fan: boolean; mines: number; bombs: number; hive: boolean; dive: number }): void {
   const { s, dt, rng } = ctx;
   const p = player(s);
   const ai = e.ai;
   const phase2 = ai.phase === 2;
+  if (opts.hive) summon(ctx, e, phase2 ? 2.8 : 4, phase2 ? 8 : 6, ["hopper", "lancer", "splitter", "grunt"], e.pos, phase2 ? 3 : 2);
+  else summon(ctx, e, phase2 ? 5 : 7, 4, ["grunt", "hopper"]);
 
   if (e.orbit) {
     const o = e.orbit;
@@ -361,18 +375,6 @@ function updateGunship(ctx: Ctx, e: Entity, def: EnemyDef, opts: { fan: boolean;
         const m = spawnEnemyPod(ctx, "mine", planet.id, false, add(e.pos, fromAngle(rng.range(0, 6.283), 30)));
         m.vel = fromAngle(rng.range(0, 6.283), 60);
       }
-      if (opts.pods) {
-        // pods flung at your planet from the hulk itself
-        const others = s.entities.filter((x) => x.kind !== "player" && !isBoss(x.kind as EnemyKind) && !x.dead).length;
-        const cap = phase2 ? 8 : 6;
-        for (let i = 0; i < (phase2 ? 3 : 2) && others + i < cap; i++) {
-          const kind = rng.pick(["hopper", "lancer", "splitter", "grunt"] as const);
-          const pod = spawnEnemyPod(ctx, kind, planet.id, rng.chance(0.15), add(e.pos, fromAngle(rng.range(0, 6.283), 20)));
-          pod.vel = scale(norm(sub(planet.pos, e.pos)), 380);
-        }
-        emit(s, { type: "pod", pos: e.pos, kind: "hopper" });
-      }
-      if (opts.pods) ai.rot = phase2 ? 2.8 : 4;
     }
     ai.timer -= dt;
     if (ai.timer <= 0 && ai.state === "idle") {
@@ -493,12 +495,7 @@ function updateBelt(ctx: Ctx, e: Entity): void {
   }
   ai.wasAirborne = airborne;
 
-  ai.timer -= dt;
-  if (ai.timer <= 0) {
-    ai.timer = phase2 ? 4 : 5.5;
-    const others = s.entities.filter((x) => x.kind !== "player" && !isBoss(x.kind as EnemyKind) && !x.dead).length;
-    if (others < 5) spawnEnemyPod(ctx, rng.pick(["grunt", "hopper", "lancer"] as const), playerPlanetId(ctx), false);
-  }
+  summon(ctx, e, phase2 ? 4 : 5.5, 5, ["grunt", "hopper", "lancer"]);
 
   if (airborne) {
     e.airTime += dt;

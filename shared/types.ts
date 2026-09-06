@@ -94,7 +94,8 @@ export interface AiState {
   phase: number;
   rot: number;
   wasAirborne: boolean;      // pounders hit the ground on every landing
-  timer: number;             // a per-kind clock: orbiter hops, boss pod calls, warden dives
+  timer: number;             // a per-kind clock: orbiter hops, gunship dives
+  podT: number;              // bosses: seconds until the next reinforcement call
   beam: BeamState | null;
 }
 

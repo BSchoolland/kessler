@@ -21,7 +21,7 @@ export function makeEntity(s: GameState, kind: Entity["kind"], pos: Vec, radius:
   return {
     id: s.nextId++, kind, pos: { ...pos }, vel: { x: 0, y: 0 }, radius, hp, maxHp: hp, facing: 0, planet: null,
     stun: 0, invuln: 0, dead: false, swing: null, dashT: 0, sinceDash: 99, comboT: 0, comboIdx: 0,
-    ai: { state: "idle", t: 0, target: null, cooldown: 0, phase: 1, rot: 0, wasAirborne: false, timer: 0, beam: null }, knockbackResist: 0, lastHitBy: "none",
+    ai: { state: "idle", t: 0, target: null, cooldown: 0, phase: 1, rot: 0, wasAirborne: false, timer: 0, podT: 3, beam: null }, knockbackResist: 0, lastHitBy: "none",
     elite: false, orbit: null, spawnT: 0, attackBuffer: 0, dashBuffer: 0, launched: false, splatT: 0, contactCd: 0, airTime: 0, hue,
   };
 }
@@ -62,7 +62,6 @@ export function spawnEnemyPod(ctx: Ctx, kind: EnemyKind, targetPlanet: number, e
   e.ai.cooldown = kind === "orbiter" ? 1.2 : kind === "raider" ? 2 : 0.4;
   if (ORBIT_HEIGHT[kind]) e.ai.timer = rng.range(6, 10);
   if (kind === "aegis") e.ai.rot = Math.atan2(-start.y, -start.x);
-  if (kind === "hammer" || kind === "belt") e.ai.timer = 4;
   if (kind === "warden" || kind === "hive") e.ai.timer = 6;
   if (kind === "raider") {
     // no pod: it arrives on the outer ring and starts patrolling at once
