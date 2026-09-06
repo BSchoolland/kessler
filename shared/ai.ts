@@ -236,9 +236,9 @@ function updateOrbiter(ctx: Ctx, e: Entity): void {
   const o = e.orbit;
   const planet = s.planets[o.planet];
   // every so often, an orbiter circling a planet you're not on comes over to yours
-  ai.hop -= dt;
-  if (ai.hop <= 0) {
-    ai.hop = rng.range(7, 12);
+  ai.timer -= dt;
+  if (ai.timer <= 0) {
+    ai.timer = rng.range(7, 12);
     const pd = p.planet ?? dominantPlanet(s.planets, p.pos).id;
     if (pd !== o.planet && ai.state === "idle") {
       const target = s.planets[pd];
