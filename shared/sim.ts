@@ -1,32 +1,36 @@
 import { DT, FUEL, GUN, PLAYER, WAVES } from "./config";
-import { damagePlayer, emit, healPlayer, launch, makeEntity, player, playerMaxHp, resolveContactForEnemy, spawnEdgeWave, spawnShockwave, killEnemy, damageEnemy, type Ctx } from "./actions";
+import { damagePlayer, emit, healPlayer, launch, makeEntity, placePlayer, player, playerMaxHp, resolveContactForEnemy, spawnEdgeWave, spawnShockwave, killEnemy, damageEnemy, type Ctx } from "./actions";
 import { updateEnemyAi } from "./ai";
 import { resolveContactDamage, resolveEnemyCollisions, updateDebris, updateProjectiles, updateShockwaves, updateTelegraphs } from "./hazards";
 import { findContact, gravityAt, inVoid, nearestPlanet, snapToSurface, surfaceNormal, tangentOnly } from "./physics";
 import { Rng } from "./rng";
-import type { Entity, GameState, InputFrame, Projectile, SwingState } from "./types";
+import type { Entity, GameState, InputFrame, Planet, Projectile, SwingState } from "./types";
 import { applyOffer, defaultMods } from "./upgrades";
+import { updateTutorial, tutorialRespawn } from "./tutorial";
 import { initialWave, updateWave } from "./waves";
 import { generatePlanets } from "./world";
 import { add, angleDelta, angleOf, clamp, dist, dot, fromAngle, len, norm, perp, scale, sub, type Vec } from "./vec";
 
 export function createGame(seed: number, daily = false): GameState {
   const rng = new Rng(seed);
-  const planets = generatePlanets(rng, 1);
-  const s: GameState = {
-    tick: 0, time: 0, seed, rngState: 0, freeze: 0, planets, entities: [], debris: [], projectiles: [], shockwaves: [],
-    telegraphs: [], nextId: 1, wave: initialWave(), offers: null, mods: defaultMods(), taken: [], score: 0,
-    stats: { kills: 0, voidKills: 0, impactKills: 0, debrisKills: 0, collisionKills: 0, bossKills: 0, damageDealt: 0, damageTaken: 0, swings: 0, dashes: 0, time: 0, bestCombo: 0 },
-    over: false, daily, events: [], weapon: "sword", ammo: GUN.ammoStart, gunCd: 0, fuel: FUEL.max, fuelWarnT: 0, sinceHurt: 99, reloadT: 0,
-  };
-  const p = makeEntity(s, "player", { x: 0, y: 0 }, PLAYER.radius, PLAYER.maxHp, 190);
-  p.pos = snapToSurface(planets[0], add(planets[0].pos, fromAngle(-Math.PI / 2)), p.radius);
-  p.planet = 0;
-  p.facing = -Math.PI / 2;
-  s.entities.push(p);
+  const s = baseState(seed, generatePlanets(rng, 1), daily);
+  placePlayer(s, 0, -Math.PI / 2);
   s.rngState = rng.s;
   return s;
 }
+
+/** A world with no waves running; the planets and the player's spot are the caller's. */
+export function baseState(seed: number, planets: Planet[], daily = false): GameState {
+  const s: GameState = {
+    tick: 0, time: 0, seed, rngState: seed >>> 0, freeze: 0, planets, entities: [], debris: [], projectiles: [], shockwaves: [],
+    telegraphs: [], nextId: 1, wave: initialWave(), offers: null, mods: defaultMods(), taken: [], score: 0,
+    stats: { kills: 0, voidKills: 0, impactKills: 0, debrisKills: 0, collisionKills: 0, bossKills: 0, damageDealt: 0, damageTaken: 0, swings: 0, dashes: 0, time: 0, bestCombo: 0 },
+    over: false, daily, events: [], weapon: "sword", ammo: GUN.ammoStart, gunCd: 0, fuel: FUEL.max, fuelWarnT: 0, sinceHurt: 99, reloadT: 0, tutorial: null,
+  };
+  s.entities.push(makeEntity(s, "player", { x: 0, y: 0 }, PLAYER.radius, PLAYER.maxHp, 190));
+  return s;
+}
+
 
 export function chooseUpgrade(s: GameState, id: string): void {
   if (!s.offers || !s.offers.some((o) => o.id === id)) throw new Error(`offer ${id} not available`);
@@ -48,13 +52,14 @@ export function step(s: GameState, input: InputFrame): void {
   }
   const rng = new Rng(0);
   rng.s = s.rngState;
-  const ctx: Ctx = { s, rng, dt: DT };
+  const ctx: Ctx = { s, rng, dt: DT * (s.tutorial?.timeScale ?? 1) };
   s.tick++;
-  s.time += DT;
-  if (!s.over) s.stats.time += DT;
+  s.time += ctx.dt;
+  if (!s.over) s.stats.time += ctx.dt;
 
-  updateWave(ctx);
+  if (!s.tutorial) updateWave(ctx);
   updatePlayer(ctx, input);
+  if (s.tutorial) updateTutorial(ctx, input);
   for (const e of s.entities) if (e.kind !== "player") updateEnemyAi(ctx, e);
   integrateEntities(ctx);
   resolveEnemyCollisions(ctx);
@@ -363,6 +368,7 @@ function cullVoid(ctx: Ctx): void {
     if (e.kind === "player") {
       if (s.over) continue;
       emit(s, { type: "void", pos: e.pos, kind: "player" });
+      if (s.tutorial) { tutorialRespawn(s); continue; }
       s.over = true;
       e.hp = 0;
       emit(s, { type: "playerDead", pos: e.pos });

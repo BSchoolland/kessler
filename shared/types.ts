@@ -161,9 +161,21 @@ export type GameEvent =
   | { type: "combo"; pos: Vec; idx: number }
   | { type: "gunshot"; pos: Vec; dir: Vec }
   | { type: "empty"; pos: Vec }
-  | { type: "ammo"; pos: Vec; ammo: number };
+  | { type: "ammo"; pos: Vec; ammo: number }
+  | { type: "tutorial"; step: TutorialStep };
 
 export type Weapon = "sword" | "gun";
+
+export type TutorialStep = "walk" | "launch" | "fly" | "fight" | "gun" | "done";
+
+export interface TutorialState {
+  step: TutorialStep;
+  t: number;                                   // sim seconds spent in the current step
+  goal: { planet: number; angle: number } | null;
+  keys: number;                                // steering directions pressed during the flight lesson (W=1 A=2 S=4 D=8)
+  timeScale: number;                           // sim seconds per real second; the flight lesson runs slow until two directions are pressed
+  queue: { at: number; kind: EnemyKind; from: number }[];   // pods still to drop, and the angle around the arena they come from
+}
 
 export interface UpgradeMods {
   reachMult: number;
@@ -251,4 +263,5 @@ export interface GameState {
   fuelWarnT: number;
   sinceHurt: number;
   reloadT: number;
+  tutorial: TutorialState | null;
 }

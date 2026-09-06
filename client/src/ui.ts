@@ -1,6 +1,6 @@
-import type { GameState, UpgradeOffer } from "../../shared/types";
+import type { GameState, TutorialStep, UpgradeOffer } from "../../shared/types";
 import { ammoMax } from "../../shared/sim";
-import { fetchLeaderboard, todayKey, type ScoreEntry } from "./api";
+import { fetchLeaderboard, type ScoreEntry } from "./api";
 import type { Profile } from "./meta";
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string): T => {
@@ -30,6 +30,10 @@ export class UI {
   private cardsEl = $("#offer-cards");
   private bannerTimer = 0;
   private lastScore = -1;
+  private tutEl = $("#tut");
+  private tutKeys = $("#tut-keys");
+  private lastTutKey = "";
+  private scoreWrap = $(".score-wrap");
   focusIdx = 0;
   onOffer: ((id: string) => void) | null = null;
 
@@ -69,8 +73,9 @@ export class UI {
       // the next pip to fill shows the reload progress
       this.ammoEl.innerHTML = Array.from({ length: ammoMax(s) }, (_, i) => `<i class="${i < s.ammo ? "full" : ""}"${i === s.ammo && reload ? ` style="background:linear-gradient(to top,var(--gold) ${reload * 10}%,transparent ${reload * 10}%)"` : ""}></i>`).join("");
     }
-    this.waveLabel.textContent = s.wave.n > 0 ? `WAVE ${s.wave.n}` : "INCOMING";
-    this.sectorLabel.textContent = `SECTOR ${s.wave.sector}${s.daily ? " · DAILY" : ""}`;
+    this.waveLabel.textContent = s.tutorial ? "TUTORIAL" : s.wave.n > 0 ? `WAVE ${s.wave.n}` : "INCOMING";
+    this.sectorLabel.textContent = s.tutorial ? "" : `SECTOR ${s.wave.sector}`;
+    this.scoreWrap.classList.toggle("hidden", !!s.tutorial);
     if (s.score !== this.lastScore) {
       this.scoreEl.textContent = `${s.score}`;
       this.scoreEl.style.transform = "scale(1.15)";
@@ -83,6 +88,23 @@ export class UI {
     if (boss) this.bossFill.style.width = `${Math.max(0, (boss.hp / boss.maxHp) * 100)}%`;
     this.fpsEl.classList.toggle("hidden", fps === null);
     if (fps !== null) this.fpsEl.textContent = `${Math.round(fps)} fps · ${s.debris.length} debris`;
+  }
+
+  /** The persistent lesson card; rebuilt only when the step or the pressed-keys set changes. */
+  updateTutorial(s: GameState): void {
+    const tut = s.tutorial;
+    this.tutEl.classList.toggle("hidden", !tut || tut.step === "done");
+    if (!tut) { this.lastTutKey = ""; return; }
+    const key = `${tut.step}:${tut.keys}`;
+    if (key === this.lastTutKey) return;
+    this.lastTutKey = key;
+    const lesson = LESSONS[tut.step];
+    this.tutEl.dataset.step = tut.step;
+    $("#tut-step").textContent = lesson.n ? `${lesson.n} / 5` : "";
+    $("#tut-title").textContent = lesson.title;
+    $("#tut-body").innerHTML = lesson.body;
+    this.tutKeys.classList.toggle("hidden", tut.step !== "fly");
+    this.tutKeys.querySelectorAll<HTMLElement>("i").forEach((k) => k.classList.toggle("hit", (tut.keys & Number(k.dataset.key)) !== 0));
   }
 
   showOffers(offers: UpgradeOffer[]): void {
@@ -111,7 +133,7 @@ export class UI {
 
   showGameOver(s: GameState, profile: Profile, voidDeath: boolean): void {
     $("#go-title").textContent = voidDeath ? "LOST TO THE VOID" : "LOST";
-    $("#go-sub").textContent = `wave ${s.wave.n} · sector ${s.wave.sector} · ${Math.round(s.stats.time)}s${s.daily ? " · daily" : ""}`;
+    $("#go-sub").textContent = `wave ${s.wave.n} · sector ${s.wave.sector} · ${Math.round(s.stats.time)}s`;
     const st = s.stats;
     const rows: [string, number | string][] = [
       ["SCORE", s.score], ["KILLS", st.kills], ["VOID", st.voidKills], ["SPLATS", st.impactKills],
@@ -131,16 +153,25 @@ export class UI {
       : "<li><span></span><span>nobody yet. be first.</span></li>";
   }
 
-  async loadLeaderboard(board: "endless" | "daily", into: HTMLElement, myName: string): Promise<void> {
+  async loadLeaderboard(into: HTMLElement, myName: string): Promise<void> {
     into.innerHTML = "<li><span></span><span>loading…</span></li>";
     try {
-      const entries = await fetchLeaderboard(board, board === "daily" ? todayKey() : undefined);
+      const entries = await fetchLeaderboard();
       this.renderList(into, entries, myName);
     } catch {
       into.innerHTML = "<li><span></span><span>leaderboard offline</span></li>";
     }
   }
 }
+
+const LESSONS: Record<TutorialStep, { n: number; title: string; body: string }> = {
+  walk: { n: 1, title: "WALK TO THE BEACON", body: "<b>W A S D</b> walk you along the surface, whichever way you push. It's round, so keep steering; the beacon is over the top." },
+  launch: { n: 2, title: "LAUNCH", body: "<b>SHIFT</b> (or K, or right click) leaves the planet the way you're moving. Standing still, that's straight up. The beacon is straight up." },
+  fly: { n: 3, title: "STEER", body: "In space <b>W A S D</b> fire the thrusters. They burn fuel, and fuel only refills on the ground." },
+  fight: { n: 4, title: "THREE GRUNTS INBOUND", body: "<b>SPACE</b> (or J, or click) is the edge. Standing still it sweeps over your head; moving, it sends a wave along the ground. Hits <b>launch</b> enemies: into the planet, into each other, into the void." },
+  gun: { n: 5, title: "AN ORBITER", body: "It circles out of the edge's reach. <b>LAUNCH</b>, then <b>SPACE</b> in space fires the gun. It aims itself at the nearest enemy. Edge hits earn the rounds." },
+  done: { n: 0, title: "", body: "" },
+};
 
 export function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);

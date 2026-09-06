@@ -8,6 +8,10 @@ arena gets more dangerous the better you're doing. Hence the name.
 
 **Play:** https://wreckingwheels.com/kessler/
 
+New here? The menu's **TUTORIAL** (badged until you've done it once) is five short lessons
+on two planets: walk to a beacon, launch, steer in slow motion, three grunts, one orbiter
+with the gun. You can't lose it.
+
 ## Controls
 
 Keyboard only is the intended way to play. The mouse is optional.
@@ -41,7 +45,8 @@ Keyboard only is the intended way to play. The mouse is optional.
 
 ```
 shared/   Headless deterministic engine. Pure TS, no DOM. Seeded RNG, fixed 60Hz tick,
-          consumes InputFrames, emits GameEvents. Everything gameplay lives here.
+          consumes InputFrames, emits GameEvents. Everything gameplay lives here,
+          including the scripted tutorial (tutorial.ts) and its slow-motion.
 client/   Vite + Canvas 2D. Renderer is a pure reader of state; fx.ts turns events
           into particles, sound (ZzFX-style synth), shake and hit-stop.
 server/   Express: serves the built client, JSON leaderboard (endless + daily).
@@ -51,7 +56,7 @@ test/     vitest on the engine: determinism, physics invariants, bot progress.
 ```
 
 The sim never touches `Math.random` or wall-clock time, so a seed + input log replays
-exactly. The daily challenge is just `hash("kessler-YYYY-MM-DD")`.
+exactly.
 
 ## Development
 
@@ -61,6 +66,7 @@ npm run dev          # vite on :5174 (/kessler/) + API on :3006
 npm test             # engine tests
 npm run balance 12   # bot sim, 12 seeds
 npm run playtest     # headless Chrome; screenshots + video in .playtest/
+node scripts/playtest-tutorial.mjs [url]   # scripted run through the tutorial
 ```
 
 Debug URL params: `?bot=1` lets the balance bot drive, `?seed=N`, `?wave=N`.

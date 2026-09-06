@@ -1,11 +1,9 @@
 import { SCORE, WAVES } from "./config";
-import { emit, healPlayer, player, spawnEnemyPod, type Ctx } from "./actions";
+import { emit, healPlayer, placePlayer, player, spawnEnemyPod, type Ctx } from "./actions";
 import { ENEMY_DEFS, SPAWNABLE } from "./enemies";
-import { snapToSurface } from "./physics";
 import { rollOffers } from "./upgrades";
 import type { EnemyKind, WaveState } from "./types";
 import { generatePlanets } from "./world";
-import { add, fromAngle } from "./vec";
 
 export function initialWave(): WaveState {
   return { n: 0, sector: 1, queue: [], t: 0, alive: 0, phase: "intermission", phaseT: 1.2, boss: false };
@@ -47,12 +45,7 @@ function startSector(ctx: Ctx, sector: number): void {
   s.projectiles = [];
   s.shockwaves = [];
   s.telegraphs = [];
-  const p = player(s);
-  p.pos = snapToSurface(s.planets[0], add(s.planets[0].pos, fromAngle(-Math.PI / 2)), p.radius);
-  p.vel = { x: 0, y: 0 };
-  p.planet = 0;
-  p.swing = null;
-  p.dashT = 0;
+  placePlayer(s, 0, -Math.PI / 2);
   healPlayer(s, 0.3, 0);
   emit(s, { type: "sector", sector });
 }

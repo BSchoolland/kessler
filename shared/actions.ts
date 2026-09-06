@@ -26,6 +26,18 @@ export function makeEntity(s: GameState, kind: Entity["kind"], pos: Vec, radius:
   };
 }
 
+/** Stand the player on a planet's surface at the given angle around it, at rest. */
+export function placePlayer(s: GameState, planet: number, angle: number): void {
+  const p = player(s);
+  const pl = s.planets[planet];
+  p.pos = snapToSurface(pl, add(pl.pos, fromAngle(angle)), p.radius);
+  p.vel = { x: 0, y: 0 };
+  p.planet = planet;
+  p.facing = angle;
+  p.swing = null;
+  p.dashT = 0;
+}
+
 export function playerMaxHp(s: GameState): number {
   return PLAYER.maxHp + s.mods.maxHpBonus;
 }
@@ -36,11 +48,11 @@ export function healPlayer(s: GameState, frac: number, flat: number): void {
   p.hp = Math.min(p.maxHp, p.hp + p.maxHp * frac + flat);
 }
 
-export function spawnEnemyPod(ctx: Ctx, kind: EnemyKind, targetPlanet: number, elite: boolean): Entity {
+export function spawnEnemyPod(ctx: Ctx, kind: EnemyKind, targetPlanet: number, elite: boolean, fromAngleAroundArena?: number): Entity {
   const { s, rng } = ctx;
   const def = ENEMY_DEFS[kind];
   const target = s.planets[targetPlanet];
-  const ang = rng.range(0, Math.PI * 2);
+  const ang = fromAngleAroundArena ?? rng.range(0, Math.PI * 2);
   const start = fromAngle(ang, 1450);
   const sectorScale = kind === "accretor" ? 1 + 0.4 * (s.wave.sector - 1) : 1 + 0.06 * (s.wave.sector - 1);
   const e = makeEntity(s, kind, start, def.radius, Math.round(def.hp * (elite ? 1.6 : 1) * sectorScale), def.hue);
@@ -144,6 +156,10 @@ export function damagePlayer(ctx: Ctx, dmg: number, source: HitSource): boolean 
   s.sinceHurt = 0;
   s.stats.damageTaken += dmg;
   emit(s, { type: "playerHurt", pos: p.pos, damage: dmg, source });
+  if (p.hp <= 0 && s.tutorial) {
+    p.hp = 1;
+    return true;
+  }
   if (p.hp <= 0) {
     p.hp = 0;
     s.over = true;

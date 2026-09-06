@@ -152,6 +152,12 @@ export function applyEvents(s: GameState, events: GameEvent[], particles: Partic
         particles.float({ x: ev.pos.x, y: ev.pos.y - 34 }, `x${ev.idx} MULTI`, PLAYER_COLOR, 16);
         sfx("combo", ev.pos, 0.6);
         break;
+      case "tutorial":
+        if (ev.step === "fight") { hooks.banner("INCOMING", "three grunts", "wave"); play("wave", 0.7); }
+        else if (ev.step === "gun") { hooks.banner("ORBITER", "it's out of reach. take the gun up", "wave"); play("wave", 0.7); }
+        else if (ev.step === "done") { hooks.banner("YOU'RE READY", "tutorial complete", "clear"); play("sector"); }
+        else play("upgrade", 0.5);
+        break;
     }
   }
   void s;

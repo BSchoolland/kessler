@@ -71,6 +71,15 @@ Boss every 5 waves; each boss kill moves you to a new sector with a fresh planet
 layout and one more planet. Endless. Score is the leaderboard metric; the daily
 challenge shares a seed for everyone.
 
+## Tutorial
+
+Five lessons on a fixed two-planet layout, scripted inside the sim so it replays like
+anything else. Walk over the top of the big planet to a beacon; launch straight up at a
+beacon on the small one; the flight runs at 3% speed until two steering keys have been
+tried, then eases back to full; three grunts drop on the small planet; then one orbiter,
+which only the gun can reach. HP floors at 1 and the void respawns you, so it can't be
+failed. The menu badges the button until it's been finished once.
+
 ## Not in v1 (engine is shaped for it)
 
 Online co-op: the sim consumes InputFrames and is deterministic, so lockstep or

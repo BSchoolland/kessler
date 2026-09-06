@@ -1,9 +1,9 @@
 import { DT } from "../../shared/config";
-import { hashString } from "../../shared/rng";
 import { chooseUpgrade, createGame, step } from "../../shared/sim";
+import { createTutorial } from "../../shared/tutorial";
 import type { GameState } from "../../shared/types";
 import { add, dist, fromAngle, len, norm, scale, sub, type Vec } from "../../shared/vec";
-import { submitScore, todayKey } from "./api";
+import { submitScore } from "./api";
 import { Camera } from "./camera";
 import { applyEvents } from "./fx";
 import { Input } from "./input";
@@ -73,16 +73,27 @@ function showMenu(): void {
   ui.hideAllScreens();
   ui.show("menu");
   ui.showHud(false);
+  ui.show("tut", false);
+  ui.show("tut-badge", !profile.tutorialDone);
   document.getElementById("menu-best")!.textContent = profile.bestScore ? `BEST ${profile.bestScore} · WAVE ${profile.bestWave} · ${profile.runs} RUNS` : "no runs yet";
   canvas.style.cursor = "default";
 }
 
-function startRun(daily: boolean): void {
+function startRun(): void {
+  const seed = params.get("seed") ? Number(params.get("seed")) : (Math.random() * 2 ** 31) >>> 0;
+  const s = createGame(seed);
+  if (params.get("wave")) s.wave.n = Number(params.get("wave")) - 1;
+  enter(s);
+}
+
+function startTutorial(): void {
+  enter(createTutorial());
+}
+
+function enter(s: GameState): void {
   audioContext();
   startMusic();
-  const seed = params.get("seed") ? Number(params.get("seed")) : daily ? hashString(`kessler-${todayKey()}`) : (Math.random() * 2 ** 31) >>> 0;
-  state = createGame(seed, daily);
-  if (params.get("wave")) state.wave.n = Number(params.get("wave")) - 1;
+  state = s;
   particles.list = [];
   particles.floaters = [];
   cam.snap(state.entities[0].pos);
@@ -97,11 +108,16 @@ function startRun(daily: boolean): void {
   ui.showHud(true);
   canvas.style.cursor = "none";
   acc = 0;
-  if (!profile.seenHowTo) {
-    profile.seenHowTo = true;
-    saveProfile(profile);
-    ui.banner("WASD · AIM · CLICK TO SWING", "space to dash · dash then swing to launch", "wave");
-  }
+  ui.updateTutorial(state);
+}
+
+function finishTutorial(): void {
+  mode = "over";
+  setThrust(0);
+  profile.tutorialDone = true;
+  saveProfile(profile);
+  canvas.style.cursor = "default";
+  window.setTimeout(() => { if (state?.tutorial?.step === "done") ui.show("tutdone"); }, 1500);
 }
 
 function finishRun(): void {
@@ -114,20 +130,18 @@ function finishRun(): void {
   profile.voidKills += s.stats.voidKills;
   profile.bossKills += s.stats.bossKills;
   const isBest = s.score > profile.bestScore;
-  if (s.daily) profile.dailyBest[todayKey()] = Math.max(profile.dailyBest[todayKey()] ?? 0, s.score);
   ui.showGameOver(s, profile, voidDeath);
-  if (isBest && !s.daily) { profile.bestScore = s.score; profile.bestWave = Math.max(profile.bestWave, s.wave.n); }
+  if (isBest) { profile.bestScore = s.score; profile.bestWave = Math.max(profile.bestWave, s.wave.n); }
   saveProfile(profile);
   canvas.style.cursor = "default";
-  const board = s.daily ? "daily" : "endless";
   const list = document.getElementById("go-list")!;
   if (!submitted && s.score > 0) {
     submitted = true;
-    submitScore(board, { name: profile.name || "anonymous", score: s.score, wave: s.wave.n, kills: s.stats.kills, voidKills: s.stats.voidKills }, s.daily ? todayKey() : undefined)
-      .then((r) => { ui.setRank(`${isBest ? "NEW PERSONAL BEST · " : ""}RANK #${r.rank} ${s.daily ? "TODAY" : "ALL TIME"}`); return ui.loadLeaderboard(board, list, profile.name || "anonymous"); })
-      .catch(() => ui.loadLeaderboard(board, list, profile.name || "anonymous"));
+    submitScore({ name: profile.name || "anonymous", score: s.score, wave: s.wave.n, kills: s.stats.kills, voidKills: s.stats.voidKills })
+      .then((r) => { ui.setRank(`${isBest ? "NEW PERSONAL BEST · " : ""}RANK #${r.rank} ALL TIME`); return ui.loadLeaderboard(list, profile.name || "anonymous"); })
+      .catch(() => ui.loadLeaderboard(list, profile.name || "anonymous"));
   } else {
-    void ui.loadLeaderboard(board, list, profile.name || "anonymous");
+    void ui.loadLeaderboard(list, profile.name || "anonymous");
   }
 }
 
@@ -204,7 +218,10 @@ function frame(now: number): void {
           step(s, frameInput);
           if (!frozen) pending = { attack: false, dash: false };
           applyEvents(s, s.events, particles, cam, { banner: (t, sub, k) => ui.banner(t, sub, k), hurtFlash: () => (renderer.hurtFlash = 1) });
-          for (const ev of s.events) if (ev.type === "void" && ev.kind === "player") voidDeath = true;
+          for (const ev of s.events) {
+            if (ev.type === "void" && ev.kind === "player" && s.over) voidDeath = true;
+            if (ev.type === "tutorial" && ev.step === "done") finishTutorial();
+          }
           acc -= DT;
           steps++;
         }
@@ -236,6 +253,7 @@ function frame(now: number): void {
     const showCursor = mode === "playing" && !BOT && s.weapon === "gun" && !profile.settings.autoAim;
     renderer.draw(s, showCursor ? snap.aimScreen : null, rawDt, { paused: mode !== "playing" });
     ui.updateHud(s, profile.bestScore, profile.settings.showFps ? fpsAvg : null);
+    ui.updateTutorial(s);
     ui.show("touch", mode === "playing" && input.usingTouch);
   } else {
     // menu backdrop: an idle demo world
@@ -285,26 +303,23 @@ function bindMenu(): void {
   nameEl.value = profile.name;
   nameEl.addEventListener("input", () => { profile.name = nameEl.value.replace(/[^\w \-.!?]/g, "").slice(0, 16); saveProfile(profile); });
   nameEl.addEventListener("keydown", (e) => e.stopPropagation());
-  document.getElementById("btn-play")!.addEventListener("click", () => startRun(false));
-  document.getElementById("btn-daily")!.addEventListener("click", () => startRun(true));
+  document.getElementById("btn-play")!.addEventListener("click", startRun);
+  document.getElementById("btn-tutorial")!.addEventListener("click", startTutorial);
+  document.getElementById("btn-tut-play")!.addEventListener("click", startRun);
+  document.getElementById("btn-tut-menu")!.addEventListener("click", () => { state = null; showMenu(); });
   document.getElementById("btn-howto")!.addEventListener("click", () => { ui.show("menu", false); ui.show("howto"); });
   document.getElementById("btn-settings")!.addEventListener("click", () => { ui.show("menu", false); ui.show("settings"); });
-  document.getElementById("btn-leaderboard")!.addEventListener("click", () => { ui.show("menu", false); ui.show("leaderboard"); void ui.loadLeaderboard("endless", document.getElementById("lb-list")!, profile.name); });
+  document.getElementById("btn-leaderboard")!.addEventListener("click", () => { ui.show("menu", false); ui.show("leaderboard"); void ui.loadLeaderboard(document.getElementById("lb-list")!, profile.name); });
   document.querySelectorAll(".modal .close").forEach((b) => b.addEventListener("click", () => { ui.hideAllScreens(); ui.show("menu"); }));
-  document.querySelectorAll<HTMLButtonElement>(".tab").forEach((t) => t.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
-    t.classList.add("active");
-    void ui.loadLeaderboard(t.dataset.board as "endless" | "daily", document.getElementById("lb-list")!, profile.name);
-  }));
   document.getElementById("btn-resume")!.addEventListener("click", resume);
   document.getElementById("btn-quit")!.addEventListener("click", () => { state = null; showMenu(); });
-  document.getElementById("btn-again")!.addEventListener("click", () => startRun(state?.daily ?? false));
+  document.getElementById("btn-again")!.addEventListener("click", startRun);
   document.getElementById("btn-menu")!.addEventListener("click", () => { state = null; showMenu(); });
   document.querySelectorAll("button").forEach((b) => b.addEventListener("mouseenter", () => play("click", 0.3)));
   ui.onOffer = pickOffer;
   window.addEventListener("keydown", (e) => {
     if (mode !== "menu") return;
-    if (e.code === "Enter" && document.activeElement !== nameEl && !document.getElementById("menu")!.classList.contains("hidden")) startRun(false);
+    if (e.code === "Enter" && document.activeElement !== nameEl && !document.getElementById("menu")!.classList.contains("hidden")) startRun();
     if (e.code === "Escape") { ui.hideAllScreens(); ui.show("menu"); }
   });
 }

@@ -41,6 +41,22 @@
 
 <div id="banner" class="hidden"><div id="banner-title"></div><div id="banner-sub"></div></div>
 
+<div id="tut" class="hidden">
+  <div id="tut-step"></div>
+  <div id="tut-title"></div>
+  <div id="tut-body"></div>
+  <div id="tut-keys" class="hidden"><i data-key="1">W</i><i data-key="2">A</i><i data-key="4">S</i><i data-key="8">D</i><span>press two to resume</span></div>
+</div>
+
+<div id="tutdone" class="screen modal hidden">
+  <h2>YOU'RE READY</h2>
+  <p class="tut-outro">that's the whole kit: walk, launch, steer, edge, gun. everything else is gravity.</p>
+  <div class="menu-buttons row-buttons">
+    <button id="btn-tut-play" class="primary">PLAY</button>
+    <button id="btn-tut-menu">MENU</button>
+  </div>
+</div>
+
 <div id="menu" class="screen">
   <div class="title-block">
     <h1>KESSLER</h1>
@@ -48,7 +64,7 @@
   </div>
   <div class="menu-buttons">
     <button id="btn-play" class="primary">PLAY</button>
-    <button id="btn-daily">DAILY CHALLENGE</button>
+    <button id="btn-tutorial">TUTORIAL<span id="tut-badge" class="badge hidden">!</span></button>
     <button id="btn-howto">HOW TO PLAY</button>
     <button id="btn-leaderboard">LEADERBOARD</button>
     <button id="btn-settings">SETTINGS</button>
@@ -91,7 +107,6 @@
 
 <div id="leaderboard" class="screen modal hidden">
   <h2>LEADERBOARD</h2>
-  <div class="tabs"><button data-board="endless" class="tab active">ENDLESS</button><button data-board="daily" class="tab">TODAY</button></div>
   <ol id="lb-list"></ol>
   <button class="close">BACK</button>
 </div>

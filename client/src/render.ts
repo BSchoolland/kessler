@@ -74,6 +74,7 @@ export class Renderer {
 
     this.drawVoid(s);
     for (const pl of s.planets) this.drawPlanet(pl);
+    if (s.tutorial?.goal) this.drawBeacon(s.planets[s.tutorial.goal.planet], s.tutorial.goal.angle);
     this.drawTelegraphs(s);
     this.drawShockwaves(s);
     this.drawDebris(s);
@@ -102,6 +103,7 @@ export class Renderer {
     ctx.restore();
 
     // screen-space overlays
+    if (s.tutorial && s.tutorial.timeScale < 1) this.vignette(`rgba(60,110,255,${0.45 * (1 - s.tutorial.timeScale)})`);
     const distC = len(p.pos);
     if (distC > 1050 && !s.over) {
       const a = Math.min(0.75, (distC - 1050) / 450) * (0.7 + 0.3 * Math.sin(this.t * 9));
@@ -230,6 +232,35 @@ export class Renderer {
     ctx.fill();
     const sp = this.planetSprite(pl);
     ctx.drawImage(sp, pl.pos.x - sp.width / 2, pl.pos.y - sp.height / 2);
+  }
+
+  /** Tutorial goal: a pulsing ring on the surface with a column of light rising from it. */
+  private drawBeacon(pl: Planet, angle: number): void {
+    const ctx = this.ctx;
+    const n = fromAngle(angle);
+    const base = { x: pl.pos.x + n.x * pl.r, y: pl.pos.y + n.y * pl.r };
+    const pulse = 0.5 + 0.5 * Math.sin(this.t * 4);
+    ctx.save();
+    ctx.translate(base.x, base.y);
+    ctx.rotate(angle);
+    ctx.globalCompositeOperation = "lighter";
+    const H = 110;
+    const g = ctx.createLinearGradient(0, 0, H, 0);
+    g.addColorStop(0, `rgba(255,211,106,${0.4 + 0.2 * pulse})`);
+    g.addColorStop(1, "rgba(255,211,106,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, -14, H, 28);
+    ctx.strokeStyle = `rgba(255,211,106,${0.6 + 0.4 * pulse})`;
+    ctx.lineWidth = 3;
+    const rr = 26 + 8 * pulse;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, rr * 0.45, rr, 0, 0, 6.283);
+    ctx.stroke();
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.arc(6, 0, 4, 0, 6.283);
+    ctx.fill();
+    ctx.restore();
   }
 
   private drawTelegraphs(s: GameState): void {
