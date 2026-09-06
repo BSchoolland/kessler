@@ -48,8 +48,8 @@ instant and cancels a wind-up, not an active swing.
 - Player dash ignores gravity for its 0.15s, then keeps 42% of its speed: enough
   to clear a gap, not enough to escape a big planet by accident.
 - Enemy impacts above 330 u/s deal damage; above 420 u/s a stunned enemy bounces. A launched
-  enemy that slows under 200 u/s with its stun gone regains control and lands soft, so splats
-  come from direct hits into a planet. The player never takes landing damage.
+  enemy regains control the moment its hit-stun ends (~0.85s) and lands soft after that, so
+  splats come from hits that put it into a planet directly. The player never takes landing damage.
   Enemy-enemy collisions above 260 u/s relative speed damage both.
 
 ## Enemies
