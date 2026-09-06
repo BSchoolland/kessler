@@ -56,11 +56,12 @@ export function updateEnemyAi(ctx: Ctx, e: Entity): void {
   if (e.kind === "orbiter") return updateOrbiter(ctx, e);
   if (e.kind === "raider") return updateRaider(ctx, e);
   if (e.kind === "flak") return updateFlak(ctx, e);
-  if (e.kind === "accretor") return updateBoss(ctx, e);
-  updateWalker(ctx, e, def.speed * (e.elite ? 1.2 : 1), def.leapSpeed, def.leapDelay);
+  if (e.kind === "hammer") return updateBoss(ctx, e);
+  updateWalker(ctx, e, def.speed * (e.elite ? 1.2 : 1), def.leapSpeed, def.leapDelay, e.kind === "hopper" ? 300 : Infinity);
 }
 
-function updateWalker(ctx: Ctx, e: Entity, speed: number, leapSpeed: number, leapDelay: number): void {
+/** Ground AI shared by everything that walks: chase on the same planet, leap across otherwise. `samePlanetLeapGap`: surface distance beyond which it leaps at you even on your planet. */
+function updateWalker(ctx: Ctx, e: Entity, speed: number, leapSpeed: number, leapDelay: number, samePlanetLeapGap: number): void {
   const { s, dt } = ctx;
   const p = player(s);
   const ai = e.ai;
@@ -88,7 +89,7 @@ function updateWalker(ctx: Ctx, e: Entity, speed: number, leapSpeed: number, lea
       if (playerHere) {
         ai.state = "walk";
         const surfaceGap = Math.abs(angleDelta(angleAround(planet, e.pos), angleAround(planet, p.pos))) * planet.r;
-        if (e.kind === "hopper" && surfaceGap > 300 && ai.cooldown <= 0) {
+        if (surfaceGap > samePlanetLeapGap && ai.cooldown <= 0) {
           ai.state = "leapWait";
           ai.t = 0.15;
           break;
@@ -348,14 +349,47 @@ function updateRaider(ctx: Ctx, e: Entity): void {
   }
 }
 
+function hasLineOfSight(planets: Planet[], a: Vec, b: Vec): boolean {
+  const ab = sub(b, a);
+  const L2 = ab.x * ab.x + ab.y * ab.y || 1;
+  for (const pl of planets) {
+    const t = clamp(dot(sub(pl.pos, a), ab) / L2, 0, 1);
+    if (dist(add(a, scale(ab, t)), pl.pos) < pl.r - 4) return false;
+  }
+  return true;
+}
+
+/**
+ * The Hammer: a fast boss that chases and leaps at you, and pounds the ground on every landing
+ * (a ring around the planet, both ways; be airborne). Throws heavy debris only with a clear
+ * line to you, and keeps calling in pods while it lives. Phase two at half health: quicker
+ * rings, four rocks, more pods.
+ */
 function updateBoss(ctx: Ctx, e: Entity): void {
-  const { s, dt } = ctx;
+  const { s, dt, rng } = ctx;
   const p = player(s);
-  const def = ENEMY_DEFS.accretor;
+  const def = ENEMY_DEFS.hammer;
   const ai = e.ai;
   const phase2 = ai.phase === 2;
+  const airborne = e.planet === null;
 
-  if (e.planet === null) {
+  if (ai.wasAirborne && !airborne && ai.state !== "slam" && ai.state !== "recover") {
+    ai.state = "slam";
+    ai.t = 0.35;
+    stopWalking(ctx, e);
+    s.telegraphs.push({ id: s.nextId++, kind: "slam", pos: e.pos, radius: s.planets[e.planet!].r + 40, t: ai.t, total: ai.t, owner: e.id });
+    emit(s, { type: "telegraph", kind: "slam", pos: e.pos });
+  }
+  ai.wasAirborne = airborne;
+
+  ai.timer -= dt;
+  if (ai.timer <= 0) {
+    ai.timer = phase2 ? 4.5 : 6.5;
+    const others = s.entities.filter((x) => x.kind !== "player" && x.kind !== "hammer" && !x.dead).length;
+    if (others < 4) spawnEnemyPod(ctx, rng.chance(0.6) ? "grunt" : "hopper", p.planet ?? dominantPlanet(s.planets, p.pos).id, false);
+  }
+
+  if (airborne) {
     e.airTime += dt;
     if (e.airTime > 3) {
       const { planet } = nearestPlanet(s.planets, e.pos);
@@ -363,61 +397,15 @@ function updateBoss(ctx: Ctx, e: Entity): void {
     }
     return;
   }
-  const planet = s.planets[e.planet];
-  if (ai.state === "leaping") ai.state = "idle";
-  const playerHere = p.planet === e.planet || (p.planet === null && dominantPlanet(s.planets, p.pos).id === e.planet);
-  const abilityCd = phase2 ? 3.2 : 4.8;
-
-  // special ability cycle runs on its own timer, on top of normal walker behaviour
-  if (["idle", "walk", "leapWait"].includes(ai.state) && ai.cooldown <= 0 && (ai.t <= 0 || ai.state !== "leapWait")) {
-    const choice = ai.rot % 3;
-    ai.rot++;
-    const kind = !playerHere ? "throw" : choice === 0 ? "pull" : choice === 1 ? "slam" : "throw";
-    ai.state = kind;
-    ai.t = kind === "pull" ? 1.0 : kind === "slam" ? 0.75 : 0.6;
-    stopWalking(ctx, e);
-    s.telegraphs.push({ id: s.nextId++, kind, pos: e.pos, radius: kind === "pull" ? 520 : kind === "slam" ? planet.r + 40 : 60, t: ai.t, total: ai.t, owner: e.id });
-    emit(s, { type: "telegraph", kind, pos: e.pos });
-    ai.cooldown = abilityCd;
-    return;
-  }
+  const planet = s.planets[e.planet!];
 
   switch (ai.state) {
-    case "pull": {
-      ai.t -= dt;
-      if (ai.t <= 0) {
-        if (ai.t > -1.4) {
-          // pulling phase
-          const toB = sub(e.pos, p.pos);
-          const d = len(toB);
-          if (d < 560 && !s.over) {
-            p.vel = add(p.vel, scale(norm(toB), (phase2 ? 1900 : 1500) * dt));
-            if (p.planet !== null && d > 90) {
-              // drag the player off the surface so the pull is felt
-              p.planet = null;
-            }
-          }
-          for (const dbr of s.debris) {
-            const td = sub(e.pos, dbr.pos);
-            if (len(td) < 700) dbr.vel = add(dbr.vel, scale(norm(td), 900 * dt));
-          }
-        } else {
-          ai.state = "slam";
-          ai.t = 0.6;
-          s.telegraphs.push({ id: s.nextId++, kind: "slam", pos: e.pos, radius: planet.r + 40, t: 0.6, total: 0.6, owner: e.id });
-          emit(s, { type: "telegraph", kind: "slam", pos: e.pos });
-        }
-      }
-      break;
-    }
     case "slam": {
       ai.t -= dt;
       if (ai.t <= 0) {
-        const a = angleAround(planet, e.pos);
-        spawnShockwave(s, planet.id, a, def.damage * 0.85, false, phase2 ? 3.8 : 3.2);
+        spawnShockwave(s, planet.id, angleAround(planet, e.pos), def.damage * 0.85, false, phase2 ? 4 : 3.4);
         ai.state = "recover";
-        ai.t = phase2 ? 0.35 : 0.6;
-        ai.secondRing = phase2;
+        ai.t = phase2 ? 0.3 : 0.55;
       }
       break;
     }
@@ -427,39 +415,32 @@ function updateBoss(ctx: Ctx, e: Entity): void {
         const n = phase2 ? 4 : 3;
         for (let i = 0; i < n; i++) {
           const spread = (i - (n - 1) / 2) * 0.18;
-          const base = angleOf(sub(p.pos, e.pos)) + spread;
-          const dir = fromAngle(base);
-          const speed = 470 + i * 20;
+          const dir = fromAngle(angleOf(sub(p.pos, e.pos)) + spread);
           spawnDebris(ctx, add(e.pos, scale(dir, e.radius + 12)), { x: 0, y: 0 }, 1, def.hue, true, 0.01);
           const dbr = s.debris[s.debris.length - 1];
-          dbr.vel = scale(dir, speed);
+          dbr.vel = scale(dir, 470 + i * 20);
           dbr.life = 6;
         }
         ai.state = "recover";
-        ai.t = 0.7;
+        ai.t = 0.6;
       }
       break;
     }
-    case "recover": {
+    case "recover":
       ai.t -= dt;
-      if (ai.t <= 0) {
-        if (ai.secondRing) {
-          ai.secondRing = false;
-          spawnShockwave(s, planet.id, angleAround(planet, e.pos) + Math.PI, def.damage * 0.6, false, 4.2);
-        }
-        ai.state = "idle";
-      }
+      if (ai.t <= 0) ai.state = "idle";
       break;
-    }
     default: {
-      // phase 2 escorts, once
-      if (phase2 && !ai.escorted) {
-        ai.escorted = true;
-        spawnEnemyPod(ctx, "orbiter", planet.id, false);
-        spawnEnemyPod(ctx, "orbiter", planet.id, false);
+      if (ai.cooldown <= 0 && dist(p.pos, e.pos) < 720 && hasLineOfSight(s.planets, e.pos, p.pos)) {
+        ai.state = "throw";
+        ai.t = 0.6;
+        stopWalking(ctx, e);
+        s.telegraphs.push({ id: s.nextId++, kind: "throw", pos: e.pos, radius: 60, t: ai.t, total: ai.t, owner: e.id });
+        emit(s, { type: "telegraph", kind: "throw", pos: e.pos });
+        ai.cooldown = phase2 ? 3 : 4;
+        return;
       }
-      updateWalker(ctx, e, def.speed * (phase2 ? 1.25 : 1), def.leapSpeed, def.leapDelay);
+      updateWalker(ctx, e, def.speed * (phase2 ? 1.25 : 1), def.leapSpeed, def.leapDelay, 240);
     }
   }
 }
-

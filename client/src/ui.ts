@@ -83,7 +83,7 @@ export class UI {
       this.lastScore = s.score;
     }
     this.bestEl.textContent = `BEST ${Math.max(best, s.score)}`;
-    const boss = s.entities.find((e) => e.kind === "accretor" && !e.dead && e.spawnT <= 0);
+    const boss = s.entities.find((e) => e.kind === "hammer" && !e.dead && e.spawnT <= 0);
     this.bossBar.classList.toggle("hidden", !boss);
     if (boss) this.bossFill.style.width = `${Math.max(0, (boss.hp / boss.maxHp) * 100)}%`;
     this.fpsEl.classList.toggle("hidden", fps === null);

@@ -63,7 +63,7 @@ instant and cancels a wind-up, not an active swing.
 | Bulwark | slow, heavy, 78% knockback resist | launch-strikes, debris, impacts |
 | Flak | goes to a planet you're not on, lines up under you, fires straight up | moving; punishes camping one spot |
 | Raider | never lands; patrols the outer ring toward your bearing, fires 3-shot spreads inward | staying off the outside of outer planets; the gun (a slug can knock it into the void) |
-| The Accretor (boss, every 5 waves) | pull → slam, rock throws, phase 2 escorts | being airborne at the right moment |
+| The Hammer (boss, every 5 waves) | fast chaser that leaps at you; every landing is a full-ring ground pound; heavy-debris shotgun only with line of sight; calls a pod every 6.5s (4.5s in phase 2, capped at 4 alive) | being airborne when it lands; fighting near the middle |
 
 Elites (from wave 4): 1.6× HP, 1.2× speed, gold ring, double score.
 

@@ -309,16 +309,6 @@ export class Renderer {
         ctx.lineTo(owner.pos.x + dir.x * 700, owner.pos.y + dir.y * 700);
         ctx.stroke();
         ctx.setLineDash([]);
-      } else if (t.kind === "pull") {
-        const r = t.radius * (1 - k * 0.85);
-        ctx.strokeStyle = hsl(285, 100, 70, 0.3 + k * 0.5);
-        ctx.lineWidth = 3;
-        ctx.setLineDash([14, 10]);
-        ctx.lineDashOffset = this.t * 80;
-        ctx.beginPath();
-        ctx.arc(owner.pos.x, owner.pos.y, r, 0, 6.283);
-        ctx.stroke();
-        ctx.setLineDash([]);
       } else if (t.kind === "slam") {
         const pl = owner.planet !== null ? s.planets[owner.planet] : null;
         if (!pl) continue;
@@ -727,7 +717,7 @@ export class Renderer {
     const flash = stunned && Math.floor(this.t * 40) % 2 === 0;
     const stroke = flash ? "#ffffff" : hsl(hue, 95, 65);
     const fill = flash ? "rgba(255,255,255,0.7)" : hsl(hue, 60, 14);
-    ctx.lineWidth = e.kind === "accretor" ? 3.5 : 2;
+    ctx.lineWidth = e.kind === "hammer" ? 3.5 : 2;
     ctx.strokeStyle = stroke;
     ctx.fillStyle = fill;
 
@@ -804,15 +794,13 @@ export class Renderer {
       for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.283; ctx.lineTo(Math.cos(a) * r * 0.55, Math.sin(a) * r * 0.55); }
       ctx.closePath(); ctx.stroke();
     } else {
-      // accretor
+      // the hammer: a blunt head across the front, a short haft behind, a hot core
       ctx.save();
-      ctx.rotate(this.t * 0.6);
+      ctx.rotate(facing);
       ctx.beginPath();
-      for (let i = 0; i < 16; i++) {
-        const a = (i / 16) * 6.283;
-        const rr = i % 2 === 0 ? r : r * 0.78;
-        ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
-      }
+      ctx.moveTo(r * 0.9, -r * 1.1); ctx.lineTo(r * 1.15, -r * 0.7); ctx.lineTo(r * 1.15, r * 0.7); ctx.lineTo(r * 0.9, r * 1.1);
+      ctx.lineTo(r * 0.2, r * 0.75); ctx.lineTo(-r * 0.3, r * 0.35); ctx.lineTo(-r * 1.1, r * 0.3); ctx.lineTo(-r * 1.1, -r * 0.3);
+      ctx.lineTo(-r * 0.3, -r * 0.35); ctx.lineTo(r * 0.2, -r * 0.75);
       ctx.closePath(); ctx.fill(); ctx.stroke();
       ctx.restore();
       ctx.globalCompositeOperation = "lighter";
@@ -833,7 +821,7 @@ export class Renderer {
     ctx.restore();
 
     // hp bar
-    if (e.hp < e.maxHp && e.kind !== "accretor") {
+    if (e.hp < e.maxHp && e.kind !== "hammer") {
       const w = r * 2.4, h = 3;
       const x = e.pos.x - w / 2, y = e.pos.y - r - 10;
       ctx.fillStyle = "rgba(0,0,0,0.6)";

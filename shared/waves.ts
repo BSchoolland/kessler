@@ -14,7 +14,7 @@ function compose(ctx: Ctx, n: number, sector: number): WaveState["queue"] {
   const queue: WaveState["queue"] = [];
   const boss = n % WAVES.bossEvery === 0;
   if (boss) {
-    queue.push({ at: 0.5, kind: "accretor", elite: false });
+    queue.push({ at: 0.5, kind: "hammer", elite: false });
     const escorts = 2 + sector * 2;
     for (let i = 0; i < escorts; i++) queue.push({ at: 2 + i * 1.5, kind: rng.chance(0.6) ? "grunt" : "hopper", elite: false });
     return queue;
@@ -76,7 +76,7 @@ export function updateWave(ctx: Ctx): void {
         const p = player(s);
         // prefer planets the player isn't standing on, boss always takes the big one
         const candidates = s.planets.filter((pl) => pl.id !== p.planet);
-        const target = item.kind === "accretor" ? s.planets[0] : rng.pick(candidates.length ? candidates : s.planets);
+        const target = item.kind === "hammer" ? s.planets[0] : rng.pick(candidates.length ? candidates : s.planets);
         spawnEnemyPod(ctx, item.kind, target.id, item.elite);
       }
       if (!w.queue.length) w.phase = "fighting";

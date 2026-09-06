@@ -15,7 +15,7 @@ export interface Planet {
   seed: number;
 }
 
-export type EnemyKind = "grunt" | "hopper" | "orbiter" | "bulwark" | "flak" | "raider" | "accretor";
+export type EnemyKind = "grunt" | "hopper" | "orbiter" | "bulwark" | "flak" | "raider" | "hammer";
 
 export type EntityKind = "player" | EnemyKind;
 
@@ -74,15 +74,14 @@ export interface OrbitState {
 }
 
 export interface AiState {
-  state: "idle" | "walk" | "leapWait" | "leaping" | "windup" | "attack" | "recover" | "aim" | "cast" | "pull" | "slam" | "throw";
+  state: "idle" | "walk" | "leapWait" | "leaping" | "windup" | "attack" | "recover" | "aim" | "cast" | "slam" | "throw";
   t: number;
   target: Vec | null;
   cooldown: number;
   phase: number;
   rot: number;
-  secondRing: boolean;
-  escorted: boolean;
-  hop: number;               // orbiters: seconds until they consider hopping to the player's planet
+  wasAirborne: boolean;      // the boss pounds the ground on every landing
+  timer: number;             // orbiters: seconds until they consider hopping; the boss: seconds until it calls a pod
 }
 
 export interface Debris {
@@ -137,7 +136,7 @@ export interface Shockwave {
 
 export interface Telegraph {
   id: number;
-  kind: "pull" | "slam" | "throw" | "shot";
+  kind: "slam" | "throw" | "shot";
   pos: Vec;
   radius: number;
   t: number;

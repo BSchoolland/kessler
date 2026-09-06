@@ -175,7 +175,7 @@ export function resolveContactDamage(ctx: Ctx): void {
     if (dist(e.pos, p.pos) >= e.radius + p.radius + 2) continue;
     const def = ENEMY_DEFS[e.kind as EnemyKind];
     // the boss also pulls you into itself, so its touch is softer than its slam
-    const mult = (e.elite ? 1.2 : 1) * (e.kind === "accretor" ? 0.6 : 1);
+    const mult = (e.elite ? 1.2 : 1) * (e.kind === "hammer" ? 0.6 : 1);
     if (damagePlayer(ctx, Math.round(def.damage * mult), "contact")) {
       e.contactCd = PLAYER.contactCd;
       const away = norm(sub(p.pos, e.pos));

@@ -44,9 +44,9 @@ export const ENEMY_DEFS: Record<EnemyKind, EnemyDef> = {
     name: "Raider", hp: 120, radius: 20, speed: 150, damage: 12, reach: 1000, windup: 0.55, attack: 0.1,
     recover: 2.4, knockbackResist: 0.55, leapSpeed: 0, leapDelay: 0, cost: 4, minWave: 4, score: 30, hue: 15,
   },
-  accretor: {
-    name: "The Accretor", hp: 1625, radius: 32, speed: 92, damage: 30, reach: 84, windup: 0.8, attack: 0.25,
-    recover: 1.0, knockbackResist: 0.93, leapSpeed: 400, leapDelay: 3, cost: 0, minWave: 5, score: 400, hue: 285,
+  hammer: {
+    name: "The Hammer", hp: 1150, radius: 30, speed: 165, damage: 26, reach: 84, windup: 0.6, attack: 0.25,
+    recover: 0.6, knockbackResist: 0.9, leapSpeed: 540, leapDelay: 1.1, cost: 0, minWave: 5, score: 400, hue: 330,
   },
 };
 

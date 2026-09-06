@@ -36,7 +36,7 @@ export function applyEvents(s: GameState, events: GameEvent[], particles: Partic
       }
       case "kill": {
         const hue = ENEMY_DEFS[ev.kind as keyof typeof ENEMY_DEFS]?.hue ?? 0;
-        const boss = ev.kind === "accretor";
+        const boss = ev.kind === "hammer";
         particles.burst(ev.pos, boss ? 90 : 22, { color: hsl(hue, 95, 65), speed: boss ? 600 : 320, shape: "shard", size: boss ? 7 : 4, max: boss ? 1.4 : 0.7, vx: ev.vel.x * 0.3, vy: ev.vel.y * 0.3 });
         particles.burst(ev.pos, boss ? 60 : 14, { color: "#ffffff", speed: boss ? 500 : 260, shape: "dot", size: 3, max: 0.5 });
         particles.ring(ev.pos, hsl(hue, 95, 70), boss ? 260 : 60, boss ? 0.9 : 0.4);
@@ -44,7 +44,7 @@ export function applyEvents(s: GameState, events: GameEvent[], particles: Partic
         const label = SOURCE_LABEL[ev.source];
         if (label) particles.float(scale({ x: ev.pos.x, y: ev.pos.y - 18 }, 1), label, hsl(hue, 95, 75), 14);
         sfx(boss ? "bossKill" : "kill", ev.pos);
-        if (boss) hooks.banner("THE ACCRETOR IS DOWN", "sector cleared", "clear");
+        if (boss) hooks.banner("THE HAMMER IS DOWN", "sector cleared", "clear");
         break;
       }
       case "impact": {
@@ -90,7 +90,7 @@ export function applyEvents(s: GameState, events: GameEvent[], particles: Partic
         play("death");
         break;
       case "waveStart":
-        if (ev.boss) { hooks.banner("THE ACCRETOR", `wave ${ev.wave} · it wants you closer`, "boss"); play("boss"); }
+        if (ev.boss) { hooks.banner("THE HAMMER", `wave ${ev.wave} · it jumps. it lands. move.`, "boss"); play("boss"); }
         else { hooks.banner(`WAVE ${ev.wave}`, undefined, "wave"); play("wave", 0.7); }
         break;
       case "waveClear":
@@ -114,9 +114,7 @@ export function applyEvents(s: GameState, events: GameEvent[], particles: Partic
         sfx("rocket", ev.pos, 0.8);
         break;
       case "telegraph":
-        if (ev.kind === "shot") sfx("telegraph", ev.pos, 0.5);
-        else if (ev.kind === "pull") sfx("pull", ev.pos, 0.8);
-        else sfx("telegraph", ev.pos, 0.8);
+        sfx("telegraph", ev.pos, ev.kind === "shot" ? 0.5 : 0.8);
         break;
       case "shockwave":
         cam.addTrauma(0.35);
@@ -127,7 +125,7 @@ export function applyEvents(s: GameState, events: GameEvent[], particles: Partic
         sfx("edgeWave", ev.pos, 0.7);
         break;
       case "bossPhase":
-        hooks.banner("IT'S ANGRY NOW", "phase two", "phase");
+        hooks.banner("IT'S ANGRY NOW", "phase two: quicker, four rocks, more friends", "phase");
         particles.ring(ev.pos, hsl(285, 100, 70), 300, 1);
         cam.addTrauma(0.6);
         play("phase");
