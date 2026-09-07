@@ -16,6 +16,7 @@ import { audioContext, play, setIntensity, setMusicVolume, setSfxVolume, setThru
 import { UI } from "./ui";
 import { Bestiary } from "./bestiary";
 import { TouchIcons } from "./touchicons";
+import { deviceFacts, installErrorLogging, log } from "./telemetry";
 import { botInput } from "../../shared/bot";
 import { Rng } from "../../shared/rng";
 
@@ -358,7 +359,13 @@ function bindMenu(): void {
 
 // the stage fills the window; on a touch device held portrait it is rotated so the game stays landscape
 const stage = document.getElementById("stage")!;
-const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && !("MSStream" in window);
+// iPhone Safari is the one browser with no fullscreen API and a toolbar that only a finger swipe collapses.
+// iPads (mobile or desktop UA) have the fullscreen API and a toolbar that never collapses, so no gate there.
+const IPHONE = /iPhone|iPod/.test(navigator.userAgent);
+const IPAD = /iPad/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const IOS = IPHONE;
+installErrorLogging();
+log("start", deviceFacts());
 // a phone is a phone before it's touched: coarse pointer means touch layout and rotation from the first frame
 const TOUCH = window.matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
 if (TOUCH) input.usingTouch = true;
@@ -383,6 +390,8 @@ if (IOS && !STANDALONE) document.documentElement.classList.add("ios-browser");
  * page is scrolled by a finger. The page is taller than the viewport for exactly that; this overlay asks
  * for the swipe and goes away once the viewport has grown to the full screen height.
  */
+let gateShownAt = 0;
+let gateGivenUp = false;
 function updateSwipeHint(): void {
   const el = document.getElementById("swipe")!;
   const landscape = window.innerWidth > window.innerHeight;
@@ -391,9 +400,16 @@ function updateSwipeHint(): void {
   const collapsed = landscape ? h >= Math.min(screen.width, screen.height) - 6 : h >= Math.max(screen.width, screen.height) - 110 || h > baseHeight + 25;
   // the on-screen keyboard also shrinks the viewport; that's not Safari's bars
   const typing = document.activeElement instanceof HTMLInputElement;
-  const show = IOS && !STANDALONE && !collapsed && !typing;
+  const show = IOS && !STANDALONE && !collapsed && !typing && !gateGivenUp;
+  const was = !el.classList.contains("hidden");
   el.classList.toggle("hidden", !show);
+  if (show && !was) { gateShownAt = performance.now(); log("gate", { shown: true, inner: [window.innerWidth, window.innerHeight], screen: [screen.width, screen.height] }); }
+  if (!show && was) log("gate", { shown: false, collapsed, typing, inner: [window.innerWidth, window.innerHeight] });
+  // a device where the swipe can't do anything must not be locked out: after a while offer a way through
+  document.getElementById("swipe-through")!.classList.toggle("hidden", !(show && performance.now() - gateShownAt > 6000));
 }
+window.setInterval(() => { if (!document.getElementById("swipe")!.classList.contains("hidden")) updateSwipeHint(); }, 1000);
+document.getElementById("swipe-through")!.addEventListener("click", () => { gateGivenUp = true; log("gate", { gaveUp: true }); updateSwipeHint(); });
 function collapseBar(): void {
   updateSwipeHint();
 }
@@ -434,10 +450,11 @@ function enterFullscreen(): void {
   collapseBar();
   if (req && !document.fullscreenElement) {
     req().then(() => {
+      log("fullscreen", { ok: true });
       const so = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> };
       return so.lock?.("landscape");
-    }).catch((err: unknown) => console.info("fullscreen/orientation not available:", err));
-  } else if (IOS && !standalone && !profile.iosHintShown) {
+    }).catch((err: unknown) => { console.info("fullscreen/orientation not available:", err); log("fullscreen", { ok: false, err: String(err) }); });
+  } else if ((IOS || IPAD) && !standalone && !profile.iosHintShown) {
     profile.iosHintShown = true;
     saveProfile(profile);
     const hint = document.getElementById("ios-hint")!;

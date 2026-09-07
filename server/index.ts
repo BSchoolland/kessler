@@ -61,6 +61,23 @@ api.post("/scores", (req, res) => {
 
 api.get("/health", (_req, res) => res.json({ ok: true, boards: Object.keys(boards).length }));
 
+// Client telemetry: device info at start, JS errors, fullscreen/gate events. One JSON line each, capped file.
+const LOG = path.join(DATA_DIR, "client-log.jsonl");
+const LOG_MAX = 8 * 1024 * 1024;
+api.post("/log", (req, res) => {
+  const b = req.body;
+  if (!b || typeof b !== "object" || typeof b.event !== "string") return res.status(400).json({ error: "bad log" });
+  const line = JSON.stringify({ at: new Date().toISOString(), ...b }).slice(0, 4000);
+  if (fs.existsSync(LOG) && fs.statSync(LOG).size > LOG_MAX) fs.renameSync(LOG, LOG + ".1");
+  fs.appendFileSync(LOG, line + "\n");
+  res.status(204).end();
+});
+api.get("/log", (req, res) => {
+  const n = Math.min(500, Math.max(1, Number(req.query.n ?? 100)));
+  const lines = fs.existsSync(LOG) ? fs.readFileSync(LOG, "utf8").trim().split("\n") : [];
+  res.type("text/plain").send(lines.slice(-n).join("\n"));
+});
+
 const clientDir = path.join(root, "dist", "client");
 app.use("/kessler", express.static(clientDir, { maxAge: "1h", index: "index.html" }));
 app.use(express.static(clientDir, { maxAge: "1h", index: "index.html" }));
