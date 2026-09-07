@@ -8,6 +8,24 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="theme-color" content="#04050a" />
 <link rel="manifest" href="./manifest.webmanifest" />
+<script>
+// Early error beacon: reports script failures even when the main bundle never gets going (old Safari, syntax it can't parse).
+(function () {
+  var base = (location.pathname.indexOf("/kessler") === 0 ? "/kessler" : "") + "/api/log";
+  function send(ev, data) {
+    try {
+      data.session = "early"; data.event = ev; data.ua = navigator.userAgent; data.inner = [innerWidth, innerHeight];
+      var body = JSON.stringify(data);
+      if (!(navigator.sendBeacon && navigator.sendBeacon(base, new Blob([body], { type: "application/json" })))) {
+        var x = new XMLHttpRequest(); x.open("POST", base, true); x.setRequestHeader("content-type", "application/json"); x.send(body);
+      }
+    } catch (e) {}
+  }
+  window.addEventListener("error", function (e) { send("early-error", { message: e.message, source: e.filename, line: e.lineno, col: e.colno, stack: e.error && e.error.stack ? String(e.error.stack).slice(0, 1500) : "" }); });
+  window.addEventListener("unhandledrejection", function (e) { send("early-rejection", { reason: String(e.reason).slice(0, 1500) }); });
+  window.__kesslerEarlyLog = send;
+})();
+</script>
 <title>KESSLER</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />

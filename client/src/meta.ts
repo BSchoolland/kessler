@@ -30,14 +30,18 @@ const defaults: Profile = {
   tutorialDone: false,
 };
 
+// JSON round-trip rather than structuredClone: that API is missing on Safari before 15.4 (older iPads)
+const clone = (p: Profile): Profile => JSON.parse(JSON.stringify(p)) as Profile;
+
 export function loadProfile(): Profile {
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return structuredClone(defaults);
+    if (!raw) return clone(defaults);
     const parsed = JSON.parse(raw) as Partial<Profile>;
-    return { ...structuredClone(defaults), ...parsed, settings: { ...defaults.settings, ...(parsed.settings ?? {}) } };
-  } catch {
-    return structuredClone(defaults);
+    return { ...clone(defaults), ...parsed, settings: { ...defaults.settings, ...(parsed.settings ?? {}) } };
+  } catch (err) {
+    console.warn("profile unreadable, starting fresh:", err);
+    return clone(defaults);
   }
 }
 

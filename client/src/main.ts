@@ -1,3 +1,4 @@
+import { deviceFacts, installErrorLogging, log } from "./telemetry";
 import { DT } from "../../shared/config";
 import { chooseUpgrade, createGame, step } from "../../shared/sim";
 import { damageEnemy, placePlayer } from "../../shared/actions";
@@ -16,9 +17,11 @@ import { audioContext, play, setIntensity, setMusicVolume, setSfxVolume, setThru
 import { UI } from "./ui";
 import { Bestiary } from "./bestiary";
 import { TouchIcons } from "./touchicons";
-import { deviceFacts, installErrorLogging, log } from "./telemetry";
 import { botInput } from "../../shared/bot";
 import { Rng } from "../../shared/rng";
+
+installErrorLogging();
+log("start", deviceFacts());
 
 // debug/playtest params: ?bot=1 drives the player with the balance bot, ?seed=N fixes the seed, ?wave=N starts there,
 // ?god=1 keeps the player alive, ?smite=1 chips bosses down so a boss wave can be watched end to end
@@ -364,8 +367,6 @@ const stage = document.getElementById("stage")!;
 const IPHONE = /iPhone|iPod/.test(navigator.userAgent);
 const IPAD = /iPad/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 const IOS = IPHONE;
-installErrorLogging();
-log("start", deviceFacts());
 // a phone is a phone before it's touched: coarse pointer means touch layout and rotation from the first frame
 const TOUCH = window.matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
 if (TOUCH) input.usingTouch = true;
